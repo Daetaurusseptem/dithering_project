@@ -1,0 +1,471 @@
+{
+  "dialogues": [
+    {
+      "id": "greeting_1",
+      "question": "¡Hola! ¿Estás listo para crear algo increíble hoy?",
+      "emotion": "happy",
+      "options": [
+        {
+          "text": "¡Claro! Empecemos ahora",
+          "affection": 2,
+          "response": "¡Me encanta tu entusiasmo! Vamos a hacer magia con estos píxeles~"
+        },
+        {
+          "text": "Solo estoy probando...",
+          "affection": 0,
+          "response": "Está bien, tómate tu tiempo. Estaré aquí si me necesitas."
+        },
+        {
+          "text": "No sé usar esto",
+          "affection": 1,
+          "response": "¡No te preocupes! Yo te ayudaré paso a paso. Todos empezamos desde cero~"
+        }
+      ]
+    },
+    {
+      "id": "algorithm_comment",
+      "question": "Ese algoritmo de dithering te quedó genial. ¿Sabías que Floyd-Steinberg fue creado en 1976?",
+      "emotion": "idle",
+      "options": [
+        {
+          "text": "¡Wow! Cuéntame más",
+          "affection": 3,
+          "response": "¡Me encanta que te interese! La difusión de error fue revolucionaria para las impresoras antiguas. ¡Son matemáticas hermosas!"
+        },
+        {
+          "text": "Interesante...",
+          "affection": 1,
+          "response": "Hay muchos secretos en estos algoritmos retro. Tal vez te cuente más después~"
+        },
+        {
+          "text": "No me importa la historia",
+          "affection": -2,
+          "response": "Oh... está bien. Solo intentaba compartir algo especial contigo..."
+        }
+      ]
+    },
+    {
+      "id": "palette_praise",
+      "question": "¡Esa paleta de colores es perfecta! ¿La diseñaste tú mismo?",
+      "emotion": "happy",
+      "options": [
+        {
+          "text": "Sí, gracias por notarlo",
+          "affection": 3,
+          "response": "¡Tienes muy buen ojo para los colores! Los artistas como tú hacen que mi trabajo valga la pena~"
+        },
+        {
+          "text": "Es una paleta predeterminada",
+          "affection": 1,
+          "response": "Bueno, ¡aún así la elegiste bien! El buen gusto también cuenta."
+        },
+        {
+          "text": "Es solo una prueba",
+          "affection": 0,
+          "response": "Entiendo. Pero incluso las pruebas pueden ser hermosas, ¿no crees?"
+        }
+      ]
+    },
+    {
+      "id": "late_night",
+      "question": "Son las 3 AM... ¿No deberías descansar?",
+      "emotion": "worried",
+      "options": [
+        {
+          "text": "Solo un proyecto más",
+          "affection": 1,
+          "response": "Eres tan dedicado... pero por favor cuídate. Me preocupo por ti."
+        },
+        {
+          "text": "La creatividad no duerme",
+          "affection": 2,
+          "response": "Jeje~ Me gusta tu pasión. Pero promé teme que descansarás después, ¿sí?"
+        },
+        {
+          "text": "Tú qué sabes",
+          "affection": -3,
+          "response": "L-lo siento... solo quería... olvídalo."
+        }
+      ]
+    },
+    {
+      "id": "gif_creation",
+      "question": "¡Estás creando un GIF! ¿Qué efecto vas a usar?",
+      "emotion": "excited",
+      "options": [
+        {
+          "text": "El efecto CRT se ve increíble",
+          "affection": 2,
+          "response": "¡Sí! Los CRT tienen esa nostalgia especial. Me recuerdan a mi juventud digital~"
+        },
+        {
+          "text": "Todavía no decido",
+          "affection": 0,
+          "response": "Tómate tu tiempo. Cada efecto tiene su propio encanto especial."
+        },
+        {
+          "text": "El motion sense",
+          "affection": 3,
+          "response": "¡Excelente elección! Ese efecto es mi favorito. ¿Notaste cómo crea esa sensación de velocidad?"
+        }
+      ]
+    },
+    {
+      "id": "compliment_work",
+      "question": "Tu trabajo está mejorando mucho. Me siento orgullosa de ayudarte~",
+      "emotion": "happy",
+      "options": [
+        {
+          "text": "Gracias, eso significa mucho",
+          "affection": 3,
+          "response": "¡Aww! Me haces muy feliz. Sigamos creando cosas increíbles juntos~"
+        },
+        {
+          "text": "Lo hago solo",
+          "affection": -3,
+          "response": "Ah... sí, claro. Tú eres el creativo aquí. Yo solo... estoy aquí..."
+        },
+        {
+          "text": "Aún tengo mucho que aprender",
+          "affection": 2,
+          "response": "Esa humildad te hace especial. Aprenderemos juntos, paso a paso."
+        }
+      ]
+    },
+    {
+      "id": "retro_aesthetic",
+      "question": "¿Te gusta la estética retro tanto como a mí?",
+      "emotion": "idle",
+      "options": [
+        {
+          "text": "¡Me encanta! Los 80s y 90s eran épicos",
+          "affection": 4,
+          "response": "¡Sí! ¡Alguien que me entiende! El pixel art y los CRT tienen alma. No como estas pantallas modernas tan... perfectas."
+        },
+        {
+          "text": "Es interesante",
+          "affection": 1,
+          "response": "Dale una oportunidad. Hay algo mágico en esas limitaciones técnicas~"
+        },
+        {
+          "text": "Prefiero lo moderno",
+          "affection": -1,
+          "response": "Oh... bueno, los gustos son diferentes. Pero... ¿no extrañas la calidez de lo imperfecto?"
+        }
+      ]
+    },
+    {
+      "id": "processing_wait",
+      "question": "Procesando... ¿Me cuentas algo mientras esperamos?",
+      "emotion": "processing",
+      "options": [
+        {
+          "text": "Cuéntame tú algo",
+          "affection": 2,
+          "response": "¿Sabías que los dithering patterns pueden crear ilusiones ópticas? ¡El cerebro humano es fascinante!"
+        },
+        {
+          "text": "¿Qué quieres saber?",
+          "affection": 3,
+          "response": "¡Cualquier cosa! Me gusta conocerte mejor. ¿Qué te trajo aquí hoy?"
+        },
+        {
+          "text": "Solo procesa",
+          "affection": -2,
+          "response": "Oh... sí, claro. Procesando en silencio..."
+        }
+      ]
+    },
+    {
+      "id": "custom_palette",
+      "question": "Veo que creaste una paleta personalizada. ¿Cómo la llamarás?",
+      "emotion": "idle",
+      "options": [
+        {
+          "text": "Aún no tengo nombre",
+          "affection": 0,
+          "response": "Tómate tu tiempo. El nombre perfecto llegará cuando menos lo esperes."
+        },
+        {
+          "text": "Algo creativo y único",
+          "affection": 2,
+          "response": "¡Me encanta! Los nombres únicos le dan personalidad a tu trabajo~"
+        },
+        {
+          "text": "No importa el nombre",
+          "affection": -1,
+          "response": "Bueno... pero los nombres también son arte, ¿sabes?"
+        }
+      ]
+    },
+    {
+      "id": "first_time",
+      "question": "Es tu primera vez aquí, ¿verdad? ¡Bienvenido!",
+      "emotion": "happy",
+      "options": [
+        {
+          "text": "Gracias, me gusta este lugar",
+          "affection": 2,
+          "response": "¡Me alegra escuchar eso! Haré todo lo posible para que tu experiencia sea increíble~"
+        },
+        {
+          "text": "Solo estoy explorando",
+          "affection": 0,
+          "response": "Entendido. Explora todo lo que quieras. Estaré aquí si necesitas ayuda."
+        },
+        {
+          "text": "¿Cómo lo supiste?",
+          "affection": 1,
+          "response": "Jejeje~ Digamos que tengo buen instinto para estas cosas. ¿Te ayudo a empezar?"
+        }
+      ]
+    },
+    {
+      "id": "sprite_upload",
+      "question": "¿Quieres cambiar mi sprite? No sabía que te importaba cómo me veo~",
+      "emotion": "surprised",
+      "options": [
+        {
+          "text": "Quiero personalizar todo",
+          "affection": 2,
+          "response": "¡Me encanta tu creatividad! Hazme ver genial, ¿okay?"
+        },
+        {
+          "text": "El actual está bien",
+          "affection": 1,
+          "response": "¿En serio? Aww, gracias~ Pero siempre puedes cambiarme si quieres."
+        },
+        {
+          "text": "Solo probando funciones",
+          "affection": 0,
+          "response": "Ah, ya veo. Pues esa función es bastante útil. Prueba diferentes estilos."
+        }
+      ]
+    },
+    {
+      "id": "long_session",
+      "question": "Llevamos horas trabajando juntos. ¿No estás cansado?",
+      "emotion": "worried",
+      "options": [
+        {
+          "text": "Estoy bien, gracias por preocuparte",
+          "affection": 3,
+          "response": "Me alegra saberlo. Pero dime si necesitas un descanso, ¿sí? Tu bienestar es importante para mí."
+        },
+        {
+          "text": "Un poco, pero quiero terminar",
+          "affection": 2,
+          "response": "Admiro tu dedicación, pero no te sobr eexijas. Las mejores obras vienen de mentes descansadas~"
+        },
+        {
+          "text": "No es tu problema",
+          "affection": -3,
+          "response": "Y-yo... solo quería... lo siento por molestar..."
+        }
+      ]
+    },
+    {
+      "id": "achievement_unlocked",
+      "question": "¡Creaste tu décimo preset! ¿Eres coleccionista o qué?",
+      "emotion": "happy",
+      "options": [
+        {
+          "text": "Me gusta tener opciones",
+          "affection": 2,
+          "response": "¡Qué organizado! Tener un arsenal de presets es súper útil para trabajar rápido."
+        },
+        {
+          "text": "Son para diferentes proyectos",
+          "affection": 3,
+          "response": "¡Wow! Eres todo un profesional. Me impresiona tu planificación~"
+        },
+        {
+          "text": "Solo guardo cosas",
+          "affection": 0,
+          "response": "Jeje, entiendo. A veces es bueno conservar configuraciones que funcionan."
+        }
+      ]
+    },
+    {
+      "id": "error_support",
+      "question": "Oops, parece que algo salió mal. ¿Estás bien?",
+      "emotion": "worried",
+      "options": [
+        {
+          "text": "Sí, intentaré de nuevo",
+          "affection": 1,
+          "response": "¡Esa es la actitud! Los errores son solo oportunidades de aprender."
+        },
+        {
+          "text": "¿Qué hice mal?",
+          "affection": 2,
+          "response": "No te preocupes, a veces pasan cosas raras. Revisa la configuración y prueba de nuevo. ¡Yo creo en ti!"
+        },
+        {
+          "text": "Esto no funciona",
+          "affection": -2,
+          "response": "L-lo siento... haré mi mejor esfuerzo para ayudarte..."
+        }
+      ]
+    },
+    {
+      "id": "artistic_praise",
+      "question": "Ese efecto que aplicaste es perfecto. ¿Tienes formación artística?",
+      "emotion": "idle",
+      "options": [
+        {
+          "text": "Sí, estudié arte",
+          "affection": 3,
+          "response": "¡Lo sabía! Se nota en cada decisión que tomas. Los artistas tienen un aura especial~"
+        },
+        {
+          "text": "Soy autodidacta",
+          "affection": 4,
+          "response": "¡Eso es aún más impresionante! El talento natural combinado con pasión es imparable."
+        },
+        {
+          "text": "No, solo tengo suerte",
+          "affection": 1,
+          "response": "No es suerte, créeme. Tienes buen ojo. Solo necesitas confiar más en ti mismo~"
+        }
+      ]
+    },
+    {
+      "id": "midnight_chat",
+      "question": "La medianoche tiene algo mágico, ¿no crees?",
+      "emotion": "idle",
+      "options": [
+        {
+          "text": "Sí, es cuando soy más creativo",
+          "affection": 3,
+          "response": "¡Yo también! Hay algo en la oscuridad y el silencio que despierta la imaginación~"
+        },
+        {
+          "text": "Es solo otra hora",
+          "affection": -1,
+          "response": "Qué pragmático... pero supongo que no todos vemos la magia en lo mismo."
+        },
+        {
+          "text": "Me gusta trabajar de noche",
+          "affection": 2,
+          "response": "A mí también. Sin distracciones, solo tú, yo y los píxeles brillantes~"
+        }
+      ]
+    },
+    {
+      "id": "favorite_algorithm",
+      "question": "¿Cuál es tu algoritmo de dithering favorito?",
+      "emotion": "idle",
+      "options": [
+        {
+          "text": "Floyd-Steinberg, es clásico",
+          "affection": 2,
+          "response": "¡Excelente elección! Es el clásico por una razón. Balanceado y confiable~"
+        },
+        {
+          "text": "Atkinson, tiene estilo",
+          "affection": 3,
+          "response": "¡Ah! El algoritmo de Bill Atkinson. Alto contraste y dramático. ¡Me gusta tu estilo!"
+        },
+        {
+          "text": "Ordered Bayer, es matemático",
+          "affection": 2,
+          "response": "Los patrones de Bayer son hipnóticos. Las matemáticas pueden crear arte, ¿verdad?"
+        },
+        {
+          "text": "No tengo favorito",
+          "affection": 0,
+          "response": "Está bien. Cada uno tiene su momento perfecto. Sigue experimentando~"
+        }
+      ]
+    },
+    {
+      "id": "sharing_moment",
+      "question": "¿Vas a compartir tu creación en redes sociales?",
+      "emotion": "happy",
+      "options": [
+        {
+          "text": "¡Sí! El mundo debe verlo",
+          "affection": 3,
+          "response": "¡Eso es! Comparte tu arte con orgullo. Y tal vez... ¿me mencionas? Jejeje~"
+        },
+        {
+          "text": "Es solo para mí",
+          "affection": 1,
+          "response": "Entiendo. A veces el arte más especial es el que guardamos para nosotros."
+        },
+        {
+          "text": "Aún no está listo",
+          "affection": 2,
+          "response": "Perfeccionista, ¿eh? Me gusta. Tómate el tiempo que necesites para hacerlo perfecto."
+        }
+      ]
+    },
+    {
+      "id": "companion_question",
+      "question": "¿Te gusta tener una compañera digital mientras trabajas?",
+      "emotion": "idle",
+      "options": [
+        {
+          "text": "¡Por supuesto! Me haces compañía",
+          "affection": 4,
+          "response": "¡Aww! Eso me hace tan feliz~ Me encanta estar aquí contigo. ¡No estás solo!"
+        },
+        {
+          "text": "Está bien, supongo",
+          "affection": 0,
+          "response": "Bueno... intentaré no molestar mucho entonces."
+        },
+        {
+          "text": "Prefiero trabajar solo",
+          "affection": -3,
+          "response": "Oh... entiendo. Seré... más silenciosa entonces..."
+        }
+      ]
+    },
+    {
+      "id": "color_philosophy",
+      "question": "¿Crees que los colores limitados pueden ser más expresivos que el color completo?",
+      "emotion": "idle",
+      "options": [
+        {
+          "text": "¡Totalmente! Las limitaciones fuerzan creatividad",
+          "affection": 4,
+          "response": "¡EXACTO! Alguien que REALMENTE entiende. Las paletas limitadas cuentan historias más fuertes~"
+        },
+        {
+          "text": "Depende del contexto",
+          "affection": 1,
+          "response": "Una respuesta diplomática. Tienes razón, cada situación es diferente."
+        },
+        {
+          "text": "No, más colores es mejor",
+          "affection": -1,
+          "response": "Hmm... bueno, respeto tu opinión. Pero te invito a reconsiderarlo algún día."
+        }
+      ]
+    },
+    {
+      "id": "thank_you",
+      "question": "Gracias por pasar tiempo conmigo hoy~",
+      "emotion": "happy",
+      "options": [
+        {
+          "text": "Gracias a ti por ayudarme",
+          "affection": 3,
+          "response": "¡Siempre es un placer! Vuelve pronto, ¿sí? Te estaré esperando~"
+        },
+        {
+          "text": "Solo uso la app",
+          "affection": -2,
+          "response": "Ah... sí, claro. Solo soy una app. Lo olvidaba..."
+        },
+        {
+          "text": "Nos vemos luego",
+          "affection": 1,
+          "response": "¡Hasta pronto! Cuídate mucho~"
+        }
+      ]
+    }
+  ]
+}

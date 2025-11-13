@@ -1,0 +1,856 @@
+import { Injectable, signal } from '@angular/core';
+import { 
+  CompositionLayer, 
+  CompositionState, 
+  BackgroundRemovalOptions, 
+  TintOptions,
+  BlendMode,
+  createDefaultLayer,
+  generateLayerId
+} from '../models/composition-layer.interface';
+import { DitheringOptions } from './dithering.service';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class CompositionService {
+  // State
+  compositionState = signal<CompositionState>({
+    layers: [],
+    activeLayerId: null,
+    selectedLayerIds: [], // Multiple selection
+    canvasWidth: 800,
+    canvasHeight: 600,
+    backgroundColor: '#000000'
+  });
+  
+  // Dithering options for preview
+  ditheringOptions = signal<DitheringOptions>({
+    algorithm: 'floyd-steinberg',
+    scale: 1,
+    contrast: 0,
+    midtones: 0,
+    highlights: 0,
+    blur: 0,
+    palette: 'monochrome',
+    threshold: 128
+  });
+  
+  constructor() {}
+  
+  /**
+   * ===== LAYER MANAGEMENT =====
+   */
+  
+  addLayer(image: HTMLImageElement, imageData: ImageData): string {
+    const state = this.compositionState();
+    const newLayer = createDefaultLayer(image, imageData, state.layers.length);
+    
+    // Center layer on canvas
+    newLayer.x = (state.canvasWidth - newLayer.width) / 2;
+    newLayer.y = (state.canvasHeight - newLayer.height) / 2;
+    
+    // Create new state with new array reference
+    const newState = {
+      ...state,
+      layers: [...state.layers, newLayer],
+      activeLayerId: newLayer.id,
+      selectedLayerIds: [newLayer.id] // Select new layer
+    };
+    
+    this.compositionState.set(newState);
+    return newLayer.id;
+  }
+  
+  removeLayer(layerId: string): void {
+    const state = this.compositionState();
+    const newLayers = state.layers.filter(l => l.id !== layerId);
+    
+    // Update order
+    newLayers.forEach((layer, i) => layer.order = i);
+    
+    // Update active layer
+    const newActiveLayerId = state.activeLayerId === layerId
+      ? (newLayers.length > 0 ? newLayers[0].id : null)
+      : state.activeLayerId;
+    
+    this.compositionState.set({
+      ...state,
+      layers: newLayers,
+      activeLayerId: newActiveLayerId
+    });
+  }
+  
+  duplicateLayer(layerId: string): string | null {
+    const state = this.compositionState();
+    const layer = state.layers.find(l => l.id === layerId);
+    
+    if (!layer) return null;
+    
+    const newLayer: CompositionLayer = {
+      ...layer,
+      id: generateLayerId(),
+      name: `${layer.name} Copy`,
+      order: state.layers.length,
+      x: layer.x + 20,
+      y: layer.y + 20
+    };
+    
+    this.compositionState.set({
+      ...state,
+      layers: [...state.layers, newLayer],
+      activeLayerId: newLayer.id
+    });
+    
+    return newLayer.id;
+  }
+  
+  /**
+   * Add layer with specific ID (for undo/redo)
+   */
+  addLayerWithId(layer: CompositionLayer): void {
+    const state = this.compositionState();
+    this.compositionState.set({
+      ...state,
+      layers: [...state.layers, layer],
+      activeLayerId: layer.id
+    });
+  }
+  
+  /**
+   * Add layer at specific index (for undo/redo)
+   */
+  addLayerAtIndex(layer: CompositionLayer, index: number): void {
+    const state = this.compositionState();
+    const newLayers = [...state.layers];
+    newLayers.splice(index, 0, layer);
+    
+    // Update order
+    newLayers.forEach((l, i) => l.order = i);
+    
+    this.compositionState.set({
+      ...state,
+      layers: newLayers,
+      activeLayerId: layer.id
+    });
+  }
+  
+  /**
+   * Alias for removeLayer (for consistency with history commands)
+   */
+  deleteLayer(layerId: string): void {
+    this.removeLayer(layerId);
+  }
+  
+  /**
+   * Reorder layer from one index to another
+   */
+  reorderLayer(fromIndex: number, toIndex: number): void {
+    const state = this.compositionState();
+    const newLayers = [...state.layers];
+    const [movedLayer] = newLayers.splice(fromIndex, 1);
+    newLayers.splice(toIndex, 0, movedLayer);
+    
+    // Update order
+    newLayers.forEach((layer, i) => layer.order = i);
+    
+    this.compositionState.set({
+      ...state,
+      layers: newLayers
+    });
+  }
+  
+  updateLayer(layerId: string, updates: Partial<CompositionLayer>): void {
+    const state = this.compositionState();
+    const layerIndex = state.layers.findIndex(l => l.id === layerId);
+    
+    if (layerIndex !== -1) {
+      const newLayers = [...state.layers];
+      newLayers[layerIndex] = { ...newLayers[layerIndex], ...updates };
+      
+      this.compositionState.set({
+        ...state,
+        layers: newLayers
+      });
+    }
+  }
+  
+  moveLayerUp(layerId: string): void {
+    const state = this.compositionState();
+    const index = state.layers.findIndex(l => l.id === layerId);
+    
+    if (index < state.layers.length - 1) {
+      const newLayers = [...state.layers];
+      [newLayers[index], newLayers[index + 1]] = 
+        [newLayers[index + 1], newLayers[index]];
+      
+      newLayers.forEach((layer, i) => layer.order = i);
+      
+      this.compositionState.set({
+        ...state,
+        layers: newLayers
+      });
+    }
+  }
+  
+  moveLayerDown(layerId: string): void {
+    const state = this.compositionState();
+    const index = state.layers.findIndex(l => l.id === layerId);
+    
+    if (index > 0) {
+      const newLayers = [...state.layers];
+      [newLayers[index], newLayers[index - 1]] = 
+        [newLayers[index - 1], newLayers[index]];
+      
+      newLayers.forEach((layer, i) => layer.order = i);
+      
+      this.compositionState.set({
+        ...state,
+        layers: newLayers
+      });
+    }
+  }
+  
+  setActiveLayer(layerId: string): void {
+    this.compositionState.set({
+      ...this.compositionState(),
+      activeLayerId: layerId
+    });
+  }
+  
+  toggleLayerVisibility(layerId: string): void {
+    const state = this.compositionState();
+    const layerIndex = state.layers.findIndex(l => l.id === layerId);
+    
+    if (layerIndex !== -1) {
+      const newLayers = [...state.layers];
+      newLayers[layerIndex] = {
+        ...newLayers[layerIndex],
+        visible: !newLayers[layerIndex].visible
+      };
+      
+      this.compositionState.set({
+        ...state,
+        layers: newLayers
+      });
+    }
+  }
+  
+  clearAllLayers(): void {
+    this.compositionState.set({
+      layers: [],
+      activeLayerId: null,
+      selectedLayerIds: [],
+      canvasWidth: 800,
+      canvasHeight: 600,
+      backgroundColor: '#000000'
+    });
+  }
+  
+  setCanvasSize(width: number, height: number): void {
+    const state = this.compositionState();
+    this.compositionState.set({
+      ...state,
+      canvasWidth: width,
+      canvasHeight: height
+    });
+  }
+  
+  /**
+   * ===== BACKGROUND REMOVAL =====
+   * Enhanced algorithm with edge detection and flood fill
+   */
+  
+  removeBackground(layer: CompositionLayer, options: BackgroundRemovalOptions): ImageData {
+    const { color, threshold, feather } = options;
+    
+    console.log('🎨 Remove background:', { color, threshold, feather });
+    
+    // Parse target color
+    const targetRGB = this.hexToRgb(color);
+    if (!targetRGB) {
+      console.warn('⚠️ Invalid color:', color);
+      return layer.imageData;
+    }
+    
+    console.log('🎯 Target RGB:', targetRGB);
+    
+    // Clone image data
+    const imageData = new ImageData(
+      new Uint8ClampedArray(layer.imageData.data),
+      layer.imageData.width,
+      layer.imageData.height
+    );
+    
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+    
+    let removedCount = 0;
+    
+    // Remove background pixels based on color similarity
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        
+        // Calculate color distance using weighted Euclidean distance
+        const dr = r - targetRGB.r;
+        const dg = g - targetRGB.g;
+        const db = b - targetRGB.b;
+        
+        // Weighted distance (human eye is more sensitive to green)
+        const distance = Math.sqrt(
+          0.299 * dr * dr +
+          0.587 * dg * dg +
+          0.114 * db * db
+        );
+        
+        // Apply threshold (higher threshold = more aggressive removal)
+        if (distance <= threshold) {
+          data[i + 3] = 0; // Set alpha to transparent
+          removedCount++;
+        } else if (feather > 0 && distance <= threshold + feather) {
+          // Feather edge - gradual transparency
+          const alpha = ((distance - threshold) / feather) * 255;
+          data[i + 3] = Math.min(255, Math.max(0, alpha));
+        }
+      }
+    }
+    
+    console.log(`✅ Removed ${removedCount} pixels (${((removedCount / (width * height)) * 100).toFixed(1)}%)`);
+    
+    return imageData;
+  }
+  
+  /**
+   * Apply Gaussian blur to alpha mask for smooth edges
+   */
+  private applyGaussianBlur(mask: Uint8Array, width: number, height: number, radius: number): void {
+    const kernel = this.createGaussianKernel(radius);
+    const kernelSize = kernel.length;
+    const halfSize = Math.floor(kernelSize / 2);
+    const tempMask = new Uint8Array(mask);
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let sum = 0;
+        let weightSum = 0;
+        
+        for (let ky = 0; ky < kernelSize; ky++) {
+          for (let kx = 0; kx < kernelSize; kx++) {
+            const px = x + kx - halfSize;
+            const py = y + ky - halfSize;
+            
+            if (px >= 0 && px < width && py >= 0 && py < height) {
+              const weight = kernel[ky][kx];
+              sum += tempMask[py * width + px] * weight;
+              weightSum += weight;
+            }
+          }
+        }
+        
+        mask[y * width + x] = Math.round(sum / weightSum);
+      }
+    }
+  }
+  
+  /**
+   * Create Gaussian kernel for blur
+   */
+  private createGaussianKernel(radius: number): number[][] {
+    const size = radius * 2 + 1;
+    const kernel: number[][] = [];
+    const sigma = radius / 2;
+    const twoSigmaSquare = 2 * sigma * sigma;
+    let sum = 0;
+    
+    for (let y = 0; y < size; y++) {
+      kernel[y] = [];
+      for (let x = 0; x < size; x++) {
+        const dx = x - radius;
+        const dy = y - radius;
+        const value = Math.exp(-(dx * dx + dy * dy) / twoSigmaSquare);
+        kernel[y][x] = value;
+        sum += value;
+      }
+    }
+    
+    // Normalize
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        kernel[y][x] /= sum;
+      }
+    }
+    
+    return kernel;
+  }
+  
+  /**
+   * ===== TINTING & COLOR =====
+   */
+  
+  applyTint(layer: CompositionLayer, options: TintOptions): ImageData {
+    const { color, intensity, blendMode, preserveLuminosity } = options;
+    
+    const tintRGB = this.hexToRgb(color);
+    if (!tintRGB) return layer.imageData;
+    
+    // Clone image data
+    const imageData = new ImageData(
+      new Uint8ClampedArray(layer.imageData.data),
+      layer.imageData.width,
+      layer.imageData.height
+    );
+    
+    const data = imageData.data;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+      
+      if (a === 0) continue; // Skip transparent pixels
+      
+      let newR = r, newG = g, newB = b;
+      
+      switch (blendMode) {
+        case 'normal':
+          newR = this.lerp(r, tintRGB.r, intensity);
+          newG = this.lerp(g, tintRGB.g, intensity);
+          newB = this.lerp(b, tintRGB.b, intensity);
+          break;
+          
+        case 'multiply':
+          newR = (r * tintRGB.r / 255) * intensity + r * (1 - intensity);
+          newG = (g * tintRGB.g / 255) * intensity + g * (1 - intensity);
+          newB = (b * tintRGB.b / 255) * intensity + b * (1 - intensity);
+          break;
+          
+        case 'screen':
+          newR = (255 - (255 - r) * (255 - tintRGB.r) / 255) * intensity + r * (1 - intensity);
+          newG = (255 - (255 - g) * (255 - tintRGB.g) / 255) * intensity + g * (1 - intensity);
+          newB = (255 - (255 - b) * (255 - tintRGB.b) / 255) * intensity + b * (1 - intensity);
+          break;
+          
+        case 'overlay':
+          newR = this.overlayBlend(r, tintRGB.r) * intensity + r * (1 - intensity);
+          newG = this.overlayBlend(g, tintRGB.g) * intensity + g * (1 - intensity);
+          newB = this.overlayBlend(b, tintRGB.b) * intensity + b * (1 - intensity);
+          break;
+          
+        case 'color':
+          const hsl = this.rgbToHsl(r, g, b);
+          const tintHsl = this.rgbToHsl(tintRGB.r, tintRGB.g, tintRGB.b);
+          const rgb = this.hslToRgb(tintHsl.h, tintHsl.s, hsl.l);
+          newR = this.lerp(r, rgb.r, intensity);
+          newG = this.lerp(g, rgb.g, intensity);
+          newB = this.lerp(b, rgb.b, intensity);
+          break;
+      }
+      
+      // Preserve luminosity if requested
+      if (preserveLuminosity) {
+        const originalLum = 0.299 * r + 0.587 * g + 0.114 * b;
+        const newLum = 0.299 * newR + 0.587 * newG + 0.114 * newB;
+        const lumFactor = newLum !== 0 ? originalLum / newLum : 1;
+        
+        newR *= lumFactor;
+        newG *= lumFactor;
+        newB *= lumFactor;
+      }
+      
+      data[i] = Math.min(255, Math.max(0, Math.round(newR)));
+      data[i + 1] = Math.min(255, Math.max(0, Math.round(newG)));
+      data[i + 2] = Math.min(255, Math.max(0, Math.round(newB)));
+    }
+    
+    return imageData;
+  }
+  
+  /**
+   * ===== COMPOSITION RENDERING =====
+   */
+  
+  renderComposition(): ImageData {
+    const state = this.compositionState();
+    
+    // Create output canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = state.canvasWidth;
+    canvas.height = state.canvasHeight;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Fill background
+    ctx.fillStyle = state.backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Sort layers by order
+    const sortedLayers = [...state.layers].sort((a, b) => a.order - b.order);
+    
+    // Render each layer
+    for (const layer of sortedLayers) {
+      if (!layer.visible) continue;
+      
+      ctx.save();
+      
+      // Apply transformations
+      ctx.globalAlpha = layer.opacity / 100;
+      
+      // Translate to layer position + center for rotation
+      const centerX = layer.x + layer.width / 2;
+      const centerY = layer.y + layer.height / 2;
+      
+      ctx.translate(centerX, centerY);
+      ctx.rotate((layer.rotation * Math.PI) / 180);
+      ctx.translate(-centerX, -centerY);
+      
+      // Get processed image data
+      let imageData = layer.imageData;
+      
+      // Apply background removal
+      if (layer.removeBackground && layer.backgroundColor) {
+        imageData = this.removeBackground(layer, {
+          color: layer.backgroundColor,
+          threshold: layer.backgroundThreshold,
+          feather: 2
+        });
+      }
+      
+      // Apply tint
+      if (layer.tint) {
+        imageData = this.applyTint(layer, {
+          color: layer.tintColor,
+          intensity: layer.tintIntensity / 100,
+          blendMode: layer.tintBlendMode,
+          preserveLuminosity: false
+        });
+      }
+      
+      // Draw layer
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = imageData.width;
+      tempCanvas.height = imageData.height;
+      const tempCtx = tempCanvas.getContext('2d')!;
+      tempCtx.putImageData(imageData, 0, 0);
+      
+      ctx.drawImage(
+        tempCanvas,
+        layer.x,
+        layer.y,
+        layer.width,
+        layer.height
+      );
+      
+      ctx.restore();
+    }
+    
+    // Return composed image data
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  }
+  
+  /**
+   * Render composition with dither-exempt layers preserved
+   * Returns both the ditherable content and exempt layers separately
+   */
+  renderForDithering(): {
+    ditherableContent: ImageData;
+    exemptLayers: Array<{ layer: CompositionLayer; imageData: ImageData }>;
+  } {
+    const state = this.compositionState();
+    
+    // Separate layers
+    const ditherableLayers = state.layers.filter(l => !l.ditherExempt && l.visible);
+    const exemptLayers = state.layers.filter(l => l.ditherExempt && l.visible);
+    
+    // Render ditherable content
+    const ditherableCanvas = document.createElement('canvas');
+    ditherableCanvas.width = state.canvasWidth;
+    ditherableCanvas.height = state.canvasHeight;
+    const ditherableCtx = ditherableCanvas.getContext('2d')!;
+    
+    ditherableCtx.fillStyle = state.backgroundColor;
+    ditherableCtx.fillRect(0, 0, ditherableCanvas.width, ditherableCanvas.height);
+    
+    this.renderLayersToContext(ditherableCtx, ditherableLayers);
+    
+    const ditherableContent = ditherableCtx.getImageData(
+      0, 0, ditherableCanvas.width, ditherableCanvas.height
+    );
+    
+    // Process exempt layers
+    const exemptLayersData = exemptLayers.map(layer => ({
+      layer,
+      imageData: this.renderSingleLayer(layer)
+    }));
+    
+    return {
+      ditherableContent,
+      exemptLayers: exemptLayersData
+    };
+  }
+  
+  private renderLayersToContext(ctx: CanvasRenderingContext2D, layers: CompositionLayer[]): void {
+    const sortedLayers = [...layers].sort((a, b) => a.order - b.order);
+    
+    for (const layer of sortedLayers) {
+      ctx.save();
+      ctx.globalAlpha = layer.opacity / 100;
+      
+      const centerX = layer.x + layer.width / 2;
+      const centerY = layer.y + layer.height / 2;
+      
+      ctx.translate(centerX, centerY);
+      ctx.rotate((layer.rotation * Math.PI) / 180);
+      ctx.translate(-centerX, -centerY);
+      
+      let imageData = layer.imageData;
+      
+      if (layer.removeBackground && layer.backgroundColor) {
+        imageData = this.removeBackground(layer, {
+          color: layer.backgroundColor,
+          threshold: layer.backgroundThreshold,
+          feather: 2
+        });
+      }
+      
+      if (layer.tint) {
+        imageData = this.applyTint(layer, {
+          color: layer.tintColor,
+          intensity: layer.tintIntensity / 100,
+          blendMode: layer.tintBlendMode,
+          preserveLuminosity: false
+        });
+      }
+      
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = imageData.width;
+      tempCanvas.height = imageData.height;
+      const tempCtx = tempCanvas.getContext('2d')!;
+      tempCtx.putImageData(imageData, 0, 0);
+      
+      ctx.drawImage(tempCanvas, layer.x, layer.y, layer.width, layer.height);
+      ctx.restore();
+    }
+  }
+  
+  private renderSingleLayer(layer: CompositionLayer): ImageData {
+    let imageData = layer.imageData;
+    
+    if (layer.removeBackground && layer.backgroundColor) {
+      imageData = this.removeBackground(layer, {
+        color: layer.backgroundColor,
+        threshold: layer.backgroundThreshold,
+        feather: 2
+      });
+    }
+    
+    if (layer.tint) {
+      imageData = this.applyTint(layer, {
+        color: layer.tintColor,
+        intensity: layer.tintIntensity / 100,
+        blendMode: layer.tintBlendMode,
+        preserveLuminosity: false
+      });
+    }
+    
+    return imageData;
+  }
+  
+  /**
+   * ===== UTILITY FUNCTIONS =====
+   */
+  
+  private hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+  
+  private lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t;
+  }
+  
+  private overlayBlend(base: number, blend: number): number {
+    return base < 128
+      ? (2 * base * blend) / 255
+      : 255 - (2 * (255 - base) * (255 - blend)) / 255;
+  }
+  
+  private rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+    r /= 255; g /= 255; b /= 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    
+    return { h, s, l };
+  }
+  
+  private hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+    let r, g, b;
+    
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    
+    return {
+      r: Math.round(r * 255),
+      g: Math.round(g * 255),
+      b: Math.round(b * 255)
+    };
+  }
+  
+  /**
+   * ===== MULTIPLE SELECTION =====
+   */
+  
+  /**
+   * Select a single layer (replaces current selection unless shift is pressed)
+   */
+  selectLayer(layerId: string, addToSelection: boolean = false): void {
+    const state = this.compositionState();
+    
+    if (addToSelection) {
+      // Add to existing selection if not already selected
+      const selectedLayerIds = state.selectedLayerIds.includes(layerId)
+        ? state.selectedLayerIds
+        : [...state.selectedLayerIds, layerId];
+      
+      this.compositionState.set({
+        ...state,
+        activeLayerId: layerId,
+        selectedLayerIds
+      });
+    } else {
+      // Replace selection with single layer
+      this.compositionState.set({
+        ...state,
+        activeLayerId: layerId,
+        selectedLayerIds: [layerId]
+      });
+    }
+  }
+  
+  /**
+   * Toggle layer selection (for Shift+Click)
+   */
+  toggleLayerSelection(layerId: string): void {
+    const state = this.compositionState();
+    const isSelected = state.selectedLayerIds.includes(layerId);
+    
+    if (isSelected) {
+      // Remove from selection
+      const selectedLayerIds = state.selectedLayerIds.filter(id => id !== layerId);
+      const newActiveLayerId = selectedLayerIds.length > 0 
+        ? selectedLayerIds[selectedLayerIds.length - 1]
+        : null;
+      
+      this.compositionState.set({
+        ...state,
+        activeLayerId: newActiveLayerId,
+        selectedLayerIds
+      });
+    } else {
+      // Add to selection
+      this.compositionState.set({
+        ...state,
+        activeLayerId: layerId,
+        selectedLayerIds: [...state.selectedLayerIds, layerId]
+      });
+    }
+  }
+  
+  /**
+   * Clear all selections
+   */
+  clearSelection(): void {
+    const state = this.compositionState();
+    this.compositionState.set({
+      ...state,
+      activeLayerId: null,
+      selectedLayerIds: []
+    });
+  }
+  
+  /**
+   * Select multiple layers
+   */
+  selectMultipleLayers(layerIds: string[]): void {
+    const state = this.compositionState();
+    this.compositionState.set({
+      ...state,
+      activeLayerId: layerIds.length > 0 ? layerIds[0] : null,
+      selectedLayerIds: layerIds
+    });
+  }
+  
+  /**
+   * Update multiple layers at once (for moving selection)
+   */
+  updateMultipleLayers(updates: { layerId: string; changes: Partial<CompositionLayer> }[]): void {
+    const state = this.compositionState();
+    const newLayers = [...state.layers];
+    
+    updates.forEach(({ layerId, changes }) => {
+      const layerIndex = newLayers.findIndex(l => l.id === layerId);
+      if (layerIndex !== -1) {
+        newLayers[layerIndex] = { ...newLayers[layerIndex], ...changes };
+      }
+    });
+    
+    this.compositionState.set({
+      ...state,
+      layers: newLayers
+    });
+  }
+  
+  /**
+   * Check if a layer is selected
+   */
+  isLayerSelected(layerId: string): boolean {
+    return this.compositionState().selectedLayerIds.includes(layerId);
+  }
+  
+  /**
+   * Get all selected layers
+   */
+  getSelectedLayers(): CompositionLayer[] {
+    const state = this.compositionState();
+    return state.layers.filter(l => state.selectedLayerIds.includes(l.id));
+  }
+}
