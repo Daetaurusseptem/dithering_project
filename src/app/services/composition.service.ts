@@ -42,13 +42,19 @@ export class CompositionService {
    * ===== LAYER MANAGEMENT =====
    */
   
-  addLayer(image: HTMLImageElement, imageData: ImageData): string {
+  addLayer(image: HTMLImageElement, imageData: ImageData, position?: { x: number; y: number }): string {
     const state = this.compositionState();
     const newLayer = createDefaultLayer(image, imageData, state.layers.length);
     
-    // Center layer on canvas
-    newLayer.x = (state.canvasWidth - newLayer.width) / 2;
-    newLayer.y = (state.canvasHeight - newLayer.height) / 2;
+    // Position layer - either at specified position or centered on canvas
+    if (position) {
+      newLayer.x = position.x;
+      newLayer.y = position.y;
+    } else {
+      // Center layer on canvas by default
+      newLayer.x = (state.canvasWidth - newLayer.width) / 2;
+      newLayer.y = (state.canvasHeight - newLayer.height) / 2;
+    }
     
     // Create new state with new array reference
     const newState = {
@@ -237,13 +243,13 @@ export class CompositionService {
   }
   
   clearAllLayers(): void {
+    const state = this.compositionState();
+    // Keep canvas size and background color, only clear layers
     this.compositionState.set({
+      ...state,
       layers: [],
       activeLayerId: null,
-      selectedLayerIds: [],
-      canvasWidth: 800,
-      canvasHeight: 600,
-      backgroundColor: '#000000'
+      selectedLayerIds: []
     });
   }
   

@@ -292,6 +292,10 @@ export class App implements AfterViewInit {
         this.imageLoaded.set(true);
         this.waifuState.set('happy');
         
+        // Reset composition layers when loading a new image
+        this.compositionService.clearAllLayers();
+        console.log('🔄 Composition layers cleared for new image');
+        
         // Forzar detección de cambios y esperar a que Angular renderice
         this.cdr.detectChanges();
         
@@ -1209,20 +1213,37 @@ export class App implements AfterViewInit {
         this.stopGifPreview();
       }
       
-      // Initialize composition canvas with original image size
-      if (this.originalImage && this.originalImageData) {
+      // Initialize composition canvas with processed image size (includes scale factor)
+      if (this.processedImageData && this.originalImage && this.originalImageData) {
         const state = this.compositionService.compositionState();
         
-        // Set canvas size to match original image
+        console.log('🎨 Initializing Composition Canvas:', {
+          originalImageData: { width: this.originalImageData.width, height: this.originalImageData.height },
+          processedImageData: { width: this.processedImageData.width, height: this.processedImageData.height },
+          originalImage: { width: this.originalImage.width, height: this.originalImage.height },
+          scale: this.scale(),
+          existingLayers: state.layers.length
+        });
+        
+        // Set canvas size to match ORIGINAL image (not scaled)
+        // Scale will be applied during rendering/export
         this.compositionService.setCanvasSize(
-          this.originalImage.width,
-          this.originalImage.height
+          this.originalImageData.width,
+          this.originalImageData.height
         );
         
-        // Always clear and add current image as first layer
-        // This ensures composition uses the latest loaded image
-        this.compositionService.clearAllLayers();
-        this.compositionService.addLayer(this.originalImage, this.originalImageData);
+        // Only initialize layers if there are none (first time or after reset)
+        if (state.layers.length === 0) {
+          console.log('🎨 No existing layers, creating initial layer');
+          // Use originalImageData (not processed) for the layer
+          // Processing/dithering will be applied during render
+          this.compositionService.addLayer(this.originalImage, this.originalImageData, { x: 0, y: 0 });
+        } else {
+          console.log('🎨 Keeping existing layers:', state.layers.length);
+        }
+        
+        console.log('🎨 Composition initialized. Canvas size:', 
+          this.originalImageData.width, 'x', this.originalImageData.height);
       }
       
       this.triggerDialogue('composition_mode');

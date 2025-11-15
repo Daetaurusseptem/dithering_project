@@ -339,6 +339,12 @@ export class CompositionCanvasComponent implements AfterViewInit {
     
     const state = this.compositionState();
     
+    // Update canvas dimensions if they changed
+    if (canvas.width !== state.canvasWidth || canvas.height !== state.canvasHeight) {
+      canvas.width = state.canvasWidth;
+      canvas.height = state.canvasHeight;
+    }
+    
     // Clear canvas
     ctx.fillStyle = state.backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -482,6 +488,16 @@ export class CompositionCanvasComponent implements AfterViewInit {
       return;
     }
     
+    console.log('📦 Drawing selection box for layer:', {
+      id: layer.id,
+      name: layer.name,
+      x: layer.x,
+      y: layer.y,
+      width: layer.width,
+      height: layer.height,
+      imageDataSize: { w: layer.imageData.width, h: layer.imageData.height }
+    });
+    
     ctx.save();
     
     const centerX = layer.x + layer.width / 2;
@@ -498,10 +514,10 @@ export class CompositionCanvasComponent implements AfterViewInit {
     ctx.strokeRect(layer.x, layer.y, layer.width, layer.height);
     
     // Draw resize handles
-    const handleSize = 8;
+    const handleSize = 12;
     ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#0000ff';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 2;
     ctx.setLineDash([]);
     
     const handles: TransformHandle[] = [
@@ -554,10 +570,26 @@ export class CompositionCanvasComponent implements AfterViewInit {
   onMouseDown(event: MouseEvent): void {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / this.canvasZoom();
-    const y = (event.clientY - rect.top) / this.canvasZoom();
+    
+    // Calculate scale between visual size and actual canvas size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // Adjust coordinates for both CSS scaling and zoom
+    const x = (event.clientX - rect.left) * scaleX / this.canvasZoom();
+    const y = (event.clientY - rect.top) * scaleY / this.canvasZoom();
+    
+    console.log('🖱️ MouseDown:', { 
+      x, y, 
+      zoom: this.canvasZoom(),
+      scaleX,
+      scaleY,
+      canvasSize: { w: canvas.width, h: canvas.height },
+      visualSize: { w: rect.width, h: rect.height }
+    });
     
     const currentTool = this.toolService.activeTool();
+    console.log('🔧 Current tool:', currentTool);
     
     // Pan mode - start panning
     if (currentTool === 'hand') {
@@ -596,68 +628,73 @@ export class CompositionCanvasComponent implements AfterViewInit {
     
     // Select tool (default) - handle layer selection and transforms
     const activeLayer = this.activeLayer();
-    if (!activeLayer) return;
+    console.log('📌 Active layer:', activeLayer?.id, activeLayer?.name);
     
-    // If layer is locked, don't allow interaction
-    if (activeLayer.locked) {
-      // Can still select other layers
-      const clickedLayer = this.getLayerAtPosition(x, y);
-      if (clickedLayer && clickedLayer.id !== activeLayer.id) {
-        this.compositionService.setActiveLayer(clickedLayer.id);
-      }
-      return;
-    }
-    
-    // Check if clicking on handles
-    const handle = this.getHandleAtPosition(x, y, activeLayer);
-    
-    if (handle === 'rotate') {
-      this.startRotate(x, y, activeLayer);
-    } else if (handle) {
-      this.startResize(x, y, activeLayer, handle);
-    } else if (this.isPointInLayer(x, y, activeLayer)) {
-      // Check for double-click on text layers
-      const now = Date.now();
-      if (activeLayer.type === 'text' && 
-          this.lastClickLayerId === activeLayer.id && 
-          now - this.lastClickTime < 300) {
-        // Double-click detected - open text editor
-        this.openTextEditor(activeLayer);
-        this.lastClickTime = 0;
-        this.lastClickLayerId = null;
+    // If there's an active layer, check for handle interaction first
+    if (activeLayer && !activeLayer.locked) {
+      // Check if clicking on handles
+      const handle = this.getHandleAtPosition(x, y, activeLayer);
+      console.log('🎯 Handle check:', handle);
+      
+      if (handle === 'rotate') {
+        console.log('↻ Starting rotate');
+        this.startRotate(x, y, activeLayer);
         return;
-      }
-      this.lastClickTime = now;
-      this.lastClickLayerId = activeLayer.id;
-      this.startDrag(x, y, activeLayer);
-    } else {
-      // Check if clicking on another layer
-      const clickedLayer = this.getLayerAtPosition(x, y);
-      if (clickedLayer) {
-        // Check if Shift is pressed for multi-select
-        if (event.shiftKey) {
-          this.compositionService.toggleLayerSelection(clickedLayer.id);
-        } else {
-          this.compositionService.selectLayer(clickedLayer.id, false);
-        }
-        
-        // Check for double-click on newly selected text layer
+      } else if (handle) {
+        console.log('📏 Starting resize:', handle);
+        this.startResize(x, y, activeLayer, handle);
+        return;
+      } else if (this.isPointInLayer(x, y, activeLayer)) {
+        console.log('✋ Point in active layer, starting drag');
+        // Check for double-click on text layers
         const now = Date.now();
-        if (clickedLayer.type === 'text' && 
-            this.lastClickLayerId === clickedLayer.id && 
+        if (activeLayer.type === 'text' && 
+            this.lastClickLayerId === activeLayer.id && 
             now - this.lastClickTime < 300) {
-          this.openTextEditor(clickedLayer);
+          // Double-click detected - open text editor
+          this.openTextEditor(activeLayer);
           this.lastClickTime = 0;
           this.lastClickLayerId = null;
           return;
         }
         this.lastClickTime = now;
-        this.lastClickLayerId = clickedLayer.id;
+        this.lastClickLayerId = activeLayer.id;
+        this.startDrag(x, y, activeLayer);
+        return;
+      }
+    }
+    
+    // If we reach here, either no active layer or clicked outside active layer
+    // Check if clicking on another layer
+    const clickedLayer = this.getLayerAtPosition(x, y);
+    console.log('🔍 Clicked layer:', clickedLayer?.id, clickedLayer?.name);
+    
+    if (clickedLayer) {
+      console.log('✅ Selecting layer:', clickedLayer.id);
+      // Check if Shift is pressed for multi-select
+      if (event.shiftKey) {
+        this.compositionService.toggleLayerSelection(clickedLayer.id);
       } else {
-        // Click on empty canvas - clear selection
-        if (!event.shiftKey) {
-          this.compositionService.clearSelection();
-        }
+        this.compositionService.selectLayer(clickedLayer.id, false);
+      }
+      
+      // Check for double-click on newly selected text layer
+      const now = Date.now();
+      if (clickedLayer.type === 'text' && 
+          this.lastClickLayerId === clickedLayer.id && 
+          now - this.lastClickTime < 300) {
+        this.openTextEditor(clickedLayer);
+        this.lastClickTime = 0;
+        this.lastClickLayerId = null;
+        return;
+      }
+      this.lastClickTime = now;
+      this.lastClickLayerId = clickedLayer.id;
+    } else {
+      console.log('❌ No layer clicked, clearing selection');
+      // Click on empty canvas - clear selection
+      if (!event.shiftKey) {
+        this.compositionService.clearSelection();
       }
     }
   }
@@ -665,8 +702,13 @@ export class CompositionCanvasComponent implements AfterViewInit {
   onMouseMove(event: MouseEvent): void {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    
+    // Calculate scale between visual size and actual canvas size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
     
     // Pan mode
     if (this.isPanning) {
@@ -714,8 +756,13 @@ export class CompositionCanvasComponent implements AfterViewInit {
   onMouseUp(event: MouseEvent): void {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / this.canvasZoom();
-    const y = (event.clientY - rect.top) / this.canvasZoom();
+    
+    // Calculate scale between visual size and actual canvas size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (event.clientX - rect.left) * scaleX / this.canvasZoom();
+    const y = (event.clientY - rect.top) * scaleY / this.canvasZoom();
     
     const activeLayer = this.activeLayer();
     
@@ -1374,36 +1421,48 @@ export class CompositionCanvasComponent implements AfterViewInit {
    */
   
   private getHandleAtPosition(x: number, y: number, layer: CompositionLayer): string | null {
-    const handleSize = 8;
-    const tolerance = handleSize / 2 + 2;
+    const handleSize = 12;
+    const tolerance = 15; // Fixed tolerance for better hit detection
+    
+    console.log('🔍 getHandleAtPosition:', { 
+      clickPos: { x, y }, 
+      layerBounds: { x: layer.x, y: layer.y, w: layer.width, h: layer.height },
+      tolerance 
+    });
     
     // Check rotation handle
     const centerX = layer.x + layer.width / 2;
     const rotateY = layer.y - 30;
-    if (Math.hypot(x - centerX, y - rotateY) <= tolerance) {
+    const rotateDistance = Math.hypot(x - centerX, y - rotateY);
+    if (rotateDistance <= tolerance) {
+      console.log('✅ Rotate handle detected');
       return 'rotate';
     }
     
-    // Check resize handles (corners + sides)
+    // Check resize handles - prioritize corners, then sides
     const handles = [
-      // Corners
+      // Corners first (higher priority)
       { type: 'resize-nw', x: layer.x, y: layer.y },
       { type: 'resize-ne', x: layer.x + layer.width, y: layer.y },
       { type: 'resize-sw', x: layer.x, y: layer.y + layer.height },
       { type: 'resize-se', x: layer.x + layer.width, y: layer.y + layer.height },
-      // Sides
+      // Sides second
       { type: 'resize-n', x: layer.x + layer.width / 2, y: layer.y },
       { type: 'resize-s', x: layer.x + layer.width / 2, y: layer.y + layer.height },
       { type: 'resize-e', x: layer.x + layer.width, y: layer.y + layer.height / 2 },
       { type: 'resize-w', x: layer.x, y: layer.y + layer.height / 2 }
     ];
     
+    // Check each handle
     for (const handle of handles) {
-      if (Math.hypot(x - handle.x, y - handle.y) <= tolerance) {
+      const distance = Math.hypot(x - handle.x, y - handle.y);
+      if (distance <= tolerance) {
+        console.log(`✅ Handle detected: ${handle.type}, distance: ${distance.toFixed(2)}`);
         return handle.type;
       }
     }
     
+    console.log('❌ No handle detected');
     return null;
   }
   
