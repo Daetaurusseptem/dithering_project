@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { 
   CompositionLayer, 
   CompositionState, 
@@ -8,7 +8,7 @@ import {
   createDefaultLayer,
   generateLayerId
 } from '../models/composition-layer.interface';
-import { DitheringOptions } from './dithering.service';
+import { DitheringOptions, DitheringService } from './dithering.service';
 
 @Injectable({
   providedIn: 'root'
@@ -36,6 +36,8 @@ export class CompositionService {
     threshold: 128
   });
   
+  private ditheringService = inject(DitheringService);
+  
   constructor() {}
   
   /**
@@ -45,6 +47,31 @@ export class CompositionService {
   addLayer(image: HTMLImageElement, imageData: ImageData, position?: { x: number; y: number }): string {
     const state = this.compositionState();
     const newLayer = createDefaultLayer(image, imageData, state.layers.length);
+    
+    // Check if layer is larger than canvas and scale it down if needed
+    let scaleX = 1;
+    let scaleY = 1;
+    
+    if (newLayer.width > state.canvasWidth) {
+      scaleX = state.canvasWidth / newLayer.width * 0.9; // 90% to leave margin
+    }
+    
+    if (newLayer.height > state.canvasHeight) {
+      scaleY = state.canvasHeight / newLayer.height * 0.9; // 90% to leave margin
+    }
+    
+    // Use the smaller scale to maintain aspect ratio
+    const scale = Math.min(scaleX, scaleY);
+    
+    if (scale < 1) {
+      newLayer.width = Math.floor(newLayer.width * scale);
+      newLayer.height = Math.floor(newLayer.height * scale);
+      console.log('🔽 Auto-scaled layer to fit canvas:', { 
+        scale: scale.toFixed(2), 
+        newSize: { w: newLayer.width, h: newLayer.height },
+        canvasSize: { w: state.canvasWidth, h: state.canvasHeight }
+      });
+    }
     
     // Position layer - either at specified position or centered on canvas
     if (position) {
@@ -569,8 +596,13 @@ export class CompositionService {
     const state = this.compositionState();
     
     // Separate layers
-    const ditherableLayers = state.layers.filter(l => !l.ditherExempt && l.visible);
-    const exemptLayers = state.layers.filter(l => l.ditherExempt && l.visible);
+    // Layers with custom dither are also exempt from global dither
+    const ditherableLayers = state.layers.filter(l => 
+      !l.ditherExempt && !l.customDither?.enabled && l.visible
+    );
+    const exemptLayers = state.layers.filter(l => 
+      (l.ditherExempt || l.customDither?.enabled) && l.visible
+    );
     
     // Render ditherable content
     const ditherableCanvas = document.createElement('canvas');
@@ -632,13 +664,82 @@ export class CompositionService {
         });
       }
       
+      // Apply custom dither if enabled
+      if (layer.customDither?.enabled && !layer.ditherExempt) {
+        imageData = this.applyCustomDither(imageData, layer.customDither);
+      }
+      
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = imageData.width;
       tempCanvas.height = imageData.height;
       const tempCtx = tempCanvas.getContext('2d')!;
       tempCtx.putImageData(imageData, 0, 0);
       
+      // Apply stroke effect to the silhouette FIRST if enabled
+      if (layer.effects?.stroke?.enabled) {
+        const stroke = layer.effects.stroke;
+        const strokeCanvas = document.createElement('canvas');
+        strokeCanvas.width = tempCanvas.width;
+        strokeCanvas.height = tempCanvas.height;
+        const strokeCtx = strokeCanvas.getContext('2d')!;
+        
+        // Create outline by drawing the image multiple times in a circle pattern
+        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 16) {
+          const offsetX = Math.cos(angle) * stroke.width;
+          const offsetY = Math.sin(angle) * stroke.width;
+          strokeCtx.drawImage(tempCanvas, offsetX, offsetY);
+        }
+        
+        // Draw original image on top
+        strokeCtx.globalCompositeOperation = 'source-atop';
+        strokeCtx.fillStyle = stroke.color;
+        strokeCtx.fillRect(0, 0, strokeCanvas.width, strokeCanvas.height);
+        
+        // Now composite the original image
+        strokeCtx.globalCompositeOperation = 'destination-over';
+        strokeCtx.drawImage(tempCanvas, 0, 0);
+        
+        // Replace temp canvas with stroked version
+        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+        tempCtx.drawImage(strokeCanvas, 0, 0);
+      }
+      
+      // Apply Drop Shadow effect
+      if (layer.effects?.dropShadow?.enabled) {
+        const shadow = layer.effects.dropShadow;
+        const angleRad = (shadow.angle * Math.PI) / 180;
+        const offsetX = Math.cos(angleRad) * shadow.distance;
+        const offsetY = Math.sin(angleRad) * shadow.distance;
+        
+        const shadowOpacity = (shadow.opacity / 100);
+        const shadowColor = this.hexToRgba(shadow.color, shadowOpacity);
+        
+        ctx.shadowColor = shadowColor;
+        ctx.shadowBlur = shadow.size;
+        ctx.shadowOffsetX = offsetX;
+        ctx.shadowOffsetY = offsetY;
+      }
+      
+      // Outer Glow effect
+      if (layer.effects?.outerGlow?.enabled) {
+        const glow = layer.effects.outerGlow;
+        const glowOpacity = (glow.opacity / 100);
+        const glowColor = this.hexToRgba(glow.color, glowOpacity);
+        
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = glow.size;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
+
       ctx.drawImage(tempCanvas, layer.x, layer.y, layer.width, layer.height);
+      
+      // Reset shadow
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      
       ctx.restore();
     }
   }
@@ -663,12 +764,62 @@ export class CompositionService {
       });
     }
     
+    // Apply custom dither if enabled
+    if (layer.customDither?.enabled && !layer.ditherExempt) {
+      imageData = this.applyCustomDither(imageData, layer.customDither);
+    }
+    
     return imageData;
+  }
+  
+  /**
+   * Apply custom dither to layer
+   */
+  private applyCustomDither(
+    imageData: ImageData,
+    customDither: { 
+      algorithm: string; 
+      palette?: string; 
+      threshold?: number; 
+      bayerLevel?: number;
+      scale?: number;
+      contrast?: number;
+      midtones?: number;
+      highlights?: number;
+      blur?: number;
+    }
+  ): ImageData {
+    // Get current global palette from dithering options
+    const globalOptions = this.ditheringOptions();
+    
+    // Use layer's custom palette if specified, otherwise use global palette
+    const paletteToUse = customDither.palette || globalOptions.palette;
+    
+    // Create custom dithering options using layer's settings
+    const customOptions: DitheringOptions = {
+      algorithm: customDither.algorithm,
+      palette: paletteToUse,
+      scale: customDither.scale ?? 1,
+      contrast: customDither.contrast ?? 50,
+      midtones: customDither.midtones ?? 50,
+      highlights: customDither.highlights ?? 50,
+      blur: customDither.blur ?? 0,
+      threshold: customDither.threshold || 128
+    };
+    
+    return this.ditheringService.applyDithering(imageData, customOptions);
   }
   
   /**
    * ===== UTILITY FUNCTIONS =====
    */
+  
+  private hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
   
   private hexToRgb(hex: string): { r: number; g: number; b: number } | null {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -858,5 +1009,89 @@ export class CompositionService {
   getSelectedLayers(): CompositionLayer[] {
     const state = this.compositionState();
     return state.layers.filter(l => state.selectedLayerIds.includes(l.id));
+  }
+
+  /**
+   * Copy selected layers to clipboard
+   */
+  private clipboard: CompositionLayer[] = [];
+
+  copySelectedLayers(): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    // Deep clone the layers for clipboard
+    this.clipboard = selectedLayers.map(layer => ({
+      ...layer,
+      imageData: new ImageData(
+        new Uint8ClampedArray(layer.imageData.data),
+        layer.imageData.width,
+        layer.imageData.height
+      ),
+      // Deep clone effects
+      effects: layer.effects ? {
+        stroke: layer.effects.stroke ? { ...layer.effects.stroke } : undefined,
+        dropShadow: layer.effects.dropShadow ? { ...layer.effects.dropShadow } : undefined,
+        outerGlow: layer.effects.outerGlow ? { ...layer.effects.outerGlow } : undefined
+      } : undefined,
+      // Deep clone customDither
+      customDither: layer.customDither ? { ...layer.customDither } : undefined
+    }));
+  }
+
+  /**
+   * Paste layers from clipboard
+   */
+  pasteFromClipboard(): void {
+    if (this.clipboard.length === 0) return;
+
+    const state = this.compositionState();
+    const newLayerIds: string[] = [];
+    const newLayers: CompositionLayer[] = [];
+
+    // Paste each layer with offset
+    for (const clipboardLayer of this.clipboard) {
+      const newId = `layer-${Date.now()}-${Math.random()}`;
+      const newLayer: CompositionLayer = {
+        ...clipboardLayer,
+        id: newId,
+        name: `${clipboardLayer.name} (copy)`,
+        order: state.layers.length + newLayers.length,
+        x: clipboardLayer.x + 20, // Offset by 20px
+        y: clipboardLayer.y + 20,
+        imageData: new ImageData(
+          new Uint8ClampedArray(clipboardLayer.imageData.data),
+          clipboardLayer.imageData.width,
+          clipboardLayer.imageData.height
+        ),
+        // Deep clone effects
+        effects: clipboardLayer.effects ? {
+          stroke: clipboardLayer.effects.stroke ? { ...clipboardLayer.effects.stroke } : undefined,
+          dropShadow: clipboardLayer.effects.dropShadow ? { ...clipboardLayer.effects.dropShadow } : undefined,
+          outerGlow: clipboardLayer.effects.outerGlow ? { ...clipboardLayer.effects.outerGlow } : undefined
+        } : undefined,
+        // Deep clone customDither
+        customDither: clipboardLayer.customDither ? { ...clipboardLayer.customDither } : undefined
+      };
+
+      newLayers.push(newLayer);
+      newLayerIds.push(newId);
+    }
+
+    // Add new layers to state and select them
+    this.compositionState.set({
+      ...state,
+      layers: [...state.layers, ...newLayers],
+      activeLayerId: newLayerIds[newLayerIds.length - 1],
+      selectedLayerIds: newLayerIds
+    });
+  }
+
+  /**
+   * Duplicate selected layers (copy + paste)
+   */
+  duplicateSelectedLayers(): void {
+    this.copySelectedLayers();
+    this.pasteFromClipboard();
   }
 }

@@ -29,6 +29,20 @@ export interface CompositionLayer {
   // Dithering control
   ditherExempt: boolean; // Si es true, esta capa NO recibe dithering
   
+  // Custom dithering (optional per-layer dithering settings)
+  customDither?: {
+    enabled: boolean;
+    algorithm: string; // floyd-steinberg, atkinson, bayer, etc
+    palette?: string; // Custom palette ID or 'monochrome', 'grayscale', etc
+    threshold?: number; // 0-255 for threshold algorithm
+    bayerLevel?: number; // 2, 4, 8, 16 for bayer
+    scale?: number; // Scale multiplier
+    contrast?: number; // 0-100
+    midtones?: number; // 0-100
+    highlights?: number; // 0-100
+    blur?: number; // Blur amount
+  };
+  
   // Shape properties (for shape layers)
   shapeType?: 'rectangle' | 'circle' | 'ellipse' | 'polygon' | 'star' | 'line';
   shapeFillColor?: string;
@@ -47,6 +61,21 @@ export interface CompositionLayer {
   textStrokeEnabled?: boolean;
   textStrokeColor?: string;
   textStrokeWidth?: number;
+  
+  // Layer effects (direct properties for easier access)
+  strokeEnabled?: boolean;
+  strokeColor?: string;
+  strokeWidth?: number;
+  
+  shadowEnabled?: boolean;
+  shadowColor?: string;
+  shadowBlur?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  
+  glowEnabled?: boolean;
+  glowColor?: string;
+  glowIntensity?: number;
   
   // Layer effects (Fusion Options - Photoshop style)
   effects?: LayerEffects;

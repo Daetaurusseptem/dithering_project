@@ -1,9 +1,11 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CompositionService } from '../../services/composition.service';
 import { ModalService } from '../../services/modal.service';
 import { HistoryService, DeleteLayerCommand } from '../../services/history.service';
+import { StorageService } from '../../services/storage.service';
+import { DitheringService } from '../../services/dithering.service';
 import { CompositionLayer, BlendMode } from '../../models/composition-layer.interface';
 
 @Component({
@@ -511,6 +513,158 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
               <span class="hint">(Will use color compression instead)</span>
             </label>
           </div>
+          
+          @if (!layer.ditherExempt) {
+            <div class="property-row">
+              <input 
+                type="checkbox" 
+                [ngModel]="layer.customDither?.enabled || false"
+                (ngModelChange)="toggleCustomDither(layer, $event)"
+                id="custom-dither-toggle">
+              <label for="custom-dither-toggle">
+                Custom Dither Settings
+                <span class="hint">(Override global settings)</span>
+              </label>
+            </div>
+            
+            @if (layer.customDither?.enabled) {
+              <div class="custom-dither-controls">
+                <div class="property-row">
+                  <label>Palette</label>
+                  <select 
+                    [ngModel]="layer.customDither?.palette || 'monochrome'"
+                    (ngModelChange)="updateCustomDither(layer, 'palette', $event)"
+                    class="select-input">
+                    <optgroup label="Built-in Palettes">
+                      @for (palette of palettes(); track palette.id) {
+                        <option [value]="palette.id">{{ palette.name }}</option>
+                      }
+                    </optgroup>
+                    @if (customPalettes().length > 0) {
+                      <optgroup label="Custom Palettes">
+                        @for (palette of customPalettes(); track palette.id) {
+                          <option [value]="palette.id">{{ palette.name }}</option>
+                        }
+                      </optgroup>
+                    }
+                  </select>
+                </div>
+                
+                <div class="property-row">
+                  <label>Algorithm</label>
+                  <select 
+                    [ngModel]="layer.customDither?.algorithm || 'floyd-steinberg'"
+                    (ngModelChange)="updateCustomDither(layer, 'algorithm', $event)"
+                    class="select-input">
+                    <option value="floyd-steinberg">Floyd-Steinberg</option>
+                    <option value="atkinson">Atkinson</option>
+                    <option value="jarvis-judice-ninke">Jarvis-Judice-Ninke</option>
+                    <option value="stucki">Stucki</option>
+                    <option value="burkes">Burkes</option>
+                    <option value="sierra">Sierra</option>
+                    <option value="sierra-lite">Sierra Lite</option>
+                    <option value="threshold">Threshold</option>
+                    <option value="random">Random</option>
+                    <option value="bayer-2">Bayer 2×2</option>
+                    <option value="bayer-4">Bayer 4×4</option>
+                    <option value="bayer-8">Bayer 8×8</option>
+                    <option value="bayer-16">Bayer 16×16</option>
+                  </select>
+                </div>
+                
+                @if (layer.customDither?.algorithm === 'threshold') {
+                  <div class="property-row">
+                    <label>Threshold</label>
+                    <input 
+                      type="range" 
+                      [ngModel]="layer.customDither?.threshold || 128"
+                      (ngModelChange)="updateCustomDither(layer, 'threshold', $event)"
+                      min="0"
+                      max="255"
+                      class="slider">
+                    <span class="value-display">{{ layer.customDither?.threshold || 128 }}</span>
+                  </div>
+                }
+                
+                @if (layer.customDither?.algorithm?.startsWith('bayer')) {
+                  <div class="property-row">
+                    <label>Bayer Level</label>
+                    <select 
+                      [ngModel]="layer.customDither?.bayerLevel || 4"
+                      (ngModelChange)="updateCustomDither(layer, 'bayerLevel', $event)"
+                      class="select-input">
+                      <option value="2">2×2</option>
+                      <option value="4">4×4</option>
+                      <option value="8">8×8</option>
+                      <option value="16">16×16</option>
+                    </select>
+                  </div>
+                }
+                
+                <!-- Image adjustments -->
+                <div class="property-row">
+                  <label>Scale</label>
+                  <input 
+                    type="range" 
+                    [ngModel]="layer.customDither?.scale || 1"
+                    (ngModelChange)="updateCustomDither(layer, 'scale', $event)"
+                    min="1"
+                    max="10"
+                    step="0.5"
+                    class="slider">
+                  <span class="value-display">{{ layer.customDither?.scale || 1 }}x</span>
+                </div>
+                
+                <div class="property-row">
+                  <label>Contrast</label>
+                  <input 
+                    type="range" 
+                    [ngModel]="layer.customDither?.contrast || 50"
+                    (ngModelChange)="updateCustomDither(layer, 'contrast', $event)"
+                    min="0"
+                    max="100"
+                    class="slider">
+                  <span class="value-display">{{ layer.customDither?.contrast || 50 }}</span>
+                </div>
+                
+                <div class="property-row">
+                  <label>Midtones</label>
+                  <input 
+                    type="range" 
+                    [ngModel]="layer.customDither?.midtones || 50"
+                    (ngModelChange)="updateCustomDither(layer, 'midtones', $event)"
+                    min="0"
+                    max="100"
+                    class="slider">
+                  <span class="value-display">{{ layer.customDither?.midtones || 50 }}</span>
+                </div>
+                
+                <div class="property-row">
+                  <label>Highlights</label>
+                  <input 
+                    type="range" 
+                    [ngModel]="layer.customDither?.highlights || 50"
+                    (ngModelChange)="updateCustomDither(layer, 'highlights', $event)"
+                    min="0"
+                    max="100"
+                    class="slider">
+                  <span class="value-display">{{ layer.customDither?.highlights || 50 }}</span>
+                </div>
+                
+                <div class="property-row">
+                  <label>Blur</label>
+                  <input 
+                    type="range" 
+                    [ngModel]="layer.customDither?.blur || 0"
+                    (ngModelChange)="updateCustomDither(layer, 'blur', $event)"
+                    min="0"
+                    max="10"
+                    class="slider">
+                  <span class="value-display">{{ layer.customDither?.blur || 0 }}</span>
+                </div>
+              </div>
+            }
+          }
         </div>
         
         <!-- Actions -->
@@ -665,6 +819,13 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
       border-left: 2px solid rgba(0, 255, 0, 0.3);
     }
     
+    .custom-dither-controls {
+      margin-top: 8px;
+      margin-left: 20px;
+      padding-left: 8px;
+      border-left: 2px solid rgba(0, 255, 0, 0.3);
+    }
+    
     .slider {
       flex: 1;
       height: 16px;
@@ -799,9 +960,15 @@ export class LayerPropertiesComponent {
   private compositionService = inject(CompositionService);
   private modalService = inject(ModalService);
   private historyService = inject(HistoryService);
+  private storageService = inject(StorageService);
+  private ditheringService = inject(DitheringService);
   
   // Expose Math for template
   Math = Math;
+  
+  // Palettes for custom dither
+  palettes = signal(this.ditheringService.getAvailablePalettes());
+  customPalettes = signal(this.storageService.getCustomPalettes());
   
   // Signals
   compositionState = this.compositionService.compositionState;
@@ -999,11 +1166,70 @@ export class LayerPropertiesComponent {
     this.modalService.confirm(
       `Are you sure you want to delete layer "${layer.name}"?`,
       'Delete Layer'
-    ).then((confirmed) => {
+    ).then(confirmed => {
       if (confirmed) {
         const command = new DeleteLayerCommand(this.compositionService, layer.id);
-        this.historyService.execute(command);
+        this.historyService.record(command);
+        this.compositionService.removeLayer(layer.id);
       }
+    });
+  }
+  
+  /**
+   * Custom Dither Methods
+   */
+  
+  toggleCustomDither(layer: CompositionLayer, enabled: boolean): void {
+    if (enabled) {
+      // Initialize custom dither with default values
+      this.compositionService.updateLayer(layer.id, {
+        customDither: {
+          enabled: true,
+          algorithm: 'floyd-steinberg',
+          palette: 'monochrome',
+          threshold: 128,
+          bayerLevel: 4,
+          scale: 1,
+          contrast: 50,
+          midtones: 50,
+          highlights: 50,
+          blur: 0
+        }
+      });
+    } else {
+      // Disable custom dither
+      this.compositionService.updateLayer(layer.id, {
+        customDither: {
+          enabled: false,
+          algorithm: 'floyd-steinberg',
+          palette: 'monochrome',
+          threshold: 128,
+          bayerLevel: 4,
+          scale: 1,
+          contrast: 50,
+          midtones: 50,
+          highlights: 50,
+          blur: 0
+        }
+      });
+    }
+  }
+  
+  updateCustomDither(
+    layer: CompositionLayer, 
+    property: 'algorithm' | 'palette' | 'threshold' | 'bayerLevel' | 'scale' | 'contrast' | 'midtones' | 'highlights' | 'blur', 
+    value: any
+  ): void {
+    if (!layer.customDither) return;
+    
+    const numericFields = ['threshold', 'bayerLevel', 'scale', 'contrast', 'midtones', 'highlights', 'blur'];
+    const updatedDither = {
+      ...layer.customDither,
+      [property]: numericFields.includes(property) ? Number(value) : value
+    };
+    
+    this.compositionService.updateLayer(layer.id, {
+      customDither: updatedDither
     });
   }
   

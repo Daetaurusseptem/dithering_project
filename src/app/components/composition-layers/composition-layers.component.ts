@@ -24,6 +24,26 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
           </button>
           <button 
             class="btn-small" 
+            (click)="copySelectedLayers()"
+            [disabled]="selectedLayers().length === 0"
+            title="Copy Selected (Ctrl+C)">
+            <span class="icon">📄</span>
+          </button>
+          <button 
+            class="btn-small" 
+            (click)="pasteFromClipboard()"
+            title="Paste (Ctrl+V)">
+            <span class="icon">📋</span>
+          </button>
+          <button 
+            class="btn-small" 
+            (click)="duplicateSelectedLayers()"
+            [disabled]="selectedLayers().length === 0"
+            title="Duplicate Selected (Ctrl+D)">
+            <span class="icon">⎘</span>
+          </button>
+          <button 
+            class="btn-small" 
             (click)="clearAllLayers()"
             [disabled]="layers().length === 0"
             title="Clear All">
@@ -497,6 +517,7 @@ export class CompositionLayersComponent implements AfterViewInit {
     return [...layers].sort((a, b) => b.order - a.order);
   });
   activeLayerId = computed(() => this.compositionState().activeLayerId);
+  selectedLayers = computed(() => this.compositionService.getSelectedLayers());
   showCanvasSettings = signal(false);
   
   // Editing state
@@ -533,6 +554,27 @@ export class CompositionLayersComponent implements AfterViewInit {
    */
   isLayerSelected(layerId: string): boolean {
     return this.compositionService.isLayerSelected(layerId);
+  }
+
+  /**
+   * Copy selected layers to clipboard
+   */
+  copySelectedLayers(): void {
+    this.compositionService.copySelectedLayers();
+  }
+
+  /**
+   * Paste layers from clipboard
+   */
+  pasteFromClipboard(): void {
+    this.compositionService.pasteFromClipboard();
+  }
+
+  /**
+   * Duplicate selected layers
+   */
+  duplicateSelectedLayers(): void {
+    this.compositionService.duplicateSelectedLayers();
   }
   
   addImageLayer(): void {

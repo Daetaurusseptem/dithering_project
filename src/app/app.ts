@@ -52,6 +52,7 @@ export class App implements AfterViewInit {
   @ViewChild('originalCompareCanvas') originalCompareCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('particleCanvas') particleCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild(CompositionCanvasComponent) compositionCanvasComponent?: CompositionCanvasComponent;
 
   // Estado de la aplicación
   imageLoaded = signal(false);
@@ -762,8 +763,8 @@ export class App implements AfterViewInit {
   private renderCompositionToCanvas(): void {
     console.log('🎨 renderCompositionToCanvas called');
     
-    if (!this.compositionMode()) {
-      console.log('❌ Not in composition mode');
+    if (!this.compositionMode() || !this.compositionCanvasComponent) {
+      console.log('❌ Not in composition mode or no canvas component');
       return;
     }
     
@@ -778,76 +779,23 @@ export class App implements AfterViewInit {
       return;
     }
     
-    console.log('✅ Rendering composition...');
+    console.log('✅ Rendering composition with layer effects...');
     
-    // Render composition with dithering
-    const compositionResult = this.compositionService.renderForDithering();
-    console.log('✅ Got composition result:', {
-      width: compositionResult.ditherableContent.width,
-      height: compositionResult.ditherableContent.height,
-      exemptLayers: compositionResult.exemptLayers.length
-    });
+    // Use the same method as GIF export - includes dithering AND layer effects
+    const compositionData = this.compositionCanvasComponent.getCompositionImageDataWithEffects();
     
-    // Apply dithering
-    const options = {
-      algorithm: this.selectedAlgorithm(),
-      scale: this.scale(),
-      contrast: this.contrast(),
-      midtones: this.midtones(),
-      highlights: this.highlights(),
-      blur: this.blur(),
-      palette: this.selectedPalette()
-    };
-    
-    console.log('🎨 Applying dithering with options:', options);
-    
-    const dithered = this.ditheringService.applyDithering(
-      compositionResult.ditherableContent,
-      options
-    );
-    
-    console.log('✅ Dithering applied');
-    
-    // Composite with exempt layers
-    const finalCanvas = document.createElement('canvas');
-    finalCanvas.width = dithered.width;
-    finalCanvas.height = dithered.height;
-    const finalCtx = finalCanvas.getContext('2d')!;
-    
-    // Draw dithered content
-    finalCtx.putImageData(dithered, 0, 0);
-    
-    // Draw exempt layers on top
-    for (const exemptLayer of compositionResult.exemptLayers) {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = exemptLayer.imageData.width;
-      tempCanvas.height = exemptLayer.imageData.height;
-      const tempCtx = tempCanvas.getContext('2d')!;
-      tempCtx.putImageData(exemptLayer.imageData, 0, 0);
-      
-      finalCtx.save();
-      finalCtx.globalAlpha = exemptLayer.layer.opacity / 100;
-      
-      const centerX = exemptLayer.layer.x + exemptLayer.layer.width / 2;
-      const centerY = exemptLayer.layer.y + exemptLayer.layer.height / 2;
-      
-      finalCtx.translate(centerX, centerY);
-      finalCtx.rotate((exemptLayer.layer.rotation * Math.PI) / 180);
-      finalCtx.translate(-centerX, -centerY);
-      
-      finalCtx.drawImage(
-        tempCanvas,
-        exemptLayer.layer.x,
-        exemptLayer.layer.y,
-        exemptLayer.layer.width,
-        exemptLayer.layer.height
-      );
-      
-      finalCtx.restore();
+    if (!compositionData) {
+      console.log('❌ Failed to get composition data');
+      return;
     }
     
-    // Update processedImageData
-    this.processedImageData = finalCtx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
+    console.log('✅ Got composition with effects:', {
+      width: compositionData.width,
+      height: compositionData.height
+    });
+    
+    // Update processedImageData - already includes dithering and effects
+    this.processedImageData = compositionData;
     
     console.log('✅ processedImageData updated:', {
       width: this.processedImageData.width,
@@ -1423,6 +1371,59 @@ export class App implements AfterViewInit {
       this.waifuState.set('processing');
       this.gifLoadingMessage.set('Creating animation frames...');
 
+      // COMPOSITION MODE: Export composition with layer effects
+      if (this.compositionMode() && this.compositionCanvasComponent) {
+        console.log('🎨 Exporting composition with layer effects to GIF');
+        const compositionData = this.compositionCanvasComponent.getCompositionImageDataWithEffects();
+        if (!compositionData) {
+          throw new Error('No composition data available for GIF export');
+        }
+        
+        // Dithering is already applied per-layer in getCompositionImageDataWithEffects()
+        // No need to apply it again here
+        
+        // For now, composition exports as single-frame GIF (static)
+        // TODO: Could add animation support for composition layers in the future
+        const frames: GifFrame[] = [{
+          imageData: compositionData,
+          delay: 1000 // 1 second
+        }];
+        
+        this.gifLoadingMessage.set('Encoding GIF... This may take a moment');
+        
+        const blob = await this.gifService.exportAsGif(
+          frames,
+          {
+            quality: 10,
+            workers: 2,
+            repeat: 0 // No loop for static image
+          },
+          (progress) => {
+            this.gifProgress.set(50 + Math.floor(progress / 2));
+          }
+        );
+        
+        // Download
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `composition-${Date.now()}.gif`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+        
+        this.gifProgress.set(100);
+        this.gifLoadingMessage.set('GIF created successfully!');
+        this.waifuState.set('success');
+        
+        setTimeout(() => {
+          this.generatingGif.set(false);
+          this.waifuState.set('idle');
+        }, 1500);
+        
+        return;
+      }
+
+      // GIF STUDIO MODE or LEGACY: Use baseImageData + effect layers
       // Usar imagen procesada si existe, sino usar original
       const baseImageData = this.processedImageData || this.originalImageData;
       
@@ -2783,12 +2784,31 @@ export class App implements AfterViewInit {
     
     console.log('🎬 generateGifPreview:', {
       gifStudioMode: this.gifStudioMode(),
+      compositionMode: this.compositionMode(),
       totalLayers: layersCount,
       enabledLayers: enabledLayers.length,
       layerTypes: enabledLayers.map(l => l.type)
     });
     
-    if (this.gifStudioMode() && layersCount > 0) {
+    // COMPOSITION MODE: Show composition with layer effects
+    if (this.compositionMode() && this.compositionCanvasComponent) {
+      console.log('🎨 Rendering composition with layer effects for GIF preview');
+      const compositionData = this.compositionCanvasComponent.getCompositionImageDataWithEffects();
+      if (compositionData) {
+        // Dithering is already applied per-layer in getCompositionImageDataWithEffects()
+        const frameCanvas = document.createElement('canvas');
+        frameCanvas.width = compositionData.width;
+        frameCanvas.height = compositionData.height;
+        const ctx = frameCanvas.getContext('2d')!;
+        ctx.putImageData(compositionData, 0, 0);
+        this.previewFrames.push(frameCanvas.toDataURL());
+        console.log('✅ Composition preview frame generated with effects and per-layer dithering');
+      } else {
+        console.log('⚠️ No composition data available');
+      }
+    }
+    // GIF STUDIO MODE: Show effect layers animation
+    else if (this.gifStudioMode() && layersCount > 0) {
       
       if (enabledLayers.length > 0) {
         // Escalar imagen para preview más pequeño
