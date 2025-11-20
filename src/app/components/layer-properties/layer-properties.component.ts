@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CompositionService } from '../../services/composition.service';
 import { ModalService } from '../../services/modal.service';
-import { HistoryService, DeleteLayerCommand } from '../../services/history.service';
+import { HistoryService, DeleteLayerCommand, BatchUpdateLayersCommand } from '../../services/history.service';
 import { StorageService } from '../../services/storage.service';
 import { DitheringService } from '../../services/dithering.service';
 import { CompositionLayer, BlendMode } from '../../models/composition-layer.interface';
@@ -14,11 +14,57 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
   imports: [CommonModule, FormsModule],
   template: `
     <div class="layer-properties-panel">
+      <!-- Batch Operations Section (always visible if multiple selected) -->
+      @if (selectedLayers().length > 1) {
+        <div class="batch-operations-section">
+          <h3 class="batch-title">
+            🔢 Batch Operations ({{ selectedLayers().length }} layers)
+          </h3>
+          
+          <div class="batch-buttons">
+            <button class="btn-batch" (click)="batchApplyTint()" title="Apply tint to all selected">
+              🎨 Apply Tint
+            </button>
+            <button class="btn-batch" (click)="batchApplyDither()" title="Apply custom dither to all">
+              ⬛ Apply Dither
+            </button>
+            <button class="btn-batch" (click)="batchRemoveBackground()" title="Remove background from all">
+              🗑️ Remove BG
+            </button>
+            <button class="btn-batch" (click)="batchSetOpacity()" title="Set opacity for all">
+              👁️ Set Opacity
+            </button>
+            <button class="btn-batch" (click)="batchToggleDitherExempt()" title="Toggle dither exempt">
+              🚫 Toggle Exempt
+            </button>
+            <button class="btn-batch" (click)="batchLock()" title="Lock all selected">
+              🔒 Lock All
+            </button>
+            <button class="btn-batch" (click)="batchUnlock()" title="Unlock all selected">
+              🔓 Unlock All
+            </button>
+            <button class="btn-batch" (click)="batchShow()" title="Show all selected">
+              👁️ Show All
+            </button>
+            <button class="btn-batch" (click)="batchHide()" title="Hide all selected">
+              🙈 Hide All
+            </button>
+          </div>
+          
+          <div class="batch-info">
+            💡 Changes apply to all {{ selectedLayers().length }} selected layers
+          </div>
+        </div>
+      }
+      
       @if (activeLayer(); as layer) {
         <!-- Layer Title -->
         <div class="properties-title">
           <span class="title-icon">⚙️</span>
           <span>Properties</span>
+          @if (selectedLayers().length > 1) {
+            <span class="selection-badge">+{{ selectedLayers().length - 1 }} more</span>
+          }
         </div>
         
         <!-- Transform Section -->
@@ -702,6 +748,75 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     .layer-properties-panel {
       background: linear-gradient(145deg, #1a2d1a 0%, #0f1f0f 100%);
       padding: 0;
+    }
+    
+    /* Batch Operations Section */
+    .batch-operations-section {
+      background: linear-gradient(145deg, #1a3d3d 0%, #0f2f2f 100%);
+      border: 2px solid #00ffcc;
+      border-radius: 4px;
+      padding: 8px;
+      margin: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+    }
+    
+    .batch-title {
+      font-size: 10px;
+      color: #00ffcc;
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.6);
+      margin: 0 0 8px 0;
+      text-align: center;
+    }
+    
+    .batch-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    
+    .btn-batch {
+      padding: 6px 4px;
+      background: linear-gradient(180deg, #2a4d4d 0%, #1a3d3d 100%);
+      border: 1px solid #00ffcc;
+      color: #00ffcc;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 7px;
+      transition: all 0.2s;
+      box-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .btn-batch:hover {
+      background: linear-gradient(180deg, #3a6d6d 0%, #2a5d5d 100%);
+      box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+      transform: translateY(-1px);
+    }
+    
+    .btn-batch:active {
+      transform: translateY(1px);
+    }
+    
+    .batch-info {
+      font-size: 7px;
+      color: rgba(0, 255, 204, 0.6);
+      text-align: center;
+      padding: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 2px;
+    }
+    
+    .selection-badge {
+      background: rgba(0, 255, 204, 0.2);
+      color: #00ffcc;
+      padding: 2px 6px;
+      border: 1px solid rgba(0, 255, 204, 0.4);
+      font-size: 8px;
+      border-radius: 2px;
+      margin-left: 8px;
       height: 100%;
       overflow-y: auto;
       font-family: 'Press Start 2P', 'Courier New', monospace;
@@ -975,6 +1090,10 @@ export class LayerPropertiesComponent {
   activeLayer = computed(() => {
     const state = this.compositionState();
     return state.layers.find(l => l.id === state.activeLayerId) || null;
+  });
+  
+  selectedLayers = computed(() => {
+    return this.compositionService.getSelectedLayers();
   });
   
   /**
@@ -1415,5 +1534,191 @@ export class LayerPropertiesComponent {
         name: `Shape: ${shapeType}`
       });
     };
+  }
+
+  /**
+   * ===== BATCH OPERATIONS =====
+   */
+
+  batchApplyTint(): void {
+    const active = this.activeLayer();
+    if (!active || this.selectedLayers().length < 2) return;
+
+    const layerIds = this.selectedLayers().map(l => l.id);
+    
+    // Apply active layer's tint settings to all selected
+    const updates: Partial<CompositionLayer> = {
+      tint: active.tint,
+      tintColor: active.tintColor,
+      tintIntensity: active.tintIntensity,
+      tintBlendMode: active.tintBlendMode
+    };
+
+    const command = new BatchUpdateLayersCommand(
+      this.compositionService,
+      layerIds,
+      updates,
+      `Apply tint to ${layerIds.length} layers`
+    );
+
+    this.historyService.record(command);
+    command.execute();
+  }
+
+  batchApplyDither(): void {
+    const active = this.activeLayer();
+    if (!active || this.selectedLayers().length < 2) return;
+
+    const layerIds = this.selectedLayers().map(l => l.id);
+    
+    // Apply active layer's custom dither to all selected
+    const updates: Partial<CompositionLayer> = {
+      customDither: active.customDither ? { ...active.customDither } : undefined
+    };
+
+    const command = new BatchUpdateLayersCommand(
+      this.compositionService,
+      layerIds,
+      updates,
+      `Apply custom dither to ${layerIds.length} layers`
+    );
+
+    this.historyService.record(command);
+    command.execute();
+  }
+
+  batchRemoveBackground(): void {
+    const active = this.activeLayer();
+    if (!active || this.selectedLayers().length < 2) return;
+
+    const layerIds = this.selectedLayers().map(l => l.id);
+    
+    // Apply active layer's background removal to all selected
+    const updates: Partial<CompositionLayer> = {
+      removeBackground: active.removeBackground,
+      backgroundColor: active.backgroundColor,
+      backgroundThreshold: active.backgroundThreshold
+    };
+
+    const command = new BatchUpdateLayersCommand(
+      this.compositionService,
+      layerIds,
+      updates,
+      `Apply background removal to ${layerIds.length} layers`
+    );
+
+    this.historyService.record(command);
+    command.execute();
+  }
+
+  batchSetOpacity(): void {
+    const active = this.activeLayer();
+    if (!active || this.selectedLayers().length < 2) return;
+
+    const layerIds = this.selectedLayers().map(l => l.id);
+    
+    const updates: Partial<CompositionLayer> = {
+      opacity: active.opacity
+    };
+
+    const command = new BatchUpdateLayersCommand(
+      this.compositionService,
+      layerIds,
+      updates,
+      `Set opacity to ${layerIds.length} layers`
+    );
+
+    this.historyService.record(command);
+    command.execute();
+  }
+
+  batchToggleDitherExempt(): void {
+    if (this.selectedLayers().length < 2) return;
+
+    const layerIds = this.selectedLayers().map(l => l.id);
+    const firstLayer = this.selectedLayers()[0];
+    
+    // Toggle to opposite of first selected layer
+    const updates: Partial<CompositionLayer> = {
+      ditherExempt: !firstLayer.ditherExempt
+    };
+
+    const command = new BatchUpdateLayersCommand(
+      this.compositionService,
+      layerIds,
+      updates,
+      `Toggle dither exempt for ${layerIds.length} layers`
+    );
+
+    this.historyService.record(command);
+    command.execute();
+  }
+
+  batchLock(): void {
+    if (this.selectedLayers().length < 2) return;
+
+    const layerIds = this.selectedLayers().map(l => l.id);
+    const updates: Partial<CompositionLayer> = { locked: true };
+
+    const command = new BatchUpdateLayersCommand(
+      this.compositionService,
+      layerIds,
+      updates,
+      `Lock ${layerIds.length} layers`
+    );
+
+    this.historyService.record(command);
+    command.execute();
+  }
+
+  batchUnlock(): void {
+    if (this.selectedLayers().length < 2) return;
+
+    const layerIds = this.selectedLayers().map(l => l.id);
+    const updates: Partial<CompositionLayer> = { locked: false };
+
+    const command = new BatchUpdateLayersCommand(
+      this.compositionService,
+      layerIds,
+      updates,
+      `Unlock ${layerIds.length} layers`
+    );
+
+    this.historyService.record(command);
+    command.execute();
+  }
+
+  batchShow(): void {
+    if (this.selectedLayers().length < 2) return;
+
+    const layerIds = this.selectedLayers().map(l => l.id);
+    const updates: Partial<CompositionLayer> = { visible: true };
+
+    const command = new BatchUpdateLayersCommand(
+      this.compositionService,
+      layerIds,
+      updates,
+      `Show ${layerIds.length} layers`
+    );
+
+    this.historyService.record(command);
+    command.execute();
+  }
+
+  batchHide(): void {
+    if (this.selectedLayers().length < 2) return;
+
+    const layerIds = this.selectedLayers().map(l => l.id);
+    const updates: Partial<CompositionLayer> = { visible: false };
+
+    const command = new BatchUpdateLayersCommand(
+      this.compositionService,
+      layerIds,
+      updates,
+      `Hide ${layerIds.length} layers`
+    );
+
+    this.historyService.record(command);
+    command.execute();
   }
 }

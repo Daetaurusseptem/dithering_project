@@ -837,6 +837,29 @@
                     {{ compositionService.compositionState().canvasWidth }} × 
                     {{ compositionService.compositionState().canvasHeight }}px
                   </div>
+                  
+                  <!-- Undo/Redo Controls -->
+                  <div class="undo-redo-controls">
+                    <button 
+                      class="btn-undo-redo" 
+                      [disabled]="!historyService.canUndo()"
+                      (click)="historyService.undo()"
+                      [title]="'Undo: ' + (historyService.getUndoDescription() || 'Nothing to undo') + ' (Ctrl+Z)'">
+                      <span class="icon">↶</span>
+                      <span class="label">Undo</span>
+                    </button>
+                    <button 
+                      class="btn-undo-redo" 
+                      [disabled]="!historyService.canRedo()"
+                      (click)="historyService.redo()"
+                      [title]="'Redo: ' + (historyService.getRedoDescription() || 'Nothing to redo') + ' (Ctrl+Y)'">
+                      <span class="icon">↷</span>
+                      <span class="label">Redo</span>
+                    </button>
+                    <div class="history-info">
+                      {{ historyService.getHistorySize().undo }} / {{ historyService.getHistorySize().redo }}
+                    </div>
+                  </div>
                 </div>
                 <app-composition-canvas></app-composition-canvas>
               </div>

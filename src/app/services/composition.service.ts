@@ -143,6 +143,14 @@ export class CompositionService {
    */
   addLayerWithId(layer: CompositionLayer): void {
     const state = this.compositionState();
+    
+    // Check if layer already exists
+    const exists = state.layers.find(l => l.id === layer.id);
+    if (exists) {
+      console.error(`⚠️ Layer ${layer.id} already exists! Not adding duplicate.`);
+      return;
+    }
+    
     this.compositionState.set({
       ...state,
       layers: [...state.layers, layer],
@@ -1040,6 +1048,13 @@ export class CompositionService {
   }
 
   /**
+   * Get clipboard layers without pasting
+   */
+  getClipboardLayers(): CompositionLayer[] {
+    return this.clipboard;
+  }
+
+  /**
    * Paste layers from clipboard
    */
   pasteFromClipboard(): void {
@@ -1089,9 +1104,160 @@ export class CompositionService {
 
   /**
    * Duplicate selected layers (copy + paste)
+   * Returns array of new layer IDs
    */
-  duplicateSelectedLayers(): void {
+  duplicateSelectedLayers(): string[] {
+    const beforeCount = this.compositionState().layers.length;
     this.copySelectedLayers();
     this.pasteFromClipboard();
+    
+    // Get the newly created layer IDs
+    const afterState = this.compositionState();
+    const newLayerIds = afterState.selectedLayerIds; // The pasted layers are automatically selected
+    
+    return newLayerIds;
+  }
+
+  /**
+   * ===== BATCH OPERATIONS =====
+   */
+
+  /**
+   * Apply custom dither to selected layers
+   */
+  applyCustomDitherToSelection(customDither: CompositionLayer['customDither']): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    const updates = selectedLayers.map(layer => ({
+      layerId: layer.id,
+      changes: { customDither }
+    }));
+
+    this.updateMultipleLayers(updates);
+  }
+
+  /**
+   * Apply tint to selected layers
+   */
+  applyTintToSelection(tint: boolean, tintColor: string, tintIntensity: number, tintBlendMode: BlendMode): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    const updates = selectedLayers.map(layer => ({
+      layerId: layer.id,
+      changes: { tint, tintColor, tintIntensity, tintBlendMode }
+    }));
+
+    this.updateMultipleLayers(updates);
+  }
+
+  /**
+   * Apply background removal to selected layers
+   */
+  applyBackgroundRemovalToSelection(removeBackground: boolean, backgroundColor?: string, backgroundThreshold?: number): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    const updates = selectedLayers.map(layer => ({
+      layerId: layer.id,
+      changes: { 
+        removeBackground, 
+        backgroundColor: backgroundColor ?? layer.backgroundColor,
+        backgroundThreshold: backgroundThreshold ?? layer.backgroundThreshold
+      }
+    }));
+
+    this.updateMultipleLayers(updates);
+  }
+
+  /**
+   * Toggle dither exempt for selected layers
+   */
+  toggleDitherExemptForSelection(ditherExempt: boolean): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    const updates = selectedLayers.map(layer => ({
+      layerId: layer.id,
+      changes: { ditherExempt }
+    }));
+
+    this.updateMultipleLayers(updates);
+  }
+
+  /**
+   * Set opacity for selected layers
+   */
+  setOpacityForSelection(opacity: number): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    const updates = selectedLayers.map(layer => ({
+      layerId: layer.id,
+      changes: { opacity }
+    }));
+
+    this.updateMultipleLayers(updates);
+  }
+
+  /**
+   * Apply blend mode to selected layers (if supported in future)
+   */
+  applyBlendModeToSelection(blendMode: BlendMode): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    const updates = selectedLayers.map(layer => ({
+      layerId: layer.id,
+      changes: { tintBlendMode: blendMode }
+    }));
+
+    this.updateMultipleLayers(updates);
+  }
+
+  /**
+   * Lock/unlock selected layers
+   */
+  setLockedForSelection(locked: boolean): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    const updates = selectedLayers.map(layer => ({
+      layerId: layer.id,
+      changes: { locked }
+    }));
+
+    this.updateMultipleLayers(updates);
+  }
+
+  /**
+   * Show/hide selected layers
+   */
+  setVisibilityForSelection(visible: boolean): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    const updates = selectedLayers.map(layer => ({
+      layerId: layer.id,
+      changes: { visible }
+    }));
+
+    this.updateMultipleLayers(updates);
+  }
+
+  /**
+   * Apply effects to selected layers
+   */
+  applyEffectsToSelection(effects: CompositionLayer['effects']): void {
+    const selectedLayers = this.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+
+    const updates = selectedLayers.map(layer => ({
+      layerId: layer.id,
+      changes: { effects: effects ? { ...effects } : undefined }
+    }));
+
+    this.updateMultipleLayers(updates);
   }
 }

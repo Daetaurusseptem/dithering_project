@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CompositionService } from '../../services/composition.service';
 import { ModalService } from '../../services/modal.service';
-import { HistoryService, DeleteLayerCommand, AddLayerCommand } from '../../services/history.service';
+import { HistoryService, DeleteLayerCommand, AddLayerCommand, BatchAddLayersCommand } from '../../services/history.service';
 import { CompositionLayer } from '../../models/composition-layer.interface';
 
 @Component({
@@ -567,14 +567,67 @@ export class CompositionLayersComponent implements AfterViewInit {
    * Paste layers from clipboard
    */
   pasteFromClipboard(): void {
-    this.compositionService.pasteFromClipboard();
+    // Get layers from clipboard (without pasting yet)
+    const clipboardLayers = this.compositionService.getClipboardLayers();
+    if (clipboardLayers.length === 0) return;
+    
+    const state = this.compositionState();
+    
+    // Create new layers data with new IDs and offset
+    const newLayers: CompositionLayer[] = clipboardLayers.map((layer, index) => ({
+      ...layer,
+      id: `layer-${Date.now()}-${Math.random()}-${index}`,
+      name: `${layer.name} (copy)`,
+      order: state.layers.length + index,
+      x: layer.x + 20,
+      y: layer.y + 20,
+      imageData: new ImageData(
+        new Uint8ClampedArray(layer.imageData.data),
+        layer.imageData.width,
+        layer.imageData.height
+      )
+    }));
+    
+    // Create and execute command
+    const command = new BatchAddLayersCommand(
+      this.compositionService,
+      newLayers,
+      `Paste ${newLayers.length} layer${newLayers.length > 1 ? 's' : ''}`
+    );
+    this.historyService.execute(command);
   }
 
   /**
    * Duplicate selected layers
    */
   duplicateSelectedLayers(): void {
-    this.compositionService.duplicateSelectedLayers();
+    // Get selected layers to duplicate
+    const selectedLayers = this.compositionService.getSelectedLayers();
+    if (selectedLayers.length === 0) return;
+    
+    // Create duplicated layers data (without adding them yet)
+    const state = this.compositionState();
+    const newLayers: CompositionLayer[] = selectedLayers.map(layer => ({
+      ...layer,
+      id: `layer-${Date.now()}-${Math.random()}`,
+      name: `${layer.name} Copy`,
+      order: state.layers.length,
+      x: layer.x + 20,
+      y: layer.y + 20,
+      imageData: new ImageData(
+        new Uint8ClampedArray(layer.imageData.data),
+        layer.imageData.width,
+        layer.imageData.height
+      )
+    }));
+    
+    // Create and execute command
+    const command = new BatchAddLayersCommand(
+      this.compositionService,
+      newLayers,
+      `Duplicate ${newLayers.length} layer${newLayers.length > 1 ? 's' : ''}`
+    );
+    this.historyService.execute(command);
   }
   
   addImageLayer(): void {
@@ -623,7 +676,18 @@ export class CompositionLayersComponent implements AfterViewInit {
   }
   
   duplicateLayer(layerId: string): void {
-    this.compositionService.duplicateLayer(layerId);
+    const newLayerId = this.compositionService.duplicateLayer(layerId);
+    
+    // Add to history
+    if (newLayerId) {
+      const state = this.compositionState();
+      const newLayer = state.layers.find(l => l.id === newLayerId);
+      if (newLayer) {
+        const command = new AddLayerCommand(this.compositionService, newLayer);
+        this.historyService.record(command);
+      }
+    }
+    
     setTimeout(() => this.updateAllThumbnails(), 50);
   }
   

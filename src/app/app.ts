@@ -12,7 +12,7 @@ import { GalleryService } from './services/gallery.service';
 import { CompositionService } from './services/composition.service';
 import { CompositionToolService } from './services/composition-tool.service';
 import { ModalService } from './services/modal.service';
-import { HistoryService } from './services/history.service';
+import { HistoryService, BatchAddLayersCommand } from './services/history.service';
 import { CrtWaifuComponent, WaifuState } from './components/crt-waifu/crt-waifu.component';
 import { SpriteUploaderComponent } from './components/sprite-uploader/sprite-uploader.component';
 import { GifLoadingComponent } from './components/gif-loading/gif-loading.component';
@@ -205,7 +205,7 @@ export class App implements AfterViewInit {
     public galleryService: GalleryService,
     public compositionService: CompositionService,
     public compositionToolService: CompositionToolService,
-    private historyService: HistoryService
+    public historyService: HistoryService
   ) {
     this.algorithms.set(this.ditheringService.getAvailableAlgorithms());
     this.palettes.set(this.ditheringService.getAvailablePalettes());
@@ -1292,21 +1292,109 @@ export class App implements AfterViewInit {
       }
     }
     
-    // Undo/Redo
+    // Undo/Redo (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y)
     if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === 'z') {
       if (this.historyService.undo()) {
-        console.log('🔄 Undo:', this.historyService.getRedoDescription());
+        const redoDesc = this.historyService.getRedoDescription();
+        console.log('🔙 Undo:', redoDesc || 'action');
+        this.triggerDialogue('undo');
       } else {
-        console.log('🔄 Nothing to undo');
+        console.log('⚠️ Nothing to undo');
       }
       event.preventDefault();
+      return;
     }
     
     if ((event.ctrlKey || event.metaKey) && (event.shiftKey && key === 'z' || key === 'y')) {
       if (this.historyService.redo()) {
-        console.log('🔄 Redo:', this.historyService.getUndoDescription());
+        const undoDesc = this.historyService.getUndoDescription();
+        console.log('🔜 Redo:', undoDesc || 'action');
+        this.triggerDialogue('redo');
       } else {
-        console.log('🔄 Nothing to redo');
+        console.log('⚠️ Nothing to redo');
+      }
+      event.preventDefault();
+      return;
+    }
+
+    // Delete selected layers (Delete or Backspace)
+    if (key === 'delete' || key === 'backspace') {
+      const selectedLayers = this.compositionService.getSelectedLayers();
+      if (selectedLayers.length > 0 && !selectedLayers[0].locked) {
+        selectedLayers.forEach(layer => {
+          if (!layer.locked) {
+            this.compositionService.removeLayer(layer.id);
+          }
+        });
+        event.preventDefault();
+      }
+    }
+
+    // Copy selected layers (Ctrl+C)
+    if ((event.ctrlKey || event.metaKey) && key === 'c') {
+      this.compositionService.copySelectedLayers();
+      console.log('📋 Copied', this.compositionService.getSelectedLayers().length, 'layers');
+      event.preventDefault();
+    }
+
+    // Paste layers (Ctrl+V)
+    if ((event.ctrlKey || event.metaKey) && key === 'v') {
+      const clipboardLayers = this.compositionService.getClipboardLayers();
+      if (clipboardLayers.length > 0) {
+        const state = this.compositionService.compositionState();
+        const newLayers = clipboardLayers.map((layer, index) => ({
+          ...layer,
+          id: `layer-${Date.now()}-${Math.random()}-${index}`,
+          name: `${layer.name} (copy)`,
+          order: state.layers.length + index,
+          x: layer.x + 20,
+          y: layer.y + 20,
+          imageData: new ImageData(
+            new Uint8ClampedArray(layer.imageData.data),
+            layer.imageData.width,
+            layer.imageData.height
+          )
+        }));
+        
+        const command = new BatchAddLayersCommand(
+          this.compositionService,
+          newLayers,
+          `Paste ${newLayers.length} layer${newLayers.length > 1 ? 's' : ''}`
+        );
+        this.historyService.execute(command);
+        console.log('📋 Pasted', clipboardLayers.length, 'layers');
+      }
+      event.preventDefault();
+    }
+
+    // Duplicate selected layers (Ctrl+D)
+    if ((event.ctrlKey || event.metaKey) && key === 'd') {
+      const selectedLayers = this.compositionService.getSelectedLayers();
+      if (selectedLayers.length > 0) {
+        // Create duplicated layers data (without adding them yet)
+        const state = this.compositionService.compositionState();
+        const newLayers = selectedLayers.map((layer, index) => ({
+          ...layer,
+          id: `layer-${Date.now()}-${Math.random()}-${index}`,
+          name: `${layer.name} Copy`,
+          order: state.layers.length + index,
+          x: layer.x + 20,
+          y: layer.y + 20,
+          imageData: new ImageData(
+            new Uint8ClampedArray(layer.imageData.data),
+            layer.imageData.width,
+            layer.imageData.height
+          )
+        }));
+        
+        // Create and execute command
+        const command = new BatchAddLayersCommand(
+          this.compositionService,
+          newLayers,
+          `Duplicate ${newLayers.length} layer${newLayers.length > 1 ? 's' : ''}`
+        );
+        this.historyService.execute(command);
+        console.log('⎘ Duplicated', selectedLayers.length, 'layers');
       }
       event.preventDefault();
     }

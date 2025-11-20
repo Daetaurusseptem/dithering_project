@@ -4,7 +4,7 @@ import { CompositionService } from '../../services/composition.service';
 import { DitheringService } from '../../services/dithering.service';
 import { CompositionToolService } from '../../services/composition-tool.service';
 import { ModalService } from '../../services/modal.service';
-import { HistoryService, MoveLayerCommand, TransformLayerCommand, AddLayerCommand } from '../../services/history.service';
+import { HistoryService, MoveLayerCommand, TransformLayerCommand, AddLayerCommand, BatchUpdateLayersCommand } from '../../services/history.service';
 import { CompositionLayer } from '../../models/composition-layer.interface';
 import { TextEditorComponent } from '../text-editor/text-editor.component';
 
@@ -367,6 +367,10 @@ export class CompositionCanvasComponent implements AfterViewInit {
         let renderLayer = layer;
         if (this.currentTransform && layer.id === state.activeLayerId) {
           renderLayer = { ...layer, ...this.currentTransform };
+        } else if (this.isResizing && this.multiResizeTempBounds.has(layer.id)) {
+          // Use temp bounds during multi-resize
+          const tempBounds = this.multiResizeTempBounds.get(layer.id)!;
+          renderLayer = { ...layer, ...tempBounds };
         } else if (this.isDragging && this.multipleLayersDragStart.has(layer.id)) {
           const startPos = this.multipleLayersDragStart.get(layer.id)!;
           const dx = this.currentTransform!.x - this.dragStartLayerX;
@@ -403,6 +407,10 @@ export class CompositionCanvasComponent implements AfterViewInit {
         let renderLayer = layer;
         if (this.currentTransform && layer.id === state.activeLayerId) {
           renderLayer = { ...layer, ...this.currentTransform };
+        } else if (this.isResizing && this.multiResizeTempBounds.has(layer.id)) {
+          // Use temp bounds during multi-resize
+          const tempBounds = this.multiResizeTempBounds.get(layer.id)!;
+          renderLayer = { ...layer, ...tempBounds };
         } else if (this.isDragging && this.multipleLayersDragStart.has(layer.id)) {
           const startPos = this.multipleLayersDragStart.get(layer.id)!;
           const dx = this.currentTransform!.x - this.dragStartLayerX;
@@ -415,7 +423,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
 
     // Draw selection box
     const selectedLayerIds = state.selectedLayerIds;
-
+    
     if (selectedLayerIds.length > 1) {
       // Multiple selection - draw bounding box that encompasses all selected layers
       const selectedLayers = state.layers.filter(l => selectedLayerIds.includes(l.id) && l.visible);
@@ -769,11 +777,20 @@ export class CompositionCanvasComponent implements AfterViewInit {
     let maxY = -Infinity;
 
     for (const layer of layers) {
-      // Apply transforms if dragging multiple layers
+      // Use temp bounds if resizing, drag offset if dragging, or actual position otherwise
       let layerX = layer.x;
       let layerY = layer.y;
-
-      if (this.isDragging && this.multipleLayersDragStart.has(layer.id)) {
+      let layerWidth = layer.width;
+      let layerHeight = layer.height;
+      
+      if (this.isResizing && this.multiResizeTempBounds.has(layer.id)) {
+        // Use temp bounds during resize
+        const tempBounds = this.multiResizeTempBounds.get(layer.id)!;
+        layerX = tempBounds.x;
+        layerY = tempBounds.y;
+        layerWidth = tempBounds.width;
+        layerHeight = tempBounds.height;
+      } else if (this.isDragging && this.multipleLayersDragStart.has(layer.id)) {
         const startPos = this.multipleLayersDragStart.get(layer.id)!;
         const dx = this.currentTransform!.x - this.dragStartLayerX;
         const dy = this.currentTransform!.y - this.dragStartLayerY;
@@ -784,9 +801,9 @@ export class CompositionCanvasComponent implements AfterViewInit {
       // For simplicity, calculate bounding box without rotation
       // In the future, could calculate rotated bounds properly
       const left = layerX;
-      const right = layerX + layer.width;
+      const right = layerX + layerWidth;
       const top = layerY;
-      const bottom = layerY + layer.height;
+      const bottom = layerY + layerHeight;
 
       minX = Math.min(minX, left);
       minY = Math.min(minY, top);
@@ -908,7 +925,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       if (selectedLayers.length > 1) {
         const boundingBox = this.getMultiSelectionBoundingBox(selectedLayers);
         const handle = this.getHandleAtPosition(x, y, boundingBox);
-
+        
         if (handle) {
           this.startMultiResize(x, y, boundingBox, handle, selectedLayers);
           return;
@@ -918,7 +935,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         }
       }
     }
-
+    
     // Single selection handling
     const activeLayer = this.activeLayer();
 
@@ -1118,8 +1135,70 @@ export class CompositionCanvasComponent implements AfterViewInit {
       this.multipleLayersDragStart.clear();
     }
 
-    // Save undo command for resize/rotate
-    if ((this.isResizing || this.isRotating) && activeLayer && this.currentTransform) {
+    // Save undo command for multi-layer resize
+    if (this.isResizing && this.multiResizeLayers.length > 1) {
+      // Check if any layer actually changed
+      let hasAnyChange = false;
+      const layerTransforms: Array<{ layerId: string; oldBounds: any; newBounds: any }> = [];
+      
+      for (const layer of this.multiResizeLayers) {
+        const startBounds = this.multiResizeStartBounds.get(layer.id);
+        const tempBounds = this.multiResizeTempBounds.get(layer.id);
+        
+        if (startBounds && tempBounds) {
+          const changed = startBounds.x !== tempBounds.x ||
+                         startBounds.y !== tempBounds.y ||
+                         startBounds.width !== tempBounds.width ||
+                         startBounds.height !== tempBounds.height;
+          
+          if (changed) {
+            hasAnyChange = true;
+            layerTransforms.push({
+              layerId: layer.id,
+              oldBounds: startBounds,
+              newBounds: tempBounds
+            });
+          }
+        }
+      }
+      
+      if (hasAnyChange && layerTransforms.length > 0) {
+        // Apply all transformations to the service
+        layerTransforms.forEach(t => {
+          this.compositionService.updateLayer(t.layerId, t.newBounds);
+        });
+        
+        // Create a custom batch transform command
+        const oldValues = new Map<string, Partial<CompositionLayer>>();
+        const newValues = new Map<string, Partial<CompositionLayer>>();
+        
+        layerTransforms.forEach(t => {
+          oldValues.set(t.layerId, t.oldBounds);
+          newValues.set(t.layerId, t.newBounds);
+        });
+        
+        const command = {
+          description: `Resize ${layerTransforms.length} layers`,
+          execute: () => {
+            newValues.forEach((bounds, layerId) => {
+              this.compositionService.updateLayer(layerId, bounds);
+            });
+          },
+          undo: () => {
+            oldValues.forEach((bounds, layerId) => {
+              this.compositionService.updateLayer(layerId, bounds);
+            });
+          }
+        };
+        
+        this.historyService.record(command);
+      }
+      
+      // Clear temp storage
+      this.multiResizeTempBounds.clear();
+    }
+    // Save undo command for single layer resize/rotate
+    else if ((this.isResizing || this.isRotating) && activeLayer && this.currentTransform) {
       const oldTransform = {
         x: this.dragStartLayerX,
         y: this.dragStartLayerY,
@@ -1167,7 +1246,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
     this.isDrawingShape = false;
     this.isBrushing = false;
     this.resizeHandle = null;
-
+    
     // Clear multi-selection state
     this.multiResizeLayers = [];
     this.multiResizeStartBounds.clear();
@@ -1195,20 +1274,8 @@ export class CompositionCanvasComponent implements AfterViewInit {
       return;
     }
 
-    // Ctrl+V / Cmd+V - Paste
-    if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-      event.preventDefault();
-      this.compositionService.pasteFromClipboard();
-      return;
-    }
-
-    // Ctrl+D / Cmd+D - Duplicate
-    if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
-      event.preventDefault();
-      this.compositionService.duplicateSelectedLayers();
-      return;
-    }
-
+    // Ctrl+V / Cmd+V - Paste (handled by app.ts)
+    // Ctrl+D / Cmd+D - Duplicate (handled by app.ts)
     // Delete / Backspace - Delete selected layers
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
@@ -1762,14 +1829,6 @@ export class CompositionCanvasComponent implements AfterViewInit {
     // Scale tolerance inversely with zoom for consistent hit detection
     const tolerance = 15 / this.canvasZoom();
 
-    console.log('🔍 getHandleAtPosition:', {
-      clickPos: { x, y },
-      layerBounds: { x: coords.x, y: coords.y, w: coords.width, h: coords.height },
-      rotation: coords.rotation,
-      zoom: this.canvasZoom(),
-      tolerance
-    });
-
     const centerX = coords.x + coords.width / 2;
     const centerY = coords.y + coords.height / 2;
 
@@ -1780,14 +1839,11 @@ export class CompositionCanvasComponent implements AfterViewInit {
     const localX = dx * Math.cos(angleRad) - dy * Math.sin(angleRad) + centerX;
     const localY = dx * Math.sin(angleRad) + dy * Math.cos(angleRad) + centerY;
 
-    console.log('🔄 Transformed to local space:', { localX, localY, centerX, centerY });
-
     // Check rotation handle (in local space) - use scaled distance
     const rotateHandleDistance = 30 / this.canvasZoom();
     const rotateY = coords.y - rotateHandleDistance;
     const rotateDistance = Math.hypot(localX - centerX, localY - rotateY);
     if (rotateDistance <= tolerance) {
-      console.log('✅ Rotate handle detected');
       return 'rotate';
     }
 
@@ -1809,12 +1865,10 @@ export class CompositionCanvasComponent implements AfterViewInit {
     for (const handle of handles) {
       const distance = Math.hypot(localX - handle.x, localY - handle.y);
       if (distance <= tolerance) {
-        console.log(`✅ Handle detected: ${handle.type}, distance: ${distance.toFixed(2)}`);
         return handle.type;
       }
     }
 
-    console.log('❌ No handle detected');
     return null;
   }
 
@@ -1943,7 +1997,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
   /**
    * MULTI-SELECTION HELPERS
    */
-
+  
   private getMultiSelectionBoundingBox(layers: CompositionLayer[]): { x: number; y: number; width: number; height: number; rotation: number } {
     if (layers.length === 0) {
       return { x: 0, y: 0, width: 0, height: 0, rotation: 0 };
@@ -1957,7 +2011,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
     for (const layer of layers) {
       let layerX = layer.x;
       let layerY = layer.y;
-
+      
       if (this.isDragging && this.multipleLayersDragStart.has(layer.id)) {
         const startPos = this.multipleLayersDragStart.get(layer.id)!;
         const dx = this.currentTransform!.x - this.dragStartLayerX;
@@ -1992,6 +2046,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
 
   private multiResizeLayers: CompositionLayer[] = [];
   private multiResizeStartBounds = new Map<string, { x: number; y: number; width: number; height: number }>();
+  private multiResizeTempBounds = new Map<string, { x: number; y: number; width: number; height: number }>(); // Temp storage during resize
   private multiResizeBoundingBox: { x: number; y: number; width: number; height: number } | null = null;
 
   private startMultiResize(
@@ -2027,13 +2082,13 @@ export class CompositionCanvasComponent implements AfterViewInit {
     this.isDragging = true;
     this.dragStartX = x;
     this.dragStartY = y;
-
+    
     // Store starting positions for all selected layers
     this.multipleLayersDragStart.clear();
     for (const layer of layers) {
       this.multipleLayersDragStart.set(layer.id, { x: layer.x, y: layer.y });
     }
-
+    
     // Use first layer's position as reference
     if (layers.length > 0) {
       this.dragStartLayerX = layers[0].x;
@@ -2107,7 +2162,8 @@ export class CompositionCanvasComponent implements AfterViewInit {
     const scaleX = newBoxWidth / originalBox.width;
     const scaleY = newBoxHeight / originalBox.height;
 
-    // Apply proportional scaling to all selected layers
+    // Store new bounds in temp storage (don't update service yet)
+    this.multiResizeTempBounds.clear();
     for (const layer of this.multiResizeLayers) {
       const startBounds = this.multiResizeStartBounds.get(layer.id);
       if (!startBounds) continue;
@@ -2124,7 +2180,8 @@ export class CompositionCanvasComponent implements AfterViewInit {
       const newWidth = relW * newBoxWidth;
       const newHeight = relH * newBoxHeight;
 
-      this.compositionService.updateLayer(layer.id, {
+      // Store in temp map instead of updating service
+      this.multiResizeTempBounds.set(layer.id, {
         x: newX,
         y: newY,
         width: newWidth,

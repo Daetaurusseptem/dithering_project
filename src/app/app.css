@@ -3604,6 +3604,7 @@
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+  gap: 16px;
 }
 
 .composition-canvas-area .canvas-header h3 {
@@ -3617,6 +3618,63 @@
 .composition-canvas-area .canvas-info {
   font-size: 0.6rem;
   color: #90ee90;
+  font-family: 'Courier New', monospace;
+}
+
+/* Undo/Redo Controls */
+.undo-redo-controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.btn-undo-redo {
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #2a4d2a 0%, #1a3d1a 100%);
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  transition: all 0.2s;
+  box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-undo-redo:hover:not(:disabled) {
+  background: linear-gradient(180deg, #3a5d3a 0%, #2a4d2a 100%);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-undo-redo:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-undo-redo:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-undo-redo .icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.btn-undo-redo .label {
+  font-size: 8px;
+}
+
+.history-info {
+  font-size: 8px;
+  color: rgba(0, 255, 0, 0.6);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
   font-family: 'Courier New', monospace;
 }
 

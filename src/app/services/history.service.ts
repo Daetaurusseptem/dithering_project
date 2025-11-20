@@ -165,6 +165,91 @@ export class ReorderLayersCommand implements Command {
 }
 
 /**
+ * Batch Update Layers Command - Updates multiple layers at once
+ */
+export class BatchUpdateLayersCommand implements Command {
+  description: string;
+  private oldStates: Map<string, Partial<CompositionLayer>>;
+  private newStates: Map<string, Partial<CompositionLayer>>;
+
+  constructor(
+    private compositionService: any,
+    layerIds: string[],
+    updates: Partial<CompositionLayer>,
+    description?: string
+  ) {
+    const state = this.compositionService.compositionState();
+    this.oldStates = new Map();
+    this.newStates = new Map();
+
+    // Store old values for each layer
+    layerIds.forEach(layerId => {
+      const layer = state.layers.find((l: CompositionLayer) => l.id === layerId);
+      if (layer) {
+        const oldState: Partial<CompositionLayer> = {};
+        Object.keys(updates).forEach(key => {
+          oldState[key as keyof CompositionLayer] = layer[key as keyof CompositionLayer];
+        });
+        this.oldStates.set(layerId, oldState);
+        this.newStates.set(layerId, updates);
+      }
+    });
+
+    this.description = description || `Update ${layerIds.length} layers`;
+  }
+
+  execute(): void {
+    this.newStates.forEach((updates, layerId) => {
+      this.compositionService.updateLayer(layerId, updates);
+    });
+  }
+
+  undo(): void {
+    this.oldStates.forEach((oldState, layerId) => {
+      this.compositionService.updateLayer(layerId, oldState);
+    });
+    console.log(`🔙 Undo batch update: ${this.oldStates.size} layers`);
+  }
+}
+
+/**
+ * Batch Add Layers Command - Add multiple layers at once (for duplicate/paste)
+ */
+export class BatchAddLayersCommand implements Command {
+  description: string;
+  private layers: CompositionLayer[];
+
+  constructor(
+    private compositionService: any,
+    layers: CompositionLayer[],
+    description?: string
+  ) {
+    // Store layers (they are already cloned by the caller)
+    this.layers = layers;
+    this.description = description || `Add ${layers.length} layers`;
+  }
+
+  execute(): void {
+    // Add all layers to the composition
+    this.layers.forEach(layer => {
+      this.compositionService.addLayerWithId(layer);
+    });
+    
+    // Select the newly added layers
+    const layerIds = this.layers.map(l => l.id);
+    this.compositionService.selectMultipleLayers(layerIds);
+  }
+
+  undo(): void {
+    // Delete in reverse order
+    [...this.layers].reverse().forEach(layer => {
+      this.compositionService.deleteLayer(layer.id);
+    });
+    console.log(`🔙 Undo add ${this.layers.length} layers`);
+  }
+}
+
+/**
  * History Service for Undo/Redo
  */
 @Injectable({
