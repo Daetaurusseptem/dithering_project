@@ -14,56 +14,13 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
   imports: [CommonModule, FormsModule],
   template: `
     <div class="layer-properties-panel">
-      <!-- Batch Operations Section (always visible if multiple selected) -->
-      @if (selectedLayers().length > 1) {
-        <div class="batch-operations-section">
-          <h3 class="batch-title">
-            🔢 Batch Operations ({{ selectedLayers().length }} layers)
-          </h3>
-          
-          <div class="batch-buttons">
-            <button class="btn-batch" (click)="batchApplyTint()" title="Apply tint to all selected">
-              🎨 Apply Tint
-            </button>
-            <button class="btn-batch" (click)="batchApplyDither()" title="Apply custom dither to all">
-              ⬛ Apply Dither
-            </button>
-            <button class="btn-batch" (click)="batchRemoveBackground()" title="Remove background from all">
-              🗑️ Remove BG
-            </button>
-            <button class="btn-batch" (click)="batchSetOpacity()" title="Set opacity for all">
-              👁️ Set Opacity
-            </button>
-            <button class="btn-batch" (click)="batchToggleDitherExempt()" title="Toggle dither exempt">
-              🚫 Toggle Exempt
-            </button>
-            <button class="btn-batch" (click)="batchLock()" title="Lock all selected">
-              🔒 Lock All
-            </button>
-            <button class="btn-batch" (click)="batchUnlock()" title="Unlock all selected">
-              🔓 Unlock All
-            </button>
-            <button class="btn-batch" (click)="batchShow()" title="Show all selected">
-              👁️ Show All
-            </button>
-            <button class="btn-batch" (click)="batchHide()" title="Hide all selected">
-              🙈 Hide All
-            </button>
-          </div>
-          
-          <div class="batch-info">
-            💡 Changes apply to all {{ selectedLayers().length }} selected layers
-          </div>
-        </div>
-      }
-      
       @if (activeLayer(); as layer) {
         <!-- Layer Title -->
         <div class="properties-title">
           <span class="title-icon">⚙️</span>
           <span>Properties</span>
           @if (selectedLayers().length > 1) {
-            <span class="selection-badge">+{{ selectedLayers().length - 1 }} more</span>
+            <span class="selection-badge">{{ selectedLayers().length }} selected</span>
           }
         </div>
         
@@ -748,6 +705,10 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     .layer-properties-panel {
       background: linear-gradient(145deg, #1a2d1a 0%, #0f1f0f 100%);
       padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
     
     /* Batch Operations Section */

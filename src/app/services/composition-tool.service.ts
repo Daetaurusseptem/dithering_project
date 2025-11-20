@@ -3,13 +3,20 @@ import { Injectable, signal } from '@angular/core';
 export type ToolType = 'select' | 'hand' | 'zoom' | 'shape' | 'text' | 'brush';
 export type ShapeType = 'rectangle' | 'circle' | 'ellipse' | 'polygon' | 'star' | 'line';
 
+export type FillType = 'solid' | 'gradient' | 'none';
+export type GradientType = 'linear' | 'radial';
+
 export interface ToolOptions {
   // Shape options
   shapeType?: ShapeType;
+  shapeFillType?: FillType;
   shapeFillColor?: string;
+  shapeFillColor2?: string; // Second color for gradient
+  shapeGradientType?: GradientType;
+  shapeGradientAngle?: number; // 0-360 for linear gradient
   shapeStrokeColor?: string;
   shapeStrokeWidth?: number;
-  shapeFilled?: boolean;
+  shapeFilled?: boolean; // Legacy, replaced by shapeFillType
   
   // Text options
   textContent?: string;
@@ -38,10 +45,14 @@ export class CompositionToolService {
   toolOptions = signal<ToolOptions>({
     // Shape defaults
     shapeType: 'rectangle',
+    shapeFillType: 'solid',
     shapeFillColor: '#ffffff',
+    shapeFillColor2: '#000000',
+    shapeGradientType: 'linear',
+    shapeGradientAngle: 0,
     shapeStrokeColor: '#000000',
     shapeStrokeWidth: 2,
-    shapeFilled: true,
+    shapeFilled: true, // Legacy
     
     // Text defaults
     textFontFamily: 'Arial',

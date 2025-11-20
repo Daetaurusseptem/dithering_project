@@ -97,6 +97,10 @@ interface TransformHandle {
       justify-content: center;
       overflow: auto;
       max-height: calc(100vh - 200px);
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
     
     .composition-canvas {
@@ -248,7 +252,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       this.compositionState(); // Subscribe to state changes
       // Don't schedule render here during interaction (will cause double renders)
       // The render will be triggered by scheduleRender() calls in interaction methods
-      if (!this.isDragging && !this.isResizing && !this.isRotating && !this.isBrushing && !this.isDrawingShape) {
+      if (!this.isDragging && !this.isResizing && !this.isRotating && !this.isBrushing && !this.isDrawingShape && !this.isDrawingTextBox) {
         this.scheduleRender();
       }
     });
@@ -256,7 +260,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
     // Watch for dithering options changes and re-render
     effect(() => {
       this.compositionService.ditheringOptions(); // Subscribe to dithering options changes
-      if (!this.isDragging && !this.isResizing && !this.isRotating && !this.isBrushing && !this.isDrawingShape) {
+      if (!this.isDragging && !this.isResizing && !this.isRotating && !this.isBrushing && !this.isDrawingShape && !this.isDrawingTextBox) {
         this.scheduleRender();
       }
     });
@@ -268,6 +272,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
   private isRotating = false;
   private isPanning = false;
   private isDrawingShape = false;
+  private isDrawingTextBox = false;
   private isBrushing = false;
   private dragStartX = 0;
   private dragStartY = 0;
@@ -285,6 +290,10 @@ export class CompositionCanvasComponent implements AfterViewInit {
   private rotateStartAngle = 0;
   private shapeStartX = 0;
   private shapeStartY = 0;
+  private textBoxStartX = 0;
+  private textBoxStartY = 0;
+  private currentMouseX = 0;
+  private currentMouseY = 0;
   private brushPoints: { x: number; y: number }[] = [];
 
   // Multiple selection drag support
@@ -457,6 +466,21 @@ export class CompositionCanvasComponent implements AfterViewInit {
         ctx.lineTo(this.brushPoints[i].x, this.brushPoints[i].y);
       }
       ctx.stroke();
+      ctx.restore();
+    }
+
+    // Draw text box preview while drawing
+    if (this.isDrawingTextBox) {
+      const width = Math.abs(this.currentMouseX - this.textBoxStartX);
+      const height = Math.abs(this.currentMouseY - this.textBoxStartY);
+      const left = Math.min(this.currentMouseX, this.textBoxStartX);
+      const top = Math.min(this.currentMouseY, this.textBoxStartY);
+
+      ctx.save();
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 2 / this.canvasZoom();
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(left, top, width, height);
       ctx.restore();
     }
   }
@@ -893,9 +917,9 @@ export class CompositionCanvasComponent implements AfterViewInit {
       return;
     }
 
-    // Text tool - place text
+    // Text tool - start drawing text box
     if (currentTool === 'text') {
-      this.placeText(x, y);
+      this.startDrawingTextBox(x, y);
       return;
     }
 
@@ -1022,6 +1046,10 @@ export class CompositionCanvasComponent implements AfterViewInit {
     const x = (event.clientX - rect.left) * scaleX;
     const y = (event.clientY - rect.top) * scaleY;
 
+    // Store current mouse position for previews
+    this.currentMouseX = x;
+    this.currentMouseY = y;
+
     // Pan mode
     if (this.isPanning) {
       this.updatePan(event.clientX, event.clientY);
@@ -1031,6 +1059,12 @@ export class CompositionCanvasComponent implements AfterViewInit {
     // Shape drawing
     if (this.isDrawingShape) {
       // Visual feedback (could draw preview here)
+      return;
+    }
+
+    // Text box drawing
+    if (this.isDrawingTextBox) {
+      this.scheduleRender(); // Render preview of text box
       return;
     }
 
@@ -1093,6 +1127,11 @@ export class CompositionCanvasComponent implements AfterViewInit {
     // Finish shape drawing
     if (this.isDrawingShape) {
       this.finishDrawingShape(x, y);
+    }
+
+    // Finish text box drawing
+    if (this.isDrawingTextBox) {
+      this.finishDrawingTextBox(x, y);
     }
 
     // Finish brush stroke
@@ -1244,6 +1283,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
     this.isRotating = false;
     this.isPanning = false;
     this.isDrawingShape = false;
+    this.isDrawingTextBox = false;
     this.isBrushing = false;
     this.resizeHandle = null;
     
@@ -1516,14 +1556,41 @@ export class CompositionCanvasComponent implements AfterViewInit {
     tempCanvas.height = height;
     const tempCtx = tempCanvas.getContext('2d')!;
 
-    // Draw the shape
-    tempCtx.fillStyle = options.shapeFilled ? options.shapeFillColor! : 'transparent';
+    // Setup fill style based on fill type
+    const fillType = options.shapeFillType || 'solid';
+    if (fillType === 'solid') {
+      tempCtx.fillStyle = options.shapeFillColor!;
+    } else if (fillType === 'gradient') {
+      let gradient;
+      if (options.shapeGradientType === 'radial') {
+        gradient = tempCtx.createRadialGradient(
+          width / 2, height / 2, 0,
+          width / 2, height / 2, Math.max(width, height) / 2
+        );
+      } else {
+        // Linear gradient
+        const angle = (options.shapeGradientAngle || 0) * Math.PI / 180;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const len = Math.abs(width * cos) + Math.abs(height * sin);
+        const cx = width / 2;
+        const cy = height / 2;
+        gradient = tempCtx.createLinearGradient(
+          cx - len / 2 * cos, cy - len / 2 * sin,
+          cx + len / 2 * cos, cy + len / 2 * sin
+        );
+      }
+      gradient.addColorStop(0, options.shapeFillColor!);
+      gradient.addColorStop(1, options.shapeFillColor2 || '#000000');
+      tempCtx.fillStyle = gradient;
+    }
+    
     tempCtx.strokeStyle = options.shapeStrokeColor!;
     tempCtx.lineWidth = options.shapeStrokeWidth!;
 
     switch (options.shapeType) {
       case 'rectangle':
-        if (options.shapeFilled) {
+        if (fillType !== 'none') {
           tempCtx.fillRect(0, 0, width, height);
         }
         if (options.shapeStrokeWidth! > 0) {
@@ -1535,7 +1602,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       case 'ellipse':
         tempCtx.beginPath();
         tempCtx.ellipse(width / 2, height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
-        if (options.shapeFilled) {
+        if (fillType !== 'none') {
           tempCtx.fill();
         }
         if (options.shapeStrokeWidth! > 0) {
@@ -1681,6 +1748,143 @@ export class CompositionCanvasComponent implements AfterViewInit {
         this.toolService.setTool('select');
       };
     }); // Close .then()
+  }
+
+  /**
+   * TEXT BOX TOOL (new implementation)
+   */
+  
+  private startDrawingTextBox(x: number, y: number): void {
+    this.isDrawingTextBox = true;
+    this.textBoxStartX = x;
+    this.textBoxStartY = y;
+  }
+
+  private finishDrawingTextBox(x: number, y: number): void {
+    const width = Math.abs(x - this.textBoxStartX);
+    const height = Math.abs(y - this.textBoxStartY);
+
+    if (width < 20 || height < 20) {
+      // Too small, cancel
+      this.isDrawingTextBox = false;
+      return;
+    }
+
+    const left = Math.min(x, this.textBoxStartX);
+    const top = Math.min(y, this.textBoxStartY);
+
+    // Now place text with the defined box dimensions
+    this.placeTextInBox(left, top, width, height);
+    this.isDrawingTextBox = false;
+  }
+
+  private placeTextInBox(x: number, y: number, boxWidth: number, boxHeight: number): void {
+    const options = this.toolService.toolOptions();
+
+    this.modalService.prompt('Enter text:', 'New Text Layer', '').then((text) => {
+      if (!text) return;
+
+      // Create a temporary canvas to render the text
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d')!;
+
+      // Configure initial font to measure
+      const fontStyle = `${options.textBold ? 'bold ' : ''}${options.textItalic ? 'italic ' : ''}${options.textFontSize}px ${options.textFontFamily}`;
+      tempCtx.font = fontStyle;
+
+      // Measure text at current font size
+      const metrics = tempCtx.measureText(text);
+      const textWidth = Math.ceil(metrics.width);
+      const strokePadding = options.textStrokeEnabled ? (options.textStrokeWidth! * 2) : 0;
+      const textHeight = Math.ceil(options.textFontSize! * 1.2);
+
+      // Calculate scaling factor to fit within box
+      // We want the text to fill the box while maintaining reasonable proportions
+      const padding = 20 + strokePadding;
+      const availableWidth = boxWidth - padding;
+      const availableHeight = boxHeight - padding;
+
+      const scaleX = availableWidth / textWidth;
+      const scaleY = availableHeight / textHeight;
+      const scale = Math.min(scaleX, scaleY, 4); // Cap at 4x to avoid extreme scaling
+
+      // Calculate final font size based on scale
+      const finalFontSize = Math.max(8, Math.floor(options.textFontSize! * scale));
+      const finalFontStyle = `${options.textBold ? 'bold ' : ''}${options.textItalic ? 'italic ' : ''}${finalFontSize}px ${options.textFontFamily}`;
+
+      // Measure with final font size
+      tempCtx.font = finalFontStyle;
+      const finalMetrics = tempCtx.measureText(text);
+      const finalTextWidth = Math.ceil(finalMetrics.width);
+      const finalTextHeight = Math.ceil(finalFontSize * 1.2);
+
+      // Set canvas size to match the drawn box
+      tempCanvas.width = boxWidth;
+      tempCanvas.height = boxHeight;
+
+      // Re-apply font after resize
+      tempCtx.font = finalFontStyle;
+      tempCtx.textAlign = options.textAlign!;
+      tempCtx.textBaseline = 'middle';
+
+      // Calculate text position within the box
+      const textX = options.textAlign === 'center' ? tempCanvas.width / 2 :
+        options.textAlign === 'right' ? tempCanvas.width - padding / 2 : padding / 2;
+      const textY = tempCanvas.height / 2;
+
+      // Draw stroke first (outline)
+      if (options.textStrokeEnabled && options.textStrokeWidth! > 0) {
+        tempCtx.strokeStyle = options.textStrokeColor!;
+        tempCtx.lineWidth = options.textStrokeWidth!;
+        tempCtx.lineJoin = 'round';
+        tempCtx.miterLimit = 2;
+        tempCtx.strokeText(text, textX, textY);
+      }
+
+      // Draw fill text on top
+      tempCtx.fillStyle = options.textColor!;
+      tempCtx.fillText(text, textX, textY);
+
+      // Get image data
+      const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+      // Create text layer
+      const img = new Image();
+      img.src = tempCanvas.toDataURL();
+      img.onload = () => {
+        const layerId = this.compositionService.addLayer(img, imageData);
+        this.compositionService.updateLayer(layerId, {
+          type: 'text',
+          name: `Text: ${text.substring(0, 20)}${text.length > 20 ? '...' : ''}`,
+          x: x,
+          y: y,
+          width: boxWidth,
+          height: boxHeight,
+          textContent: text,
+          textFontFamily: options.textFontFamily,
+          textFontSize: finalFontSize, // Store the calculated font size
+          textColor: options.textColor,
+          textBold: options.textBold,
+          textItalic: options.textItalic,
+          textAlign: options.textAlign,
+          textStrokeEnabled: options.textStrokeEnabled,
+          textStrokeColor: options.textStrokeColor,
+          textStrokeWidth: options.textStrokeWidth,
+          ditherExempt: false
+        });
+
+        // Add to history
+        const state = this.compositionService.compositionState();
+        const createdLayer = state.layers.find(l => l.id === layerId);
+        if (createdLayer) {
+          const command = new AddLayerCommand(this.compositionService, createdLayer);
+          this.historyService.record(command);
+        }
+
+        // Auto-switch back to select tool
+        this.toolService.setTool('select');
+      };
+    });
   }
 
   /**

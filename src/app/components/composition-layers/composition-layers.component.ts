@@ -97,18 +97,8 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
               [class.selected]="isLayerSelected(layer.id)"
               (click)="selectLayer(layer.id, $event)">
               
-              <!-- Layer Thumbnail -->
-              <div class="layer-thumbnail">
-                <canvas 
-                  #thumbnailCanvas
-                  [width]="40"
-                  [height]="40"
-                  (load)="drawThumbnail(thumbnailCanvas, layer)">
-                </canvas>
-              </div>
-              
-              <!-- Layer Info -->
-              <div class="layer-info">
+              <!-- Layer Name Row -->
+              <div class="layer-name-row">
                 @if (editingLayerId() === layer.id) {
                   <input 
                     type="text" 
@@ -121,13 +111,27 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
                 } @else {
                   <div 
                     class="layer-name" 
-                    (dblclick)="startEditing(layer.id)">
+                    (click)="onNameClick(layer.id, $event)">
                     {{ layer.name }}
                   </div>
                 }
+              </div>
+              
+              <!-- Layer Content Row -->
+              <div class="layer-content-row">
+                <!-- Layer Thumbnail -->
+                <div class="layer-thumbnail">
+                  <canvas 
+                    #thumbnailCanvas
+                    [width]="40"
+                    [height]="40"
+                    (load)="drawThumbnail(thumbnailCanvas, layer)">
+                  </canvas>
+                </div>
                 
+                <!-- Layer Meta -->
                 <div class="layer-meta">
-                  {{ layer.width }} × {{ layer.height }}
+                  <span>{{ Math.round(layer.width) }} × {{ Math.round(layer.height) }}</span>
                   @if (layer.ditherExempt) {
                     <span class="badge">No Dither</span>
                   }
@@ -284,8 +288,8 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     
     .layer-item {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      flex-direction: column;
+      gap: 4px;
       padding: 6px;
       margin-bottom: 4px;
       background: rgba(0, 20, 0, 0.6);
@@ -321,6 +325,19 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
         inset 0 0 8px rgba(0, 255, 204, 0.2);
     }
     
+    .layer-name-row {
+      width: 100%;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+    }
+    
+    .layer-content-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+    
     .layer-thumbnail {
       width: 40px;
       height: 40px;
@@ -339,18 +356,15 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
       image-rendering: pixelated;
     }
     
-    .layer-info {
-      flex: 1;
-      min-width: 0;
-    }
-    
     .layer-name {
-      font-weight: normal;
+      font-weight: bold;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       color: #90ee90;
-      font-size: 9px;
+      font-size: 10px;
+      cursor: text;
+      padding: 2px;
     }
     
     .layer-item.active .layer-name {
@@ -360,21 +374,25 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     
     .layer-name-input {
       width: 100%;
-      padding: 2px;
+      padding: 2px 4px;
       border: 1px solid #00ff00;
       background: rgba(0, 0, 0, 0.8);
       color: #00ff00;
       font-family: inherit;
-      font-size: inherit;
+      font-size: 10px;
+      font-weight: bold;
+      user-select: text;
+      -webkit-user-select: text;
     }
     
     .layer-meta {
+      flex: 1;
       font-size: 8px;
       color: rgba(0, 255, 0, 0.5);
-      margin-top: 2px;
       display: flex;
       align-items: center;
       gap: 6px;
+      flex-wrap: wrap;
     }
     
     .badge {
@@ -510,6 +528,9 @@ export class CompositionLayersComponent implements AfterViewInit {
   
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   
+  // Expose Math for template
+  Math = Math;
+  
   // Signals
   compositionState = this.compositionService.compositionState;
   layers = computed(() => {
@@ -521,7 +542,8 @@ export class CompositionLayersComponent implements AfterViewInit {
   showCanvasSettings = signal(false);
   
   // Editing state
-  editingLayerId = computed(() => null as string | null);
+  editingLayerId = signal<string | null>(null);
+  private clickTimeout: any = null;
   
   constructor() {
     // Draw thumbnails after view init
@@ -770,18 +792,30 @@ export class CompositionLayersComponent implements AfterViewInit {
    * Layer Naming
    */
   
-  private editingId: string | null = null;
+  onNameClick(layerId: string, event: MouseEvent): void {
+    event.stopPropagation();
+    
+    // Si ya está seleccionado, activar edición después de un delay
+    if (this.activeLayerId() === layerId) {
+      if (this.clickTimeout) {
+        clearTimeout(this.clickTimeout);
+      }
+      this.clickTimeout = setTimeout(() => {
+        this.startEditing(layerId);
+      }, 300);
+    }
+  }
   
   startEditing(layerId: string): void {
-    this.editingId = layerId;
+    this.editingLayerId.set(layerId);
   }
   
   finishEditing(): void {
-    this.editingId = null;
+    this.editingLayerId.set(null);
   }
   
   cancelEditing(): void {
-    this.editingId = null;
+    this.editingLayerId.set(null);
   }
   
   /**

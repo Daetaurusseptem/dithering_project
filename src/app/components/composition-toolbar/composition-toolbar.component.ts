@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CompositionToolService, type ToolType, type ToolOptions } from '../../services/composition-tool.service';
 
-export type { ToolType, ToolOptions } from '../../services/composition-tool.service';
+export type { ToolType, ToolOptions, FillType, GradientType } from '../../services/composition-tool.service';
 export type { ShapeType } from '../../services/composition-tool.service';
 
 @Component({
@@ -88,17 +88,51 @@ export type { ShapeType } from '../../services/composition-tool.service';
               </div>
               
               <div class="option-group">
-                <label>
-                  <input type="checkbox" [(ngModel)]="toolOptions.shapeFilled" (change)="emitOptionsChange()">
-                  Filled
-                </label>
+                <label>Fill Type:</label>
+                <select [(ngModel)]="toolOptions.shapeFillType" (change)="emitOptionsChange()">
+                  <option value="solid">Solid</option>
+                  <option value="gradient">Gradient</option>
+                  <option value="none">Transparent</option>
+                </select>
               </div>
               
-              @if (toolOptions.shapeFilled) {
+              @if (toolOptions.shapeFillType === 'solid') {
                 <div class="option-group">
                   <label>Fill Color:</label>
                   <input type="color" [(ngModel)]="toolOptions.shapeFillColor" (change)="emitOptionsChange()">
                 </div>
+              }
+              
+              @if (toolOptions.shapeFillType === 'gradient') {
+                <div class="option-group">
+                  <label>Gradient Type:</label>
+                  <select [(ngModel)]="toolOptions.shapeGradientType" (change)="emitOptionsChange()">
+                    <option value="linear">Linear</option>
+                    <option value="radial">Radial</option>
+                  </select>
+                </div>
+                
+                <div class="option-group">
+                  <label>Color 1:</label>
+                  <input type="color" [(ngModel)]="toolOptions.shapeFillColor" (change)="emitOptionsChange()">
+                </div>
+                
+                <div class="option-group">
+                  <label>Color 2:</label>
+                  <input type="color" [(ngModel)]="toolOptions.shapeFillColor2" (change)="emitOptionsChange()">
+                </div>
+                
+                @if (toolOptions.shapeGradientType === 'linear') {
+                  <div class="option-group">
+                    <label>Angle: {{ toolOptions.shapeGradientAngle }}°</label>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="360" 
+                      [(ngModel)]="toolOptions.shapeGradientAngle"
+                      (input)="emitOptionsChange()">
+                  </div>
+                }
               }
               
               <div class="option-group">
@@ -268,6 +302,10 @@ export type { ShapeType } from '../../services/composition-tool.service';
       font-family: 'Press Start 2P', 'Courier New', monospace;
       min-width: 60px;
       max-width: 70px;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
     
     .tool-buttons {
