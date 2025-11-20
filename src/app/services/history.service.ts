@@ -15,19 +15,19 @@ export interface Command {
  */
 export class AddLayerCommand implements Command {
   description: string;
-  
+
   constructor(
     private compositionService: any,
     private layer: CompositionLayer
   ) {
     this.description = `Add layer "${layer.name}"`;
   }
-  
+
   execute(): void {
     // Re-add the layer with the same ID
     this.compositionService.addLayerWithId(this.layer);
   }
-  
+
   undo(): void {
     this.compositionService.deleteLayer(this.layer.id);
   }
@@ -40,7 +40,7 @@ export class DeleteLayerCommand implements Command {
   description: string;
   private deletedLayer: CompositionLayer;
   private layerIndex: number;
-  
+
   constructor(
     private compositionService: any,
     layerId: string
@@ -50,11 +50,11 @@ export class DeleteLayerCommand implements Command {
     this.deletedLayer = state.layers[this.layerIndex];
     this.description = `Delete layer "${this.deletedLayer.name}"`;
   }
-  
+
   execute(): void {
     this.compositionService.deleteLayer(this.deletedLayer.id);
   }
-  
+
   undo(): void {
     this.compositionService.addLayerAtIndex(this.deletedLayer, this.layerIndex);
   }
@@ -65,7 +65,7 @@ export class DeleteLayerCommand implements Command {
  */
 export class MoveLayerCommand implements Command {
   description: string;
-  
+
   constructor(
     private compositionService: any,
     private layerId: string,
@@ -74,14 +74,14 @@ export class MoveLayerCommand implements Command {
   ) {
     this.description = `Move layer`;
   }
-  
+
   execute(): void {
     this.compositionService.updateLayer(this.layerId, {
       x: this.newPosition.x,
       y: this.newPosition.y
     });
   }
-  
+
   undo(): void {
     this.compositionService.updateLayer(this.layerId, {
       x: this.oldPosition.x,
@@ -96,7 +96,7 @@ export class MoveLayerCommand implements Command {
  */
 export class TransformLayerCommand implements Command {
   description: string;
-  
+
   constructor(
     private compositionService: any,
     private layerId: string,
@@ -105,11 +105,11 @@ export class TransformLayerCommand implements Command {
   ) {
     this.description = `Transform layer`;
   }
-  
+
   execute(): void {
     this.compositionService.updateLayer(this.layerId, this.newTransform);
   }
-  
+
   undo(): void {
     this.compositionService.updateLayer(this.layerId, this.oldTransform);
     console.log(`🔙 Undo Transform:`, this.oldTransform);
@@ -121,7 +121,7 @@ export class TransformLayerCommand implements Command {
  */
 export class UpdateLayerCommand implements Command {
   description: string;
-  
+
   constructor(
     private compositionService: any,
     private layerId: string,
@@ -131,11 +131,11 @@ export class UpdateLayerCommand implements Command {
   ) {
     this.description = description || `Update layer`;
   }
-  
+
   execute(): void {
     this.compositionService.updateLayer(this.layerId, this.newProperties);
   }
-  
+
   undo(): void {
     this.compositionService.updateLayer(this.layerId, this.oldProperties);
   }
@@ -146,7 +146,7 @@ export class UpdateLayerCommand implements Command {
  */
 export class ReorderLayersCommand implements Command {
   description: string;
-  
+
   constructor(
     private compositionService: any,
     private oldIndex: number,
@@ -154,11 +154,11 @@ export class ReorderLayersCommand implements Command {
   ) {
     this.description = `Reorder layers`;
   }
-  
+
   execute(): void {
     this.compositionService.reorderLayer(this.oldIndex, this.newIndex);
   }
-  
+
   undo(): void {
     this.compositionService.reorderLayer(this.newIndex, this.oldIndex);
   }
@@ -175,87 +175,87 @@ export class HistoryService {
   private redoStack: Command[] = [];
   private maxHistorySize = 50;
   private isExecuting = false;
-  
+
   /**
    * Execute a command and add it to history
    */
   execute(command: Command): void {
     if (this.isExecuting) return; // Prevent recursive calls
-    
+
     this.isExecuting = true;
     command.execute();
     this.undoStack.push(command);
     this.redoStack = []; // Clear redo stack when new command is executed
-    
+
     // Trim history if too large
     if (this.undoStack.length > this.maxHistorySize) {
       this.undoStack.shift();
     }
-    
+
     this.isExecuting = false;
   }
-  
+
   /**
    * Record a command without executing it (for actions already performed)
    */
   record(command: Command): void {
     if (this.isExecuting) return;
-    
+
     this.undoStack.push(command);
     this.redoStack = []; // Clear redo stack
-    
+
     // Trim history if too large
     if (this.undoStack.length > this.maxHistorySize) {
       this.undoStack.shift();
     }
   }
-  
+
   /**
    * Undo the last command
    */
   undo(): boolean {
     if (this.undoStack.length === 0) return false;
-    
+
     this.isExecuting = true;
     const command = this.undoStack.pop()!;
     command.undo();
     this.redoStack.push(command);
     this.isExecuting = false;
-    
+
     console.log(`Undid: ${command.description}`);
     return true;
   }
-  
+
   /**
    * Redo the last undone command
    */
   redo(): boolean {
     if (this.redoStack.length === 0) return false;
-    
+
     this.isExecuting = true;
     const command = this.redoStack.pop()!;
     command.execute();
     this.undoStack.push(command);
     this.isExecuting = false;
-    
+
     console.log(`Redid: ${command.description}`);
     return true;
   }
-  
+
   /**
    * Check if undo is available
    */
   canUndo(): boolean {
     return this.undoStack.length > 0;
   }
-  
+
   /**
    * Check if redo is available
    */
   canRedo(): boolean {
     return this.redoStack.length > 0;
   }
-  
+
   /**
    * Get undo stack description
    */
@@ -263,7 +263,7 @@ export class HistoryService {
     if (this.undoStack.length === 0) return null;
     return this.undoStack[this.undoStack.length - 1].description;
   }
-  
+
   /**
    * Get redo stack description
    */
@@ -271,7 +271,7 @@ export class HistoryService {
     if (this.redoStack.length === 0) return null;
     return this.redoStack[this.redoStack.length - 1].description;
   }
-  
+
   /**
    * Clear all history
    */
@@ -279,7 +279,7 @@ export class HistoryService {
     this.undoStack = [];
     this.redoStack = [];
   }
-  
+
   /**
    * Get history size
    */

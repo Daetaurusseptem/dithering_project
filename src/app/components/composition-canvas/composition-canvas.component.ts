@@ -9,8 +9,8 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
 import { TextEditorComponent } from '../text-editor/text-editor.component';
 
 interface TransformHandle {
-  type: 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se' 
-       | 'resize-n' | 'resize-s' | 'resize-e' | 'resize-w' | 'rotate';
+  type: 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se'
+  | 'resize-n' | 'resize-s' | 'resize-e' | 'resize-w' | 'rotate';
   x: number;
   y: number;
   size: number;
@@ -217,16 +217,16 @@ interface TransformHandle {
 })
 export class CompositionCanvasComponent implements AfterViewInit {
   @ViewChild('canvas', { static: false }) canvasRef!: ElementRef<HTMLCanvasElement>;
-  
+
   private compositionService = inject(CompositionService);
   private ditheringService = inject(DitheringService);
   private toolService = inject(CompositionToolService);
   private modalService = inject(ModalService);
   private historyService = inject(HistoryService);
-  
+
   // Expose Math for template
   Math = Math;
-  
+
   // Signals
   compositionState = this.compositionService.compositionState;
   activeLayer = computed(() => {
@@ -236,12 +236,12 @@ export class CompositionCanvasComponent implements AfterViewInit {
   canvasZoom = signal(1.0);
   panMode = computed(() => this.toolService.activeTool() === 'hand');
   panOffset = signal({ x: 0, y: 0 });
-  
+
   // Text Editor State
   editingTextLayer = signal<CompositionLayer | null>(null);
   private lastClickTime = 0;
   private lastClickLayerId: string | null = null;
-  
+
   constructor() {
     // Watch for composition state changes and re-render
     effect(() => {
@@ -252,7 +252,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         this.scheduleRender();
       }
     });
-    
+
     // Watch for dithering options changes and re-render
     effect(() => {
       this.compositionService.ditheringOptions(); // Subscribe to dithering options changes
@@ -261,7 +261,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       }
     });
   }
-  
+
   // Interaction state
   private isDragging = false;
   private isResizing = false;
@@ -286,14 +286,14 @@ export class CompositionCanvasComponent implements AfterViewInit {
   private shapeStartX = 0;
   private shapeStartY = 0;
   private brushPoints: { x: number; y: number }[] = [];
-  
+
   // Multiple selection drag support
   private multipleLayersDragStart: Map<string, { x: number; y: number }> = new Map();
-  
+
   // Performance: throttle updates using requestAnimationFrame
   private rafId: number | null = null;
   private pendingRender = false;
-  
+
   // Current transform being applied (not committed to state until mouseup)
   private currentTransform: {
     x: number;
@@ -302,68 +302,68 @@ export class CompositionCanvasComponent implements AfterViewInit {
     height: number;
     rotation: number;
   } | null = null;
-  
+
   ngAfterViewInit(): void {
     this.setupCanvas();
     this.scheduleRender();
   }
-  
+
   private setupCanvas(): void {
     const canvas = this.canvasRef.nativeElement;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const state = this.compositionState();
-    
+
     canvas.width = state.canvasWidth;
     canvas.height = state.canvasHeight;
   }
-  
+
   /**
    * RENDERING
    */
-  
+
   // Schedule a render using requestAnimationFrame (throttles to ~60fps max)
   private scheduleRender(): void {
     if (this.pendingRender) return;
-    
+
     this.pendingRender = true;
     this.rafId = requestAnimationFrame(() => {
       this.render();
       this.pendingRender = false;
     });
   }
-  
+
   private render(): void {
     const canvas = this.canvasRef.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     const state = this.compositionState();
-    
+
     // Update canvas dimensions if they changed
     if (canvas.width !== state.canvasWidth || canvas.height !== state.canvasHeight) {
       canvas.width = state.canvasWidth;
       canvas.height = state.canvasHeight;
     }
-    
+
     // Clear canvas
     ctx.fillStyle = state.backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     // Sort layers by order
     const sortedLayers = [...state.layers].sort((a, b) => a.order - b.order);
-    
+
     // Check if we need to apply global dithering
-    const needsGlobalDither = sortedLayers.some(l => 
+    const needsGlobalDither = sortedLayers.some(l =>
       l.visible && !l.customDither?.enabled && !l.ditherExempt
     );
-    
+
     if (needsGlobalDither) {
       // Strategy: Apply dithering to base image, then render with effects
       const ditheringOptions = this.compositionService.ditheringOptions();
-      
+
       for (const layer of sortedLayers) {
         if (!layer.visible) continue;
-        
+
         let renderLayer = layer;
         if (this.currentTransform && layer.id === state.activeLayerId) {
           renderLayer = { ...layer, ...this.currentTransform };
@@ -373,15 +373,15 @@ export class CompositionCanvasComponent implements AfterViewInit {
           const dy = this.currentTransform!.y - this.dragStartLayerY;
           renderLayer = { ...layer, x: startPos.x + dx, y: startPos.y + dy };
         }
-        
+
         // Check if this layer needs global dithering
         const needsDither = !layer.customDither?.enabled && !layer.ditherExempt;
-        
+
         if (needsDither) {
           try {
             // Apply dithering to the base image data
             const ditheredImageData = this.ditheringService.applyDithering(
-              layer.imageData, 
+              layer.imageData,
               ditheringOptions
             );
             // Render with dithered image and all effects
@@ -399,7 +399,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       // No global dithering needed, render normally with all effects
       for (const layer of sortedLayers) {
         if (!layer.visible) continue;
-        
+
         let renderLayer = layer;
         if (this.currentTransform && layer.id === state.activeLayerId) {
           renderLayer = { ...layer, ...this.currentTransform };
@@ -412,16 +412,27 @@ export class CompositionCanvasComponent implements AfterViewInit {
         this.renderLayer(ctx, renderLayer);
       }
     }
-    
-    // Draw selection box (use currentTransform if transforming)
-    const activeLayer = this.activeLayer();
-    if (activeLayer && activeLayer.visible) {
-      const displayLayer = this.currentTransform
-        ? { ...activeLayer, ...this.currentTransform }
-        : activeLayer;
-      this.drawSelectionBox(ctx, displayLayer);
+
+    // Draw selection box
+    const selectedLayerIds = state.selectedLayerIds;
+
+    if (selectedLayerIds.length > 1) {
+      // Multiple selection - draw bounding box that encompasses all selected layers
+      const selectedLayers = state.layers.filter(l => selectedLayerIds.includes(l.id) && l.visible);
+      if (selectedLayers.length > 1) {
+        this.drawMultiSelectionBox(ctx, selectedLayers);
+      }
+    } else if (selectedLayerIds.length === 1) {
+      // Single selection - draw normal selection box
+      const activeLayer = this.activeLayer();
+      if (activeLayer && activeLayer.visible) {
+        const displayLayer = this.currentTransform
+          ? { ...activeLayer, ...this.currentTransform }
+          : activeLayer;
+        this.drawSelectionBox(ctx, displayLayer);
+      }
     }
-    
+
     // Draw brush stroke in progress
     if (this.isBrushing && this.brushPoints.length > 1) {
       const options = this.toolService.toolOptions();
@@ -431,7 +442,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.globalAlpha = options.brushOpacity! / 100;
-      
+
       ctx.beginPath();
       ctx.moveTo(this.brushPoints[0].x, this.brushPoints[0].y);
       for (let i = 1; i < this.brushPoints.length; i++) {
@@ -441,23 +452,23 @@ export class CompositionCanvasComponent implements AfterViewInit {
       ctx.restore();
     }
   }
-  
+
   private renderLayer(ctx: CanvasRenderingContext2D, layer: CompositionLayer, ditheredImageData?: ImageData): void {
     ctx.save();
-    
+
     // Apply transformations
     ctx.globalAlpha = layer.opacity / 100;
-    
+
     const centerX = layer.x + layer.width / 2;
     const centerY = layer.y + layer.height / 2;
-    
+
     ctx.translate(centerX, centerY);
     ctx.rotate((layer.rotation * Math.PI) / 180);
     ctx.translate(-centerX, -centerY);
-    
+
     // Use provided dithered image data, or use original with custom dither if enabled
     let imageData = ditheredImageData || layer.imageData;
-    
+
     // Apply custom dither if enabled and no dithered data provided
     if (!ditheredImageData && layer.customDither?.enabled && !layer.ditherExempt) {
       const globalOptions = this.compositionService.ditheringOptions();
@@ -473,14 +484,14 @@ export class CompositionCanvasComponent implements AfterViewInit {
       };
       imageData = this.ditheringService.applyDithering(imageData, customOptions);
     }
-    
+
     // Create temp canvas with layer content
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = imageData.width;
     tempCanvas.height = imageData.height;
     const tempCtx = tempCanvas.getContext('2d')!;
     tempCtx.putImageData(imageData, 0, 0);
-    
+
     // Apply stroke effect if enabled
     if (layer.effects?.stroke?.enabled) {
       const stroke = layer.effects.stroke;
@@ -488,35 +499,35 @@ export class CompositionCanvasComponent implements AfterViewInit {
       strokeCanvas.width = tempCanvas.width;
       strokeCanvas.height = tempCanvas.height;
       const strokeCtx = strokeCanvas.getContext('2d')!;
-      
+
       // Draw the image multiple times offset to create stroke effect on silhouette
       const iterations = Math.ceil(stroke.width);
       strokeCtx.strokeStyle = stroke.color;
       strokeCtx.lineWidth = stroke.width;
       strokeCtx.lineJoin = 'round';
       strokeCtx.lineCap = 'round';
-      
+
       // Create outline by drawing the image multiple times in a circle pattern
       for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 16) {
         const offsetX = Math.cos(angle) * stroke.width;
         const offsetY = Math.sin(angle) * stroke.width;
         strokeCtx.drawImage(tempCanvas, offsetX, offsetY);
       }
-      
+
       // Draw original image on top
       strokeCtx.globalCompositeOperation = 'source-atop';
       strokeCtx.fillStyle = stroke.color;
       strokeCtx.fillRect(0, 0, strokeCanvas.width, strokeCanvas.height);
-      
+
       // Now composite the original image
       strokeCtx.globalCompositeOperation = 'destination-over';
       strokeCtx.drawImage(tempCanvas, 0, 0);
-      
+
       // Replace temp canvas with stroked version
       tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
       tempCtx.drawImage(strokeCanvas, 0, 0);
     }
-    
+
     // Apply Drop Shadow effect
     if (layer.effects?.dropShadow?.enabled) {
       const shadow = layer.effects.dropShadow;
@@ -524,29 +535,29 @@ export class CompositionCanvasComponent implements AfterViewInit {
       const angleRad = (shadow.angle * Math.PI) / 180;
       const offsetX = Math.cos(angleRad) * shadow.distance;
       const offsetY = Math.sin(angleRad) * shadow.distance;
-      
+
       // Apply shadow color with opacity
       const shadowOpacity = (shadow.opacity / 100);
       const shadowColor = this.hexToRgba(shadow.color, shadowOpacity);
-      
+
       ctx.shadowColor = shadowColor;
       ctx.shadowBlur = shadow.size;
       ctx.shadowOffsetX = offsetX;
       ctx.shadowOffsetY = offsetY;
     }
-    
+
     // Outer Glow effect
     if (layer.effects?.outerGlow?.enabled) {
       const glow = layer.effects.outerGlow;
       const glowOpacity = (glow.opacity / 100);
       const glowColor = this.hexToRgba(glow.color, glowOpacity);
-      
+
       ctx.shadowColor = glowColor;
       ctx.shadowBlur = glow.size;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
     }
-    
+
     // Draw layer image with effects applied
     ctx.drawImage(
       tempCanvas,
@@ -555,13 +566,13 @@ export class CompositionCanvasComponent implements AfterViewInit {
       layer.width,
       layer.height
     );
-    
+
     // Reset shadow
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
-    
+
     // Apply tint if enabled
     if (layer.tint) {
       const tintAlpha = (layer.tintIntensity / 100) * (layer.opacity / 100);
@@ -571,17 +582,17 @@ export class CompositionCanvasComponent implements AfterViewInit {
       ctx.fillRect(layer.x, layer.y, layer.width, layer.height);
       ctx.globalCompositeOperation = 'source-over';
     }
-    
+
     ctx.restore();
   }
-  
+
   private hexToRgba(hex: string, alpha: number): string {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
-  
+
   /**
    * PUBLIC: Export composition with all layer effects included
    * Used for GIF generation in composition mode
@@ -590,44 +601,44 @@ export class CompositionCanvasComponent implements AfterViewInit {
   public getCompositionImageDataWithEffects(): ImageData | null {
     const canvas = this.canvasRef.nativeElement;
     const state = this.compositionState();
-    
+
     if (state.layers.length === 0) {
       return null;
     }
-    
+
     // Create temporary canvas for export
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = state.canvasWidth;
     exportCanvas.height = state.canvasHeight;
     const ctx = exportCanvas.getContext('2d', { willReadFrequently: true })!;
-    
+
     // Fill background
     ctx.fillStyle = state.backgroundColor;
     ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-    
+
     // Sort layers by order
     const sortedLayers = [...state.layers]
       .filter(layer => layer.visible)
       .sort((a, b) => a.order - b.order);
-    
+
     // Check if we need to apply global dithering (same logic as render())
-    const needsGlobalDither = sortedLayers.some(l => 
+    const needsGlobalDither = sortedLayers.some(l =>
       !l.customDither?.enabled && !l.ditherExempt
     );
-    
+
     if (needsGlobalDither) {
       // Strategy: Apply dithering to base image, then render with effects
       const ditheringOptions = this.compositionService.ditheringOptions();
-      
+
       for (const layer of sortedLayers) {
         // Check if this layer needs global dithering
         const needsDither = !layer.customDither?.enabled && !layer.ditherExempt;
-        
+
         if (needsDither) {
           try {
             // Apply dithering to the base image data
             const ditheredImageData = this.ditheringService.applyDithering(
-              layer.imageData, 
+              layer.imageData,
               ditheringOptions
             );
             // Render with dithered image and all effects
@@ -647,12 +658,12 @@ export class CompositionCanvasComponent implements AfterViewInit {
         this.renderLayer(ctx, layer);
       }
     }
-    
+
     return ctx.getImageData(0, 0, exportCanvas.width, exportCanvas.height);
   }
-  
+
   private drawSelectionBox(
-    ctx: CanvasRenderingContext2D, 
+    ctx: CanvasRenderingContext2D,
     layer: CompositionLayer
   ): void {
     // Use layer coordinates directly from state
@@ -661,7 +672,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
     const width = layer.width;
     const height = layer.height;
     const rotation = layer.rotation;
-    
+
     // Don't draw selection if layer is locked
     if (layer.locked) {
       // Just draw a red border to indicate locked
@@ -678,29 +689,29 @@ export class CompositionCanvasComponent implements AfterViewInit {
       ctx.restore();
       return;
     }
-    
+
     ctx.save();
-    
+
     const centerX = x + width / 2;
     const centerY = y + height / 2;
-    
+
     ctx.translate(centerX, centerY);
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.translate(-centerX, -centerY);
-    
+
     // Draw border
     ctx.strokeStyle = '#0000ff';
     ctx.lineWidth = 2 / this.canvasZoom();
     ctx.setLineDash([5, 5]);
     ctx.strokeRect(x, y, width, height);
-    
+
     // Draw resize handles - scale inversely with zoom
     const handleSize = 12 / this.canvasZoom();
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#00ff00';
     ctx.lineWidth = 2 / this.canvasZoom();
     ctx.setLineDash([]);
-    
+
     const handles: TransformHandle[] = [
       // Corner handles (maintain aspect ratio)
       { type: 'resize-nw', x: x, y: y, size: handleSize },
@@ -713,7 +724,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       { type: 'resize-e', x: x + width, y: y + height / 2, size: handleSize },
       { type: 'resize-w', x: x, y: y + height / 2, size: handleSize }
     ];
-    
+
     for (const handle of handles) {
       ctx.fillRect(
         handle.x - handleSize / 2,
@@ -728,7 +739,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         handleSize
       );
     }
-    
+
     // Draw rotation handle
     const rotateHandleDistance = 30 / this.canvasZoom();
     const rotateHandleY = y - rotateHandleDistance;
@@ -736,58 +747,147 @@ export class CompositionCanvasComponent implements AfterViewInit {
     ctx.moveTo(centerX, y);
     ctx.lineTo(centerX, rotateHandleY);
     ctx.stroke();
-    
+
     ctx.beginPath();
     ctx.arc(centerX, rotateHandleY, handleSize / 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    
+
     ctx.restore();
   }
-  
+
+  private drawMultiSelectionBox(
+    ctx: CanvasRenderingContext2D,
+    layers: CompositionLayer[]
+  ): void {
+    if (layers.length === 0) return;
+
+    // Calculate bounding box that encompasses all selected layers
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const layer of layers) {
+      // Apply transforms if dragging multiple layers
+      let layerX = layer.x;
+      let layerY = layer.y;
+
+      if (this.isDragging && this.multipleLayersDragStart.has(layer.id)) {
+        const startPos = this.multipleLayersDragStart.get(layer.id)!;
+        const dx = this.currentTransform!.x - this.dragStartLayerX;
+        const dy = this.currentTransform!.y - this.dragStartLayerY;
+        layerX = startPos.x + dx;
+        layerY = startPos.y + dy;
+      }
+
+      // For simplicity, calculate bounding box without rotation
+      // In the future, could calculate rotated bounds properly
+      const left = layerX;
+      const right = layerX + layer.width;
+      const top = layerY;
+      const bottom = layerY + layer.height;
+
+      minX = Math.min(minX, left);
+      minY = Math.min(minY, top);
+      maxX = Math.max(maxX, right);
+      maxY = Math.max(maxY, bottom);
+    }
+
+    const x = minX;
+    const y = minY;
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    ctx.save();
+
+    // Draw border for multi-selection (different color to distinguish)
+    ctx.strokeStyle = '#ff00ff'; // Magenta for multi-selection
+    ctx.lineWidth = 2 / this.canvasZoom();
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(x, y, width, height);
+
+    // Draw resize handles - scale inversely with zoom
+    const handleSize = 12 / this.canvasZoom();
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#ff00ff';
+    ctx.lineWidth = 2 / this.canvasZoom();
+    ctx.setLineDash([]);
+
+    const handles: TransformHandle[] = [
+      // Corner handles
+      { type: 'resize-nw', x: x, y: y, size: handleSize },
+      { type: 'resize-ne', x: x + width, y: y, size: handleSize },
+      { type: 'resize-sw', x: x, y: y + height, size: handleSize },
+      { type: 'resize-se', x: x + width, y: y + height, size: handleSize },
+      // Side handles
+      { type: 'resize-n', x: x + width / 2, y: y, size: handleSize },
+      { type: 'resize-s', x: x + width / 2, y: y + height, size: handleSize },
+      { type: 'resize-e', x: x + width, y: y + height / 2, size: handleSize },
+      { type: 'resize-w', x: x, y: y + height / 2, size: handleSize }
+    ];
+
+    for (const handle of handles) {
+      ctx.fillRect(
+        handle.x - handleSize / 2,
+        handle.y - handleSize / 2,
+        handleSize,
+        handleSize
+      );
+      ctx.strokeRect(
+        handle.x - handleSize / 2,
+        handle.y - handleSize / 2,
+        handleSize,
+        handleSize
+      );
+    }
+
+    ctx.restore();
+  }
+
   /**
    * MOUSE INTERACTION
    */
-  
+
   onMouseDown(event: MouseEvent): void {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
-    
+
     // Calculate scale between visual size and actual canvas size
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
-    // Apply CSS scale, then divide by zoom
-    const x = ((event.clientX - rect.left) * scaleX) / this.canvasZoom();
-    const y = ((event.clientY - rect.top) * scaleY) / this.canvasZoom();
-    
+
+    // Apply CSS scale (scaleX/Y already accounts for zoom via rect dimensions)
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
+
     const currentTool = this.toolService.activeTool();
-    
+
     // Pan mode - start panning
     if (currentTool === 'hand') {
       this.startPan(event.clientX, event.clientY);
       canvas.classList.add('dragging');
       return;
     }
-    
+
     // Shape tool - start drawing shape
     if (currentTool === 'shape') {
       this.startDrawingShape(x, y);
       return;
     }
-    
+
     // Text tool - place text
     if (currentTool === 'text') {
       this.placeText(x, y);
       return;
     }
-    
+
     // Brush tool - start drawing
     if (currentTool === 'brush') {
       this.startBrushStroke(x, y);
       return;
     }
-    
+
     // Zoom tool - zoom in/out
     if (currentTool === 'zoom') {
       if (event.altKey) {
@@ -797,10 +897,31 @@ export class CompositionCanvasComponent implements AfterViewInit {
       }
       return;
     }
-    
+
     // Select tool (default) - handle layer selection and transforms
+    const state = this.compositionState();
+    const selectedLayerIds = state.selectedLayerIds;
+
+    // Check for multi-selection first
+    if (selectedLayerIds.length > 1) {
+      const selectedLayers = state.layers.filter(l => selectedLayerIds.includes(l.id) && l.visible);
+      if (selectedLayers.length > 1) {
+        const boundingBox = this.getMultiSelectionBoundingBox(selectedLayers);
+        const handle = this.getHandleAtPosition(x, y, boundingBox);
+
+        if (handle) {
+          this.startMultiResize(x, y, boundingBox, handle, selectedLayers);
+          return;
+        } else if (this.isPointInBoundingBox(x, y, boundingBox)) {
+          this.startMultiDrag(x, y, selectedLayers);
+          return;
+        }
+      }
+    }
+
+    // Single selection handling
     const activeLayer = this.activeLayer();
-    
+
     // If there's an active layer, check for handle interaction first
     if (activeLayer && !activeLayer.locked) {
       // Use currentTransform if it exists, otherwise use layer state
@@ -811,10 +932,10 @@ export class CompositionCanvasComponent implements AfterViewInit {
         height: activeLayer.height,
         rotation: activeLayer.rotation
       };
-      
+
       // Check if clicking on handles
       const handle = this.getHandleAtPosition(x, y, visualCoords);
-      
+
       if (handle === 'rotate') {
         this.startRotate(x, y, visualCoords);
         return;
@@ -824,9 +945,9 @@ export class CompositionCanvasComponent implements AfterViewInit {
       } else if (this.isPointInLayer(x, y, visualCoords)) {
         // Check for double-click on text layers
         const now = Date.now();
-        if (activeLayer.type === 'text' && 
-            this.lastClickLayerId === activeLayer.id && 
-            now - this.lastClickTime < 300) {
+        if (activeLayer.type === 'text' &&
+          this.lastClickLayerId === activeLayer.id &&
+          now - this.lastClickTime < 300) {
           // Double-click detected - open text editor
           this.openTextEditor(activeLayer);
           this.lastClickTime = 0;
@@ -839,11 +960,11 @@ export class CompositionCanvasComponent implements AfterViewInit {
         return;
       }
     }
-    
+
     // If we reach here, either no active layer or clicked outside active layer
     // Check if clicking on another layer
     const clickedLayer = this.getLayerAtPosition(x, y);
-    
+
     if (clickedLayer) {
       // Check if Shift is pressed for multi-select
       if (event.shiftKey) {
@@ -851,12 +972,12 @@ export class CompositionCanvasComponent implements AfterViewInit {
       } else {
         this.compositionService.selectLayer(clickedLayer.id, false);
       }
-      
+
       // Check for double-click on newly selected text layer
       const now = Date.now();
-      if (clickedLayer.type === 'text' && 
-          this.lastClickLayerId === clickedLayer.id && 
-          now - this.lastClickTime < 300) {
+      if (clickedLayer.type === 'text' &&
+        this.lastClickLayerId === clickedLayer.id &&
+        now - this.lastClickTime < 300) {
         this.openTextEditor(clickedLayer);
         this.lastClickTime = 0;
         this.lastClickLayerId = null;
@@ -871,44 +992,60 @@ export class CompositionCanvasComponent implements AfterViewInit {
       }
     }
   }
-  
+
   onMouseMove(event: MouseEvent): void {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
-    
+
     // Calculate scale between visual size and actual canvas size
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
-    // Apply CSS scale, then divide by zoom immediately (consistent with onMouseDown/Up)
-    const x = ((event.clientX - rect.left) * scaleX) / this.canvasZoom();
-    const y = ((event.clientY - rect.top) * scaleY) / this.canvasZoom();
-    
+
+    // Apply CSS scale (scaleX/Y already accounts for zoom via rect dimensions)
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
+
     // Pan mode
     if (this.isPanning) {
       this.updatePan(event.clientX, event.clientY);
       return;
     }
-    
+
     // Shape drawing
     if (this.isDrawingShape) {
       // Visual feedback (could draw preview here)
       return;
     }
-    
+
     // Brush drawing
     if (this.isBrushing) {
       this.brushPoints.push({ x, y });
       this.scheduleRender(); // Use throttled render instead of direct render()
       return;
     }
-    
+
+    // Handle multi-selection resize
+    if (this.isResizing && this.multiResizeLayers.length > 0) {
+      this.updateMultiResize(x, y);
+      return;
+    }
+
+    // Handle multi-selection drag
+    if (this.isDragging && this.multipleLayersDragStart.size > 1) {
+      const state = this.compositionState();
+      const selectedLayers = state.layers.filter(l => state.selectedLayerIds.includes(l.id));
+      if (selectedLayers.length > 0) {
+        this.updateDrag(x, y, selectedLayers[0]);
+      }
+      return;
+    }
+
     const activeLayer = this.activeLayer();
     if (!activeLayer) return;
-    
+
     // If layer is locked, no interaction
     if (activeLayer.locked) return;
-    
+
     // Coordinates are already adjusted for zoom
     if (this.isDragging) {
       this.updateDrag(x, y, activeLayer);
@@ -921,52 +1058,52 @@ export class CompositionCanvasComponent implements AfterViewInit {
       this.updateCursor(x, y, activeLayer);
     }
   }
-  
+
   onMouseUp(event: MouseEvent): void {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
-    
+
     // Calculate scale between visual size and actual canvas size
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
-    // Apply CSS scale, then divide by zoom
-    const x = ((event.clientX - rect.left) * scaleX) / this.canvasZoom();
-    const y = ((event.clientY - rect.top) * scaleY) / this.canvasZoom();
-    
+
+    // Apply CSS scale (scaleX/Y already accounts for zoom via rect dimensions)
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
+
     const activeLayer = this.activeLayer();
-    
+
     // Finish shape drawing
     if (this.isDrawingShape) {
       this.finishDrawingShape(x, y);
     }
-    
+
     // Finish brush stroke
     if (this.isBrushing) {
       this.finishBrushStroke();
     }
-    
+
     // Save undo command for drag (only if not resizing/rotating)
     if (this.isDragging && !this.isResizing && !this.isRotating && activeLayer && this.currentTransform) {
       const dx = this.currentTransform.x - this.dragStartLayerX;
       const dy = this.currentTransform.y - this.dragStartLayerY;
-      
+
       // Update all selected layers
       for (const [layerId, startPos] of this.multipleLayersDragStart.entries()) {
         const newX = startPos.x + dx;
         const newY = startPos.y + dy;
-        
+
         this.compositionService.updateLayer(layerId, {
           x: newX,
           y: newY
         });
       }
-      
+
       // TODO: Add undo command for multiple layers
       // For now, just record the active layer movement
       const oldPos = { x: this.dragStartLayerX, y: this.dragStartLayerY };
       const newPos = { x: this.currentTransform.x, y: this.currentTransform.y };
-      
+
       if (oldPos.x !== newPos.x || oldPos.y !== newPos.y) {
         const command = new MoveLayerCommand(
           this.compositionService,
@@ -976,11 +1113,11 @@ export class CompositionCanvasComponent implements AfterViewInit {
         );
         this.historyService.record(command);
       }
-      
+
       // Clear multiple drag start positions
       this.multipleLayersDragStart.clear();
     }
-    
+
     // Save undo command for resize/rotate
     if ((this.isResizing || this.isRotating) && activeLayer && this.currentTransform) {
       const oldTransform = {
@@ -990,7 +1127,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         height: this.resizeStartHeight,
         rotation: this.rotateStartAngle
       };
-      
+
       const newTransform = {
         x: this.currentTransform.x,
         y: this.currentTransform.y,
@@ -998,18 +1135,18 @@ export class CompositionCanvasComponent implements AfterViewInit {
         height: this.currentTransform.height,
         rotation: this.currentTransform.rotation
       };
-      
+
       // Apply transform to state
       this.compositionService.updateLayer(activeLayer.id, newTransform);
-      
+
       // Only save if transform actually changed
-      const hasChanged = 
+      const hasChanged =
         oldTransform.x !== newTransform.x ||
         oldTransform.y !== newTransform.y ||
         oldTransform.width !== newTransform.width ||
         oldTransform.height !== newTransform.height ||
         oldTransform.rotation !== newTransform.rotation;
-        
+
       if (hasChanged) {
         const command = new TransformLayerCommand(
           this.compositionService,
@@ -1020,7 +1157,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         this.historyService.record(command);
       }
     }
-    
+
     // Clear current transform and interaction state
     this.currentTransform = null;
     this.isDragging = false;
@@ -1030,14 +1167,19 @@ export class CompositionCanvasComponent implements AfterViewInit {
     this.isDrawingShape = false;
     this.isBrushing = false;
     this.resizeHandle = null;
-    
+
+    // Clear multi-selection state
+    this.multiResizeLayers = [];
+    this.multiResizeStartBounds.clear();
+    this.multiResizeBoundingBox = null;
+
     canvas.classList.remove('dragging', 'resizing', 'rotating');
   }
 
   /**
    * KEYBOARD SHORTCUTS
    */
-  
+
   @HostListener('window:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
     // Ignore if user is typing in an input/textarea
@@ -1077,11 +1219,11 @@ export class CompositionCanvasComponent implements AfterViewInit {
       return;
     }
   }
-  
+
   /**
    * PAN (Hand Tool)
    */
-  
+
   private startPan(clientX: number, clientY: number): void {
     this.isPanning = true;
     this.panStartX = clientX;
@@ -1090,28 +1232,28 @@ export class CompositionCanvasComponent implements AfterViewInit {
     this.panStartOffsetX = currentOffset.x;
     this.panStartOffsetY = currentOffset.y;
   }
-  
+
   private updatePan(clientX: number, clientY: number): void {
     const dx = (clientX - this.panStartX) / this.canvasZoom();
     const dy = (clientY - this.panStartY) / this.canvasZoom();
-    
+
     this.panOffset.set({
       x: this.panStartOffsetX + dx,
       y: this.panStartOffsetY + dy
     });
   }
-  
+
   /**
    * PAN (Hand Tool)
    */
-  
+
   /**
    * DRAG (Layer Movement)
    */
-  
+
   private startDrag(
-    x: number, 
-    y: number, 
+    x: number,
+    y: number,
     coords: { x: number; y: number; width: number; height: number; rotation: number }
   ): void {
     this.isDragging = true;
@@ -1122,7 +1264,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
     this.resizeStartWidth = coords.width;
     this.resizeStartHeight = coords.height;
     this.rotateStartAngle = coords.rotation;
-    
+
     // Initialize current transform with current coords
     this.currentTransform = {
       x: coords.x,
@@ -1131,27 +1273,27 @@ export class CompositionCanvasComponent implements AfterViewInit {
       height: coords.height,
       rotation: coords.rotation
     };
-    
+
     // Store initial positions of all selected layers for multi-drag
     const state = this.compositionState();
     const selectedLayers = state.layers.filter(l => state.selectedLayerIds.includes(l.id));
     this.multipleLayersDragStart.clear();
-    
+
     for (const selectedLayer of selectedLayers) {
       this.multipleLayersDragStart.set(selectedLayer.id, {
         x: selectedLayer.x,
         y: selectedLayer.y
       });
     }
-    
+
     const canvas = this.canvasRef.nativeElement;
     canvas.classList.add('dragging');
   }
-  
+
   private updateDrag(x: number, y: number, layer: CompositionLayer): void {
     const dx = x - this.dragStartX;
     const dy = y - this.dragStartY;
-    
+
     // Update current transform (don't touch state)
     this.currentTransform = {
       x: this.dragStartLayerX + dx,
@@ -1160,19 +1302,19 @@ export class CompositionCanvasComponent implements AfterViewInit {
       height: this.resizeStartHeight,
       rotation: this.rotateStartAngle
     };
-    
+
     // Schedule render
     this.scheduleRender();
   }
-  
+
   /**
    * RESIZE
    */
-  
+
   private startResize(
-    x: number, 
-    y: number, 
-    coords: { x: number; y: number; width: number; height: number; rotation: number }, 
+    x: number,
+    y: number,
+    coords: { x: number; y: number; width: number; height: number; rotation: number },
     handle: string
   ): void {
     this.isResizing = true;
@@ -1183,7 +1325,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
     this.dragStartLayerY = coords.y;
     this.resizeStartWidth = coords.width;
     this.resizeStartHeight = coords.height;
-    
+
     // Initialize current transform with current coords
     this.currentTransform = {
       x: coords.x,
@@ -1192,23 +1334,23 @@ export class CompositionCanvasComponent implements AfterViewInit {
       height: coords.height,
       rotation: coords.rotation
     };
-    
+
     const canvas = this.canvasRef.nativeElement;
     canvas.classList.add('resizing');
   }
-  
+
   private updateResize(x: number, y: number, layer: CompositionLayer): void {
     const dx = x - this.dragStartX;
     const dy = y - this.dragStartY;
-    
+
     // Start with initial values
     let newX = this.dragStartLayerX;
     let newY = this.dragStartLayerY;
     let newWidth = this.resizeStartWidth;
     let newHeight = this.resizeStartHeight;
-    
+
     const aspectRatio = this.resizeStartWidth / this.resizeStartHeight;
-    
+
     switch (this.resizeHandle) {
       // Corner handles - maintain aspect ratio, anchor opposite corner
       case 'resize-se':
@@ -1216,7 +1358,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         newWidth = Math.max(20, this.resizeStartWidth + dx);
         newHeight = newWidth / aspectRatio;
         break;
-        
+
       case 'resize-sw':
         // Anchor: top-right stays fixed
         const anchorRightX = this.dragStartLayerX + this.resizeStartWidth;
@@ -1224,7 +1366,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         newHeight = newWidth / aspectRatio;
         newX = anchorRightX - newWidth;
         break;
-        
+
       case 'resize-ne':
         // Anchor: bottom-left stays fixed
         const anchorBottomY = this.dragStartLayerY + this.resizeStartHeight;
@@ -1232,7 +1374,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         newHeight = newWidth / aspectRatio;
         newY = anchorBottomY - newHeight;
         break;
-        
+
       case 'resize-nw':
         // Anchor: bottom-right stays fixed
         const anchorBottomRightX = this.dragStartLayerX + this.resizeStartWidth;
@@ -1242,7 +1384,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         newX = anchorBottomRightX - newWidth;
         newY = anchorBottomRightY - newHeight;
         break;
-      
+
       // Side handles - free resize, anchor opposite side
       case 'resize-n':
         // Anchor: bottom stays fixed
@@ -1250,17 +1392,17 @@ export class CompositionCanvasComponent implements AfterViewInit {
         newHeight = Math.max(20, this.resizeStartHeight - dy);
         newY = anchorBottom - newHeight;
         break;
-        
+
       case 'resize-s':
         // Anchor: top stays fixed
         newHeight = Math.max(20, this.resizeStartHeight + dy);
         break;
-        
+
       case 'resize-e':
         // Anchor: left stays fixed
         newWidth = Math.max(20, this.resizeStartWidth + dx);
         break;
-        
+
       case 'resize-w':
         // Anchor: right stays fixed
         const anchorRight = this.dragStartLayerX + this.resizeStartWidth;
@@ -1268,7 +1410,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         newX = anchorRight - newWidth;
         break;
     }
-    
+
     // Update current transform
     this.currentTransform = {
       x: newX,
@@ -1277,41 +1419,41 @@ export class CompositionCanvasComponent implements AfterViewInit {
       height: newHeight,
       rotation: layer.rotation
     };
-    
+
     this.scheduleRender();
   }
-  
+
   /**
    * SHAPE TOOL
    */
-  
+
   private startDrawingShape(x: number, y: number): void {
     this.isDrawingShape = true;
     this.shapeStartX = x;
     this.shapeStartY = y;
   }
-  
+
   private finishDrawingShape(x: number, y: number): void {
     const options = this.toolService.toolOptions();
     const width = Math.abs(x - this.shapeStartX);
     const height = Math.abs(y - this.shapeStartY);
-    
+
     if (width < 10 || height < 10) return; // Too small
-    
+
     const left = Math.min(x, this.shapeStartX);
     const top = Math.min(y, this.shapeStartY);
-    
+
     // Create a canvas to draw the shape
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
     tempCanvas.height = height;
     const tempCtx = tempCanvas.getContext('2d')!;
-    
+
     // Draw the shape
     tempCtx.fillStyle = options.shapeFilled ? options.shapeFillColor! : 'transparent';
     tempCtx.strokeStyle = options.shapeStrokeColor!;
     tempCtx.lineWidth = options.shapeStrokeWidth!;
-    
+
     switch (options.shapeType) {
       case 'rectangle':
         if (options.shapeFilled) {
@@ -1321,7 +1463,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
           tempCtx.strokeRect(0, 0, width, height);
         }
         break;
-        
+
       case 'circle':
       case 'ellipse':
         tempCtx.beginPath();
@@ -1333,7 +1475,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
           tempCtx.stroke();
         }
         break;
-        
+
       case 'line':
         tempCtx.beginPath();
         tempCtx.moveTo(0, 0);
@@ -1341,20 +1483,20 @@ export class CompositionCanvasComponent implements AfterViewInit {
         tempCtx.stroke();
         break;
     }
-    
+
     // Get image data
     const imageData = tempCtx.getImageData(0, 0, width, height);
-    
+
     // Create shape layer
     const img = new Image();
     img.src = tempCanvas.toDataURL();
     img.onload = () => {
       const layerId = this.compositionService.addLayer(img, imageData);
-      
+
       // Get the created layer
       const state = this.compositionService.compositionState();
       const createdLayer = state.layers.find(l => l.id === layerId);
-      
+
       this.compositionService.updateLayer(layerId, {
         type: 'shape',
         name: `Shape: ${options.shapeType}`,
@@ -1367,7 +1509,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         shapeFilled: options.shapeFilled,
         ditherExempt: false // Apply dithering by default
       });
-      
+
       // Add to history after layer is fully configured
       if (createdLayer) {
         const updatedState = this.compositionService.compositionState();
@@ -1377,117 +1519,117 @@ export class CompositionCanvasComponent implements AfterViewInit {
           this.historyService.record(command);
         }
       }
-      
+
       // Auto-switch back to select tool
       this.toolService.setTool('select');
     };
   }
-  
+
   /**
    * TEXT TOOL
    */
-  
+
   private placeText(x: number, y: number): void {
     const options = this.toolService.toolOptions();
-    
+
     this.modalService.prompt('Enter text:', 'New Text Layer', '').then((text) => {
       if (!text) return;
-      
+
       // Create a temporary canvas to render the text
       const tempCanvas = document.createElement('canvas');
       const tempCtx = tempCanvas.getContext('2d')!;
-      
+
       // Configure font
       const fontStyle = `${options.textBold ? 'bold ' : ''}${options.textItalic ? 'italic ' : ''}${options.textFontSize}px ${options.textFontFamily}`;
       tempCtx.font = fontStyle;
-    
-    // Measure text
-    const metrics = tempCtx.measureText(text);
-    const textWidth = Math.ceil(metrics.width);
-    const strokePadding = options.textStrokeEnabled ? (options.textStrokeWidth! * 2) : 0;
-    const textHeight = Math.ceil(options.textFontSize! * 1.2); // Add some padding
-    
-    // Set canvas size (with extra padding for stroke)
-    tempCanvas.width = textWidth + 20 + strokePadding;
-    tempCanvas.height = textHeight + 20 + strokePadding;
-    
-    // Re-apply font after resize
-    tempCtx.font = fontStyle;
-    tempCtx.textAlign = options.textAlign!;
-    tempCtx.textBaseline = 'middle';
-    
-    // Draw text with stroke if enabled
-    const textX = options.textAlign === 'center' ? tempCanvas.width / 2 : 
-                  options.textAlign === 'right' ? tempCanvas.width - 10 - strokePadding / 2 : 10 + strokePadding / 2;
-    const textY = tempCanvas.height / 2;
-    
-    // Draw stroke first (outline)
-    if (options.textStrokeEnabled && options.textStrokeWidth! > 0) {
-      tempCtx.strokeStyle = options.textStrokeColor!;
-      tempCtx.lineWidth = options.textStrokeWidth!;
-      tempCtx.lineJoin = 'round';
-      tempCtx.miterLimit = 2;
-      tempCtx.strokeText(text, textX, textY);
-    }
-    
-    // Draw fill text on top
-    tempCtx.fillStyle = options.textColor!;
-    tempCtx.fillText(text, textX, textY);
-    
-    // Get image data
-    const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-    
-    // Create text layer
-    const img = new Image();
-    img.src = tempCanvas.toDataURL();
-    img.onload = () => {
-      const layerId = this.compositionService.addLayer(img, imageData);
-      this.compositionService.updateLayer(layerId, {
-        type: 'text',
-        name: `Text: ${text.substring(0, 20)}${text.length > 20 ? '...' : ''}`,
-        x: x - tempCanvas.width / 2,
-        y: y - tempCanvas.height / 2,
-        textContent: text,
-        textFontFamily: options.textFontFamily,
-        textFontSize: options.textFontSize,
-        textColor: options.textColor,
-        textBold: options.textBold,
-        textItalic: options.textItalic,
-        textAlign: options.textAlign,
-        textStrokeEnabled: options.textStrokeEnabled,
-        textStrokeColor: options.textStrokeColor,
-        textStrokeWidth: options.textStrokeWidth,
-        ditherExempt: false // Apply dithering by default
-      });
-      
-      // Add to history
-      const state = this.compositionService.compositionState();
-      const createdLayer = state.layers.find(l => l.id === layerId);
-      if (createdLayer) {
-        const command = new AddLayerCommand(this.compositionService, createdLayer);
-        this.historyService.record(command);
+
+      // Measure text
+      const metrics = tempCtx.measureText(text);
+      const textWidth = Math.ceil(metrics.width);
+      const strokePadding = options.textStrokeEnabled ? (options.textStrokeWidth! * 2) : 0;
+      const textHeight = Math.ceil(options.textFontSize! * 1.2); // Add some padding
+
+      // Set canvas size (with extra padding for stroke)
+      tempCanvas.width = textWidth + 20 + strokePadding;
+      tempCanvas.height = textHeight + 20 + strokePadding;
+
+      // Re-apply font after resize
+      tempCtx.font = fontStyle;
+      tempCtx.textAlign = options.textAlign!;
+      tempCtx.textBaseline = 'middle';
+
+      // Draw text with stroke if enabled
+      const textX = options.textAlign === 'center' ? tempCanvas.width / 2 :
+        options.textAlign === 'right' ? tempCanvas.width - 10 - strokePadding / 2 : 10 + strokePadding / 2;
+      const textY = tempCanvas.height / 2;
+
+      // Draw stroke first (outline)
+      if (options.textStrokeEnabled && options.textStrokeWidth! > 0) {
+        tempCtx.strokeStyle = options.textStrokeColor!;
+        tempCtx.lineWidth = options.textStrokeWidth!;
+        tempCtx.lineJoin = 'round';
+        tempCtx.miterLimit = 2;
+        tempCtx.strokeText(text, textX, textY);
       }
-      
-      // Auto-switch back to select tool
-      this.toolService.setTool('select');
-    };
+
+      // Draw fill text on top
+      tempCtx.fillStyle = options.textColor!;
+      tempCtx.fillText(text, textX, textY);
+
+      // Get image data
+      const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+      // Create text layer
+      const img = new Image();
+      img.src = tempCanvas.toDataURL();
+      img.onload = () => {
+        const layerId = this.compositionService.addLayer(img, imageData);
+        this.compositionService.updateLayer(layerId, {
+          type: 'text',
+          name: `Text: ${text.substring(0, 20)}${text.length > 20 ? '...' : ''}`,
+          x: x - tempCanvas.width / 2,
+          y: y - tempCanvas.height / 2,
+          textContent: text,
+          textFontFamily: options.textFontFamily,
+          textFontSize: options.textFontSize,
+          textColor: options.textColor,
+          textBold: options.textBold,
+          textItalic: options.textItalic,
+          textAlign: options.textAlign,
+          textStrokeEnabled: options.textStrokeEnabled,
+          textStrokeColor: options.textStrokeColor,
+          textStrokeWidth: options.textStrokeWidth,
+          ditherExempt: false // Apply dithering by default
+        });
+
+        // Add to history
+        const state = this.compositionService.compositionState();
+        const createdLayer = state.layers.find(l => l.id === layerId);
+        if (createdLayer) {
+          const command = new AddLayerCommand(this.compositionService, createdLayer);
+          this.historyService.record(command);
+        }
+
+        // Auto-switch back to select tool
+        this.toolService.setTool('select');
+      };
     }); // Close .then()
   }
-  
+
   /**
    * BRUSH TOOL
    */
-  
+
   private startBrushStroke(x: number, y: number): void {
     this.isBrushing = true;
     this.brushPoints = [{ x, y }];
   }
-  
+
   private finishBrushStroke(): void {
     if (this.brushPoints.length < 2) return;
-    
+
     const options = this.toolService.toolOptions();
-    
+
     // Calculate bounding box
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const point of this.brushPoints) {
@@ -1496,39 +1638,39 @@ export class CompositionCanvasComponent implements AfterViewInit {
       maxX = Math.max(maxX, point.x);
       maxY = Math.max(maxY, point.y);
     }
-    
+
     const padding = options.brushSize! / 2 + 2;
     minX -= padding;
     minY -= padding;
     maxX += padding;
     maxY += padding;
-    
+
     const width = maxX - minX;
     const height = maxY - minY;
-    
+
     // Create canvas for brush stroke
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = Math.ceil(width);
     tempCanvas.height = Math.ceil(height);
     const tempCtx = tempCanvas.getContext('2d')!;
-    
+
     // Draw brush stroke
     tempCtx.strokeStyle = options.brushColor!;
     tempCtx.lineWidth = options.brushSize!;
     tempCtx.lineCap = 'round';
     tempCtx.lineJoin = 'round';
     tempCtx.globalAlpha = options.brushOpacity! / 100;
-    
+
     tempCtx.beginPath();
     tempCtx.moveTo(this.brushPoints[0].x - minX, this.brushPoints[0].y - minY);
     for (let i = 1; i < this.brushPoints.length; i++) {
       tempCtx.lineTo(this.brushPoints[i].x - minX, this.brushPoints[i].y - minY);
     }
     tempCtx.stroke();
-    
+
     // Get image data
     const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-    
+
     // Create brush stroke layer
     const img = new Image();
     img.src = tempCanvas.toDataURL();
@@ -1541,7 +1683,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
         y: minY,
         ditherExempt: false // Apply dithering by default
       });
-      
+
       // Add to history
       const state = this.compositionService.compositionState();
       const createdLayer = state.layers.find(l => l.id === layerId);
@@ -1549,21 +1691,21 @@ export class CompositionCanvasComponent implements AfterViewInit {
         const command = new AddLayerCommand(this.compositionService, createdLayer);
         this.historyService.record(command);
       }
-      
+
       // Auto-switch back to select tool
       this.toolService.setTool('select');
     };
-    
+
     this.brushPoints = [];
   }
-  
+
   /**
    * ROTATE
    */
-  
+
   private startRotate(
-    x: number, 
-    y: number, 
+    x: number,
+    y: number,
     coords: { x: number; y: number; width: number; height: number; rotation: number }
   ): void {
     this.isRotating = true;
@@ -1572,7 +1714,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
     this.dragStartLayerY = coords.y;
     this.resizeStartWidth = coords.width;
     this.resizeStartHeight = coords.height;
-    
+
     // Initialize current transform with current coords
     this.currentTransform = {
       x: coords.x,
@@ -1581,19 +1723,19 @@ export class CompositionCanvasComponent implements AfterViewInit {
       height: coords.height,
       rotation: coords.rotation
     };
-    
+
     const canvas = this.canvasRef.nativeElement;
     canvas.classList.add('rotating');
   }
-  
+
   private updateRotate(x: number, y: number, layer: CompositionLayer): void {
     // Use initial values for center calculation
     const centerX = this.dragStartLayerX + this.resizeStartWidth / 2;
     const centerY = this.dragStartLayerY + this.resizeStartHeight / 2;
-    
+
     const angle = Math.atan2(y - centerY, x - centerX) * 180 / Math.PI;
     const newRotation = angle + 90; // Adjust for initial orientation
-    
+
     // Update current transform (don't touch state)
     this.currentTransform = {
       x: this.dragStartLayerX,
@@ -1602,44 +1744,44 @@ export class CompositionCanvasComponent implements AfterViewInit {
       height: this.resizeStartHeight,
       rotation: newRotation
     };
-    
+
     // Schedule render
     this.scheduleRender();
   }
-  
+
   /**
    * UTILITIES
    */
-  
+
   private getHandleAtPosition(
-    x: number, 
-    y: number, 
+    x: number,
+    y: number,
     coords: { x: number; y: number; width: number; height: number; rotation: number }
   ): string | null {
     const handleSize = 12;
     // Scale tolerance inversely with zoom for consistent hit detection
     const tolerance = 15 / this.canvasZoom();
-    
-    console.log('🔍 getHandleAtPosition:', { 
-      clickPos: { x, y }, 
+
+    console.log('🔍 getHandleAtPosition:', {
+      clickPos: { x, y },
       layerBounds: { x: coords.x, y: coords.y, w: coords.width, h: coords.height },
       rotation: coords.rotation,
       zoom: this.canvasZoom(),
-      tolerance 
+      tolerance
     });
-    
+
     const centerX = coords.x + coords.width / 2;
     const centerY = coords.y + coords.height / 2;
-    
+
     // Transform mouse coordinates to layer's local space (inverse rotation)
     const angleRad = (-coords.rotation * Math.PI) / 180; // Negative for inverse
     const dx = x - centerX;
     const dy = y - centerY;
     const localX = dx * Math.cos(angleRad) - dy * Math.sin(angleRad) + centerX;
     const localY = dx * Math.sin(angleRad) + dy * Math.cos(angleRad) + centerY;
-    
+
     console.log('🔄 Transformed to local space:', { localX, localY, centerX, centerY });
-    
+
     // Check rotation handle (in local space) - use scaled distance
     const rotateHandleDistance = 30 / this.canvasZoom();
     const rotateY = coords.y - rotateHandleDistance;
@@ -1648,7 +1790,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       console.log('✅ Rotate handle detected');
       return 'rotate';
     }
-    
+
     // Check resize handles in local space
     const handles = [
       // Corners first (higher priority)
@@ -1662,7 +1804,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       { type: 'resize-e', x: coords.x + coords.width, y: coords.y + coords.height / 2 },
       { type: 'resize-w', x: coords.x, y: coords.y + coords.height / 2 }
     ];
-    
+
     // Check each handle using local coordinates
     for (const handle of handles) {
       const distance = Math.hypot(localX - handle.x, localY - handle.y);
@@ -1671,52 +1813,52 @@ export class CompositionCanvasComponent implements AfterViewInit {
         return handle.type;
       }
     }
-    
+
     console.log('❌ No handle detected');
     return null;
   }
-  
+
   private isPointInLayer(
-    x: number, 
-    y: number, 
+    x: number,
+    y: number,
     coords: { x: number; y: number; width: number; height: number; rotation?: number }
   ): boolean {
     // If layer has rotation, transform point to local space
     if (coords.rotation && coords.rotation !== 0) {
       const centerX = coords.x + coords.width / 2;
       const centerY = coords.y + coords.height / 2;
-      
+
       // Inverse rotation
       const angleRad = (-coords.rotation * Math.PI) / 180;
       const dx = x - centerX;
       const dy = y - centerY;
       const localX = dx * Math.cos(angleRad) - dy * Math.sin(angleRad) + centerX;
       const localY = dx * Math.sin(angleRad) + dy * Math.cos(angleRad) + centerY;
-      
-      return localX >= coords.x && 
-             localX <= coords.x + coords.width &&
-             localY >= coords.y && 
-             localY <= coords.y + coords.height;
+
+      return localX >= coords.x &&
+        localX <= coords.x + coords.width &&
+        localY >= coords.y &&
+        localY <= coords.y + coords.height;
     }
-    
+
     // No rotation - simple AABB check
-    return x >= coords.x && 
-           x <= coords.x + coords.width &&
-           y >= coords.y && 
-           y <= coords.y + coords.height;
+    return x >= coords.x &&
+      x <= coords.x + coords.width &&
+      y >= coords.y &&
+      y <= coords.y + coords.height;
   }
-  
+
   private getLayerAtPosition(x: number, y: number): CompositionLayer | null {
     const state = this.compositionState();
     const sortedLayers = [...state.layers]
       .filter(l => l.visible)
       .sort((a, b) => b.order - a.order);
-    
+
     for (const layer of sortedLayers) {
-      const coords = { 
-        x: layer.x, 
-        y: layer.y, 
-        width: layer.width, 
+      const coords = {
+        x: layer.x,
+        y: layer.y,
+        width: layer.width,
         height: layer.height,
         rotation: layer.rotation
       };
@@ -1724,13 +1866,13 @@ export class CompositionCanvasComponent implements AfterViewInit {
         return layer;
       }
     }
-    
+
     return null;
   }
-  
+
   private updateCursor(x: number, y: number, layer: CompositionLayer): void {
     const canvas = this.canvasRef.nativeElement;
-    
+
     // Use currentTransform if it exists, otherwise use layer state
     const visualCoords = this.currentTransform || {
       x: layer.x,
@@ -1739,9 +1881,9 @@ export class CompositionCanvasComponent implements AfterViewInit {
       height: layer.height,
       rotation: layer.rotation
     };
-    
+
     const handle = this.getHandleAtPosition(x, y, visualCoords);
-    
+
     if (handle === 'rotate') {
       canvas.style.cursor = 'crosshair';
     } else if (handle === 'resize-nw' || handle === 'resize-se') {
@@ -1758,32 +1900,32 @@ export class CompositionCanvasComponent implements AfterViewInit {
       canvas.style.cursor = 'default';
     }
   }
-  
+
   /**
    * ZOOM CONTROLS
    */
-  
+
   zoomIn(): void {
     const newZoom = Math.min(this.canvasZoom() + 0.1, 3.0);
     this.canvasZoom.set(newZoom);
     this.render();
   }
-  
+
   zoomOut(): void {
     const newZoom = Math.max(this.canvasZoom() - 0.1, 0.1);
     this.canvasZoom.set(newZoom);
     this.render();
   }
-  
+
   resetZoom(): void {
     this.canvasZoom.set(1.0);
     this.render();
   }
-  
+
   /**
    * TINT HELPERS
    */
-  
+
   private getCompositeOperation(blendMode: string): GlobalCompositeOperation {
     const blendModeMap: Record<string, GlobalCompositeOperation> = {
       'normal': 'source-over',
@@ -1797,24 +1939,219 @@ export class CompositionCanvasComponent implements AfterViewInit {
     };
     return blendModeMap[blendMode] || 'source-over';
   }
-  
+
+  /**
+   * MULTI-SELECTION HELPERS
+   */
+
+  private getMultiSelectionBoundingBox(layers: CompositionLayer[]): { x: number; y: number; width: number; height: number; rotation: number } {
+    if (layers.length === 0) {
+      return { x: 0, y: 0, width: 0, height: 0, rotation: 0 };
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const layer of layers) {
+      let layerX = layer.x;
+      let layerY = layer.y;
+
+      if (this.isDragging && this.multipleLayersDragStart.has(layer.id)) {
+        const startPos = this.multipleLayersDragStart.get(layer.id)!;
+        const dx = this.currentTransform!.x - this.dragStartLayerX;
+        const dy = this.currentTransform!.y - this.dragStartLayerY;
+        layerX = startPos.x + dx;
+        layerY = startPos.y + dy;
+      }
+
+      const left = layerX;
+      const right = layerX + layer.width;
+      const top = layerY;
+      const bottom = layerY + layer.height;
+
+      minX = Math.min(minX, left);
+      minY = Math.min(minY, top);
+      maxX = Math.max(maxX, right);
+      maxY = Math.max(maxY, bottom);
+    }
+
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      rotation: 0
+    };
+  }
+
+  private isPointInBoundingBox(x: number, y: number, box: { x: number; y: number; width: number; height: number }): boolean {
+    return x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height;
+  }
+
+  private multiResizeLayers: CompositionLayer[] = [];
+  private multiResizeStartBounds = new Map<string, { x: number; y: number; width: number; height: number }>();
+  private multiResizeBoundingBox: { x: number; y: number; width: number; height: number } | null = null;
+
+  private startMultiResize(
+    x: number,
+    y: number,
+    boundingBox: { x: number; y: number; width: number; height: number; rotation: number },
+    handle: string,
+    layers: CompositionLayer[]
+  ): void {
+    this.isResizing = true;
+    this.resizeHandle = handle;
+    this.dragStartX = x;
+    this.dragStartY = y;
+    this.multiResizeLayers = layers;
+    this.multiResizeBoundingBox = { x: boundingBox.x, y: boundingBox.y, width: boundingBox.width, height: boundingBox.height };
+
+    // Store initial bounds for each layer
+    this.multiResizeStartBounds.clear();
+    for (const layer of layers) {
+      this.multiResizeStartBounds.set(layer.id, {
+        x: layer.x,
+        y: layer.y,
+        width: layer.width,
+        height: layer.height
+      });
+    }
+
+    const canvas = this.canvasRef.nativeElement;
+    canvas.classList.add('resizing');
+  }
+
+  private startMultiDrag(x: number, y: number, layers: CompositionLayer[]): void {
+    this.isDragging = true;
+    this.dragStartX = x;
+    this.dragStartY = y;
+
+    // Store starting positions for all selected layers
+    this.multipleLayersDragStart.clear();
+    for (const layer of layers) {
+      this.multipleLayersDragStart.set(layer.id, { x: layer.x, y: layer.y });
+    }
+
+    // Use first layer's position as reference
+    if (layers.length > 0) {
+      this.dragStartLayerX = layers[0].x;
+      this.dragStartLayerY = layers[0].y;
+      this.currentTransform = {
+        x: layers[0].x,
+        y: layers[0].y,
+        width: layers[0].width,
+        height: layers[0].height,
+        rotation: layers[0].rotation
+      };
+    }
+
+    const canvas = this.canvasRef.nativeElement;
+    canvas.classList.add('dragging');
+  }
+
+  private updateMultiResize(x: number, y: number): void {
+    if (!this.multiResizeBoundingBox || this.multiResizeLayers.length === 0) return;
+
+    const dx = x - this.dragStartX;
+    const dy = y - this.dragStartY;
+
+    const originalBox = this.multiResizeBoundingBox;
+    let newBoxX = originalBox.x;
+    let newBoxY = originalBox.y;
+    let newBoxWidth = originalBox.width;
+    let newBoxHeight = originalBox.height;
+
+    const aspectRatio = originalBox.width / originalBox.height;
+
+    // Calculate new bounding box dimensions based on handle
+    switch (this.resizeHandle) {
+      case 'resize-se':
+        newBoxWidth = Math.max(20, originalBox.width + dx);
+        newBoxHeight = newBoxWidth / aspectRatio;
+        break;
+      case 'resize-sw':
+        newBoxWidth = Math.max(20, originalBox.width - dx);
+        newBoxHeight = newBoxWidth / aspectRatio;
+        newBoxX = originalBox.x + originalBox.width - newBoxWidth;
+        break;
+      case 'resize-ne':
+        newBoxWidth = Math.max(20, originalBox.width + dx);
+        newBoxHeight = newBoxWidth / aspectRatio;
+        newBoxY = originalBox.y + originalBox.height - newBoxHeight;
+        break;
+      case 'resize-nw':
+        newBoxWidth = Math.max(20, originalBox.width - dx);
+        newBoxHeight = newBoxWidth / aspectRatio;
+        newBoxX = originalBox.x + originalBox.width - newBoxWidth;
+        newBoxY = originalBox.y + originalBox.height - newBoxHeight;
+        break;
+      case 'resize-n':
+        newBoxHeight = Math.max(20, originalBox.height - dy);
+        newBoxY = originalBox.y + originalBox.height - newBoxHeight;
+        break;
+      case 'resize-s':
+        newBoxHeight = Math.max(20, originalBox.height + dy);
+        break;
+      case 'resize-e':
+        newBoxWidth = Math.max(20, originalBox.width + dx);
+        break;
+      case 'resize-w':
+        newBoxWidth = Math.max(20, originalBox.width - dx);
+        newBoxX = originalBox.x + originalBox.width - newBoxWidth;
+        break;
+    }
+
+    // Calculate scale factors
+    const scaleX = newBoxWidth / originalBox.width;
+    const scaleY = newBoxHeight / originalBox.height;
+
+    // Apply proportional scaling to all selected layers
+    for (const layer of this.multiResizeLayers) {
+      const startBounds = this.multiResizeStartBounds.get(layer.id);
+      if (!startBounds) continue;
+
+      // Calculate relative position within original bounding box
+      const relX = (startBounds.x - originalBox.x) / originalBox.width;
+      const relY = (startBounds.y - originalBox.y) / originalBox.height;
+      const relW = startBounds.width / originalBox.width;
+      const relH = startBounds.height / originalBox.height;
+
+      // Apply scaling to get new bounds
+      const newX = newBoxX + (relX * newBoxWidth);
+      const newY = newBoxY + (relY * newBoxHeight);
+      const newWidth = relW * newBoxWidth;
+      const newHeight = relH * newBoxHeight;
+
+      this.compositionService.updateLayer(layer.id, {
+        x: newX,
+        y: newY,
+        width: newWidth,
+        height: newHeight
+      });
+    }
+
+    this.scheduleRender();
+  }
+
   /**
    * TEXT EDITOR
    */
-  
+
   openTextEditor(layer: CompositionLayer): void {
     if (layer.type !== 'text') return;
     this.editingTextLayer.set(layer);
   }
-  
+
   getTextEditorPosition(): { x: number; y: number; width: number; height: number } {
     const layer = this.editingTextLayer();
     if (!layer) return { x: 0, y: 0, width: 0, height: 0 };
-    
+
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
     const zoom = this.canvasZoom();
-    
+
     return {
       x: rect.left + layer.x * zoom,
       y: rect.top + layer.y * zoom,
@@ -1822,7 +2159,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       height: layer.height * zoom
     };
   }
-  
+
   onTextEditorChange(newText: string): void {
     const layer = this.editingTextLayer();
     if (layer) {
@@ -1830,7 +2167,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       this.render();
     }
   }
-  
+
   onTextEditorSave(newText: string): void {
     const layer = this.editingTextLayer();
     if (layer) {
@@ -1839,14 +2176,14 @@ export class CompositionCanvasComponent implements AfterViewInit {
       this.editingTextLayer.set(null);
     }
   }
-  
+
   onTextEditorCancel(): void {
     this.editingTextLayer.set(null);
   }
-  
+
   onWheel(event: WheelEvent): void {
     event.preventDefault();
-    
+
     const delta = event.deltaY > 0 ? -0.05 : 0.05;
     const newZoom = Math.max(0.1, Math.min(3.0, this.canvasZoom() + delta));
     this.canvasZoom.set(newZoom);
