@@ -1020,6 +1020,27 @@ export class CompositionService {
   }
 
   /**
+   * Update all selected layers with the same updates
+   */
+  updateSelectedLayers(updates: Partial<CompositionLayer>): void {
+    const state = this.compositionState();
+    const selectedIds = state.selectedLayerIds;
+    
+    if (selectedIds.length === 0) return;
+    
+    const newLayers = state.layers.map(layer => 
+      selectedIds.includes(layer.id) 
+        ? { ...layer, ...updates }
+        : layer
+    );
+    
+    this.compositionState.set({
+      ...state,
+      layers: newLayers
+    });
+  }
+
+  /**
    * Copy selected layers to clipboard
    */
   private clipboard: CompositionLayer[] = [];

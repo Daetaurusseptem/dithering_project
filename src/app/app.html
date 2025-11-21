@@ -164,7 +164,11 @@
               </button>
             </div>
             
-            <button class="btn-secondary" (click)="saveToGallery()" [disabled]="!imageLoaded() || processing()" style="width: 100%;">
+            <button class="btn-secondary" (click)="toggleSettings()" title="Settings" style="width: 100%;">
+              ⚙️ Settings
+            </button>
+            
+            <button class="btn-secondary" (click)="saveToGallery()" [disabled]="canSaveToGallery()" style="width: 100%;">
               💾 Save to Gallery
             </button>
             
@@ -293,111 +297,51 @@
                     }
                   </div>
 
-                  <!-- Add Effect Buttons -->
+                  <!-- Add Effect Dropdown -->
                   <div class="add-effect-section">
                     <label class="section-label">Add Effect</label>
-                    <div class="add-effect-buttons">
+                    <select class="select-add-effect" (change)="addEffectFromSelect($event)" [value]="''">
+                      <option value="" disabled selected>Select an effect to add...</option>
                       @for (effectType of availableEffects; track effectType) {
-                        <button class="btn-add-effect" (click)="addEffectLayer(effectType)">
-                          {{ effectNames[effectType] }}
-                        </button>
+                        <option [value]="effectType">{{ effectNames[effectType] }}</option>
                       }
-                    </div>
+                    </select>
                   </div>
                 </div>
 
                 <!-- Separator -->
                 <div class="section-divider"></div>
 
-                <!-- Global GIF Settings -->
-                <div class="global-gif-settings">
-                  <label class="section-label">⚙️ GIF Animation Settings</label>
-
-                  <!-- Frame Count -->
-                  <div class="control-group">
-                    <label class="control-label">
-                      <span class="control-name">📊 Frame Count</span>
-                      <span class="control-value">{{ gifFrameCount() }} frames</span>
-                    </label>
-                    <input type="range" min="5" max="60" step="5" class="slider" 
-                           [ngModel]="gifFrameCount()" 
-                           (ngModelChange)="gifFrameCount.set($event); onGifOptionsUpdate()"
-                           title="Number of frames in the animation">
-                    <div class="control-hint">More frames = smoother animation (but larger file)</div>
-                  </div>
-
-                  <!-- Frame Delay (en ms) -->
-                  <div class="control-group">
-                    <label class="control-label">
-                      <span class="control-name">⏱️ Frame Delay</span>
-                      <span class="control-value">{{ getFrameDelay() }} ms/frame</span>
-                    </label>
-                    <input type="range" min="20" max="500" step="10" class="slider" 
-                           [ngModel]="getFrameDelay()" 
-                           (ngModelChange)="setFrameDelayFromMs($event); onGifOptionsUpdate()"
-                           title="Duration of each frame in milliseconds">
-                    <div class="control-hint">
-                      <span class="fps-display">{{ getFPS() }} FPS</span> • 
-                      <span class="duration-display">Total: {{ getTotalDuration() }}s</span>
-                    </div>
-                  </div>
-
-                  <!-- Animation Info Display -->
-                  <div class="animation-info-box">
-                    <div class="info-row">
-                      <span class="info-label">🎞️ Animation:</span>
-                      <span class="info-value">{{ gifFrameCount() }} frames × {{ getFrameDelay() }}ms</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="info-label">⚡ Speed:</span>
-                      <span class="info-value">{{ getFPS() }} FPS</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="info-label">⏲️ Duration:</span>
-                      <span class="info-value">{{ getTotalDuration() }}s per loop</span>
-                    </div>
-                  </div>
-
-                  <!-- Loop Count -->
-                  <div class="control-group">
-                    <label class="control-label">
-                      <span class="control-name">🔁 Loop Mode</span>
-                    </label>
-                    <select class="select-input" [ngModel]="gifLoopCount()" (ngModelChange)="gifLoopCount.set($event)">
-                      <option [value]="0">♾️ Loop Forever (Seamless)</option>
-                      <option [value]="-1">🔚 Play Once (No Loop)</option>
-                      <option [value]="2">↻ Loop 2 times</option>
-                      <option [value]="3">↻ Loop 3 times</option>
-                      <option [value]="5">↻ Loop 5 times</option>
-                      <option [value]="10">↻ Loop 10 times</option>
-                    </select>
-                    <div class="control-hint">How many times the GIF repeats</div>
-                  </div>
-
-                  <button class="btn-primary" (click)="downloadAnimatedGif()" 
-                          [disabled]="generatingGif()" 
-                          style="width: 100%; margin-top: 12px;">
-                    @if (generatingGif()) {
-                      <span>🔄 Generating...</span>
-                    } @else {
-                      <span>✨ Generate GIF</span>
-                    }
-                  </button>
-                </div>
-              </div>
-              <!-- Fin gif-studio-panel -->
-
-              <!-- Effect Layer Editor (justo debajo del GIF Studio) -->
-              @if (editingLayerId()) {
-                <div class="effect-editor-panel">
+                <!-- Effect Layer Editor (reemplaza GIF Settings) -->
+                @if (editingLayerId()) {
+                  <div class="effect-editor-inline">
                   @for (layer of effectLayers(); track layer.id) {
                     @if (layer.id === editingLayerId()) {
-                      <div class="editor-panel-header">
-                        <h4>✏️ {{ effectNames[layer.type] }}</h4>
-                        <button class="btn-close-editor" (click)="closeLayerEditor()">✕</button>
+                      <!-- Vintage Hardware Rack Header -->
+                      <div class="vintage-rack-header">
+                        <div class="rack-screws">
+                          <div class="screw"></div>
+                          <div class="screw"></div>
+                        </div>
+                        <div class="rack-title-bar">
+                          <span class="rack-led"></span>
+                          <h4 class="rack-title">{{ effectNames[layer.type] }}</h4>
+                          <button class="rack-mode-toggle" 
+                                  (click)="toggleEffectEditorMode()"
+                                  [title]="effectEditorMode() === 'normal' ? 'Switch to Advanced Mode' : 'Switch to Normal Mode'">
+                            {{ effectEditorMode() === 'normal' ? '🎛️' : '📊' }}
+                          </button>
+                          <button class="rack-close-btn" (click)="closeLayerEditor()">✕</button>
+                        </div>
+                        <div class="rack-screws">
+                          <div class="screw"></div>
+                          <div class="screw"></div>
+                        </div>
                       </div>
 
-                      <div class="editor-panel-body">
+                      <!-- Normal Mode: Sliders -->
+                      @if (effectEditorMode() === 'normal') {
+                        <div class="editor-panel-body">
                         <!-- Intensity Control (común para todos) -->
                         <div class="control-group">
                           <label class="control-label">
@@ -753,13 +697,214 @@
                           ⬇️ Move Down
                         </button>
                       </div>
-                    </div>
+                        </div>
+                      }
+
+                      <!-- Advanced Mode: Vintage Knobs -->
+                      @if (effectEditorMode() === 'advanced') {
+                        <div class="vintage-rack-body">
+                          <!-- Intensity Knob (común para todos) -->
+                          <div class="knobs-row">
+                            <app-vintage-knob
+                              [label]="'Intensity'"
+                              [value]="layer.intensity"
+                              [min]="0"
+                              [max]="1"
+                              [step]="0.1"
+                              (valueChange)="updateLayerIntensity(layer.id, $event)">
+                            </app-vintage-knob>
+
+                            <!-- Scanline Advanced -->
+                            @if (layer.type === 'scanline') {
+                              <app-vintage-knob
+                                [label]="'Thickness'"
+                                [value]="layer.options.scanlineThickness!"
+                                [min]="1"
+                                [max]="5"
+                                [step]="1"
+                                (valueChange)="updateLayerOption(layer.id, 'scanlineThickness', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Spacing'"
+                                [value]="layer.options.scanlineSpacing!"
+                                [min]="2"
+                                [max]="8"
+                                [step]="1"
+                                (valueChange)="updateLayerOption(layer.id, 'scanlineSpacing', $event)">
+                              </app-vintage-knob>
+                            }
+
+                            <!-- VHS Advanced -->
+                            @if (layer.type === 'vhs') {
+                              <app-vintage-knob
+                                [label]="'Distortion'"
+                                [value]="layer.options.vhsDistortion!"
+                                [min]="1"
+                                [max]="15"
+                                [step]="1"
+                                (valueChange)="updateLayerOption(layer.id, 'vhsDistortion', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Color Bleed'"
+                                [value]="layer.options.vhsColorBleed!"
+                                [min]="1"
+                                [max]="10"
+                                [step]="1"
+                                (valueChange)="updateLayerOption(layer.id, 'vhsColorBleed', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Tracking'"
+                                [value]="layer.options.vhsTrackingNoise!"
+                                [min]="0"
+                                [max]="10"
+                                [step]="1"
+                                (valueChange)="updateLayerOption(layer.id, 'vhsTrackingNoise', $event)">
+                              </app-vintage-knob>
+                            }
+
+                            <!-- Noise Advanced -->
+                            @if (layer.type === 'noise') {
+                              <app-vintage-knob
+                                [label]="'Noise Size'"
+                                [value]="layer.options.noiseSize!"
+                                [min]="1"
+                                [max]="5"
+                                [step]="1"
+                                (valueChange)="updateLayerOption(layer.id, 'noiseSize', $event)">
+                              </app-vintage-knob>
+                            }
+
+                            <!-- Phosphor Advanced -->
+                            @if (layer.type === 'phosphor') {
+                              <app-vintage-knob
+                                [label]="'Decay'"
+                                [value]="layer.options.phosphorDecay!"
+                                [min]="0"
+                                [max]="1"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'phosphorDecay', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Glow'"
+                                [value]="layer.options.phosphorGlow!"
+                                [min]="0"
+                                [max]="1"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'phosphorGlow', $event)">
+                              </app-vintage-knob>
+                            }
+
+                            <!-- RGB Split Advanced -->
+                            @if (layer.type === 'rgb-split') {
+                              <app-vintage-knob
+                                [label]="'Amount'"
+                                [value]="layer.options.rgbSplitAmount!"
+                                [min]="1"
+                                [max]="10"
+                                [step]="1"
+                                (valueChange)="updateLayerOption(layer.id, 'rgbSplitAmount', $event)">
+                              </app-vintage-knob>
+                            }
+
+                            <!-- Motion Sense Advanced -->
+                            @if (layer.type === 'motion-sense') {
+                              <app-vintage-knob
+                                [label]="'Speed'"
+                                [value]="layer.options.motionSpeed!"
+                                [min]="0.5"
+                                [max]="3"
+                                [step]="0.5"
+                                (valueChange)="updateLayerOption(layer.id, 'motionSpeed', $event)">
+                              </app-vintage-knob>
+                            }
+
+                            <!-- Particles Advanced -->
+                            @if (layer.type === 'particles') {
+                              <app-vintage-knob
+                                [label]="'Count'"
+                                [value]="layer.options.particleCount!"
+                                [min]="10"
+                                [max]="200"
+                                [step]="10"
+                                (valueChange)="updateLayerOption(layer.id, 'particleCount', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Size'"
+                                [value]="layer.options.particleSize!"
+                                [min]="1"
+                                [max]="10"
+                                [step]="1"
+                                (valueChange)="updateLayerOption(layer.id, 'particleSize', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Speed'"
+                                [value]="layer.options.particleSpeed!"
+                                [min]="0.5"
+                                [max]="3"
+                                [step]="0.5"
+                                (valueChange)="updateLayerOption(layer.id, 'particleSpeed', $event)">
+                              </app-vintage-knob>
+                            }
+
+                            <!-- Flames Advanced -->
+                            @if (layer.type === 'flames') {
+                              <app-vintage-knob
+                                [label]="'Height'"
+                                [value]="layer.options.flameHeight!"
+                                [min]="0.3"
+                                [max]="1"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'flameHeight', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Spread'"
+                                [value]="layer.options.flameSpread!"
+                                [min]="0.3"
+                                [max]="1"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'flameSpread', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Turbulence'"
+                                [value]="layer.options.flameTurbulence!"
+                                [min]="0.1"
+                                [max]="1"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'flameTurbulence', $event)">
+                              </app-vintage-knob>
+                            }
+                          </div>
+                        </div>
+                      }
+                    }
                   }
+                  </div>
+                } @else {
+                  <div class="empty-editor-message">
+                    <div class="empty-icon">✏️</div>
+                    <p>Select an effect layer above and click <strong>Edit</strong> to configure its properties</p>
+                  </div>
                 }
+
+                <!-- Advanced Settings + Generate GIF Buttons -->
+              <div class="section-divider"></div>
+              <div class="gif-actions">
+                <button class="btn-secondary" (click)="openGifAdvancedSettings()" style="width: 48%;">
+                  ⚙️ Settings
+                </button>
+                <button class="btn-primary" (click)="downloadAnimatedGif()" 
+                        [disabled]="generatingGif()" style="width: 48%;">
+                  @if (generatingGif()) {
+                    <span>🔄 Generating...</span>
+                  } @else {
+                    <span>✨ Generate</span>
+                  }
+                </button>
               </div>
-            }
             </div>
-            <!-- Fin gif-studio-container -->
+            <!-- Fin gif-studio-panel -->
+          </div>
+          <!-- Fin gif-studio-container -->
 
             <!-- Canvas para modo GIF -->
             <div class="canvas-container">
@@ -1177,6 +1322,15 @@
   </div>
 }
 
+<!-- GIF Advanced Settings Modal -->
+@if (showGifAdvancedSettings()) {
+  <app-gif-advanced-settings
+    [settings]="{ frameCount: gifFrameCount(), frameDelay: getFrameDelay(), loopCount: gifLoopCount() }"
+    (settingsChange)="applyGifAdvancedSettings($event)"
+    (cancel)="closeGifAdvancedSettings()">
+  </app-gif-advanced-settings>
+}
+
 <!-- Achievement Notification -->
 <app-achievement-notification 
   [event]="achievementService.unlockedAchievement()">
@@ -1193,4 +1347,11 @@
     (closed)="showGallery.set(false)"
     (settingsApplied)="onGallerySettingsApplied($event)">
   </app-gallery>
+}
+
+<!-- Settings -->
+@if (showSettings()) {
+  <app-settings 
+    (closed)="showSettings.set(false)">
+  </app-settings>
 }

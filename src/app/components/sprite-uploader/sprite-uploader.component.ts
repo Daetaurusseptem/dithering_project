@@ -203,7 +203,7 @@ type EmotionType = 'idle' | 'processing' | 'success' | 'error' | 'thinking' | 'h
     }
 
     .success-text {
-      color: #00aa00;
+      color: var(--theme-accent, #00aa00);
       font-weight: bold;
     }
 
@@ -492,7 +492,8 @@ export class SpriteUploaderComponent {
       const rows = Math.ceil(this.totalFrames / this.framesPerRow);
       const frameHeight = this.spriteImage.height / rows;
 
-      ctx.strokeStyle = '#00ff00';
+      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary').trim() || '#00ff00';
+      ctx.strokeStyle = primaryColor;
       ctx.lineWidth = 2;
       
       // Vertical lines

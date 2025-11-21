@@ -160,16 +160,16 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
       box-shadow: 
         inset 0 1px 2px rgba(120, 120, 120, 0.4),
         inset 0 -1px 2px rgba(0, 0, 0, 0.6),
-        0 0 12px rgba(0, 255, 0, 0.3),
+        0 0 12px var(--theme-glow, rgba(0, 255, 0, 0.3)),
         2px 2px 6px rgba(0, 0, 0, 0.7);
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
     }
     
     .menu-btn:active {
       transform: scale(0.98);
       box-shadow: 
         inset 0 2px 4px rgba(0, 0, 0, 0.8),
-        0 0 8px rgba(0, 255, 0, 0.2);
+        0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.2));
     }
     
     /* Settings Menu - Military Style */
@@ -222,18 +222,18 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
       padding: 10px;
       margin-bottom: 8px;
       background: linear-gradient(145deg, #2a3d2a 0%, #1a2d1a 100%);
-      border: 2px solid #00ff00;
+      border: 2px solid var(--theme-primary, #00ff00);
       border-radius: 4px;
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       font-size: 0.6rem;
       font-family: 'Press Start 2P', monospace;
       cursor: pointer;
       transition: all 0.2s ease;
-      text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+      text-shadow: 0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.6));
       box-shadow: 
         inset 0 1px 2px rgba(60, 100, 60, 0.2),
         inset 0 -1px 2px rgba(0, 0, 0, 0.8),
-        0 0 10px rgba(0, 255, 0, 0.2);
+        0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.2));
     }
     
     .menu-action-btn:hover {
@@ -242,16 +242,16 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
       box-shadow: 
         inset 0 1px 2px rgba(80, 120, 80, 0.3),
         inset 0 -1px 2px rgba(0, 0, 0, 0.9),
-        0 0 15px rgba(0, 255, 0, 0.4),
+        0 0 15px var(--theme-glow, rgba(0, 255, 0, 0.4)),
         0 4px 8px rgba(0, 0, 0, 0.6);
-      border-color: #00ff88;
+      border-color: var(--theme-secondary, #00ff88);
     }
     
     .menu-action-btn:active {
       transform: translateY(0);
       box-shadow: 
         inset 0 2px 4px rgba(0, 0, 0, 0.8),
-        0 0 10px rgba(0, 255, 0, 0.3);
+        0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.3));
     }
     
     .radio-option {
@@ -271,17 +271,17 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
     
     .radio-option:hover {
       background: linear-gradient(145deg, #3a3a3a 0%, #2a2a2a 100%);
-      border-color: #00ff00;
+      border-color: var(--theme-primary, #00ff00);
       box-shadow: 
         inset 0 1px 2px rgba(80, 80, 80, 0.3),
         inset 0 -1px 2px rgba(0, 0, 0, 0.8),
-        0 0 8px rgba(0, 255, 0, 0.3);
+        0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.3));
     }
     
     .radio-option input[type="radio"] {
       margin-right: 10px;
       cursor: pointer;
-      accent-color: #00ff00;
+      accent-color: var(--theme-primary, #00ff00);
       width: 16px;
       height: 16px;
     }
@@ -296,17 +296,17 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
     
     .radio-option:has(input:checked) {
       background: linear-gradient(145deg, #2a4a2a 0%, #1a3a1a 100%);
-      border-color: #00ff00;
+      border-color: var(--theme-primary, #00ff00);
       box-shadow: 
-        inset 0 1px 2px rgba(0, 255, 0, 0.2),
+        inset 0 1px 2px var(--theme-glow, rgba(0, 255, 0, 0.2)),
         inset 0 -1px 2px rgba(0, 0, 0, 0.8),
-        0 0 12px rgba(0, 255, 0, 0.4);
+        0 0 12px var(--theme-glow, rgba(0, 255, 0, 0.4));
     }
     
     .radio-option:has(input:checked) span {
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       font-weight: bold;
-      text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+      text-shadow: 0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.6));
     }
     
     /* Scale Control - Military Style */
@@ -465,8 +465,8 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
       box-shadow: 
         inset 0 0 30px rgba(0, 0, 0, 0.95),
         inset 0 4px 8px rgba(0, 0, 0, 0.9),
-        inset 0 0 60px rgba(0, 255, 0, 0.08),
-        0 0 20px rgba(0, 255, 0, 0.05);
+        inset 0 0 60px var(--theme-glow, rgba(0, 255, 0, 0.08)),
+        0 0 20px var(--theme-glow, rgba(0, 255, 0, 0.05));
     }
 
     .crt-scanlines {
@@ -477,10 +477,10 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
       height: 100%;
       background: repeating-linear-gradient(
         0deg,
-        rgba(0, 255, 0, 0.03) 0px,
+        var(--theme-glow, rgba(0, 255, 0, 0.03)) 0px,
         transparent 1px,
         transparent 2px,
-        rgba(0, 255, 0, 0.03) 3px
+        var(--theme-glow, rgba(0, 255, 0, 0.03)) 3px
       );
       pointer-events: none;
       z-index: 3;
@@ -502,12 +502,12 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
       align-items: center;
       gap: 6px;
       background: rgba(0, 20, 0, 0.8);
-      border: 2px solid #00ff00;
+      border: 2px solid var(--theme-primary, #00ff00);
       border-radius: 12px;
       padding: 4px 10px;
       box-shadow: 
-        inset 0 0 10px rgba(0, 255, 0, 0.2),
-        0 0 15px rgba(0, 255, 0, 0.4);
+        inset 0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.2)),
+        0 0 15px var(--theme-glow, rgba(0, 255, 0, 0.4));
       animation: affectionPulse 2s ease-in-out infinite;
     }
     
@@ -523,10 +523,10 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
     .affection-value {
       font-size: 0.9rem;
       font-weight: bold;
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       text-shadow: 
-        0 0 5px rgba(0, 255, 0, 0.8),
-        0 0 10px rgba(0, 255, 0, 0.6);
+        0 0 5px var(--theme-glow, rgba(0, 255, 0, 0.8)),
+        0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.6));
       font-family: 'Press Start 2P', monospace;
       min-width: 28px;
       text-align: right;
@@ -535,13 +535,13 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
     @keyframes affectionPulse {
       0%, 100% {
         box-shadow: 
-          inset 0 0 10px rgba(0, 255, 0, 0.2),
-          0 0 15px rgba(0, 255, 0, 0.4);
+          inset 0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.2)),
+          0 0 15px var(--theme-glow, rgba(0, 255, 0, 0.4));
       }
       50% {
         box-shadow: 
-          inset 0 0 15px rgba(0, 255, 0, 0.3),
-          0 0 25px rgba(0, 255, 0, 0.6);
+          inset 0 0 15px var(--theme-glow, rgba(0, 255, 0, 0.3)),
+          0 0 25px var(--theme-glow, rgba(0, 255, 0, 0.6));
       }
     }
     
@@ -567,8 +567,8 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
         0deg,
         transparent 0px,
         transparent 1px,
-        rgba(0, 255, 0, 0.08) 1px,
-        rgba(0, 255, 0, 0.08) 2px
+        var(--theme-glow, rgba(0, 255, 0, 0.08)) 1px,
+        var(--theme-glow, rgba(0, 255, 0, 0.08)) 2px
       );
       pointer-events: none;
       z-index: 4;
@@ -628,10 +628,10 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
       bottom: 0;
       background: repeating-linear-gradient(
         0deg,
-        rgba(0, 255, 0, 0.1) 0px,
+        var(--theme-glow, rgba(0, 255, 0, 0.1)) 0px,
         transparent 1px,
         transparent 2px,
-        rgba(0, 255, 0, 0.05) 3px
+        var(--theme-glow, rgba(0, 255, 0, 0.05)) 3px
       );
       pointer-events: none;
       z-index: 1;
@@ -649,8 +649,8 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
       background: radial-gradient(
         ellipse at center,
         transparent 30%,
-        rgba(0, 255, 0, 0.15) 70%,
-        rgba(0, 255, 0, 0.3) 100%
+        var(--theme-glow, rgba(0, 255, 0, 0.15)) 70%,
+        var(--theme-glow, rgba(0, 255, 0, 0.3)) 100%
       );
       pointer-events: none;
       z-index: 2;
@@ -687,39 +687,39 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
     @keyframes phosphor-pulse {
       0%, 100% {
         filter: 
-          drop-shadow(0 0 8px rgba(0, 255, 0, 0.6))
-          drop-shadow(0 0 16px rgba(0, 255, 0, 0.4));
+          drop-shadow(0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.6)))
+          drop-shadow(0 0 16px var(--theme-glow, rgba(0, 255, 0, 0.4)));
       }
       50% {
         filter: 
-          drop-shadow(0 0 12px rgba(0, 255, 0, 0.8))
-          drop-shadow(0 0 24px rgba(0, 255, 0, 0.5));
+          drop-shadow(0 0 12px var(--theme-glow, rgba(0, 255, 0, 0.8)))
+          drop-shadow(0 0 24px var(--theme-glow, rgba(0, 255, 0, 0.5)));
       }
     }
 
     @keyframes phosphor-pulse-fast {
       0%, 100% {
         filter: 
-          drop-shadow(0 0 10px rgba(0, 255, 0, 0.7))
-          drop-shadow(0 0 20px rgba(0, 255, 0, 0.5));
+          drop-shadow(0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.7)))
+          drop-shadow(0 0 20px var(--theme-glow, rgba(0, 255, 0, 0.5)));
       }
       50% {
         filter: 
-          drop-shadow(0 0 16px rgba(0, 255, 0, 0.9))
-          drop-shadow(0 0 32px rgba(0, 255, 0, 0.6));
+          drop-shadow(0 0 16px var(--theme-glow, rgba(0, 255, 0, 0.9)))
+          drop-shadow(0 0 32px var(--theme-glow, rgba(0, 255, 0, 0.6)));
       }
     }
 
     @keyframes phosphor-glow-bright {
       0%, 100% {
         filter: 
-          drop-shadow(0 0 8px rgba(0, 255, 0, 0.6))
-          drop-shadow(0 0 16px rgba(0, 255, 0, 0.4));
+          drop-shadow(0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.6)))
+          drop-shadow(0 0 16px var(--theme-glow, rgba(0, 255, 0, 0.4)));
       }
       50% {
         filter: 
-          drop-shadow(0 0 20px rgba(0, 255, 0, 1))
-          drop-shadow(0 0 40px rgba(0, 255, 0, 0.8));
+          drop-shadow(0 0 20px var(--theme-glow, rgba(0, 255, 0, 1)))
+          drop-shadow(0 0 40px var(--theme-glow, rgba(0, 255, 0, 0.8)));
       }
     }
 
@@ -739,11 +739,11 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
     /* Text-based waifu fallback */
     .waifu-frame {
       font-size: 4rem;
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       text-shadow: 
-        0 0 10px #00ff00,
-        0 0 20px #00ff00,
-        0 0 30px #00ff00;
+        0 0 10px var(--theme-primary, #00ff00),
+        0 0 20px var(--theme-primary, #00ff00),
+        0 0 30px var(--theme-primary, #00ff00);
       font-family: 'Press Start 2P', monospace;
       animation: phosphor-glow 2s ease-in-out infinite;
     }
@@ -751,15 +751,15 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
     @keyframes phosphor-glow {
       0%, 100% {
         text-shadow: 
-          0 0 10px #00ff00,
-          0 0 20px #00ff00,
-          0 0 30px #00ff00;
+          0 0 10px var(--theme-primary, #00ff00),
+          0 0 20px var(--theme-primary, #00ff00),
+          0 0 30px var(--theme-primary, #00ff00);
       }
       50% {
         text-shadow: 
-          0 0 15px #00ff00,
-          0 0 30px #00ff00,
-          0 0 45px #00ff00;
+          0 0 15px var(--theme-primary, #00ff00),
+          0 0 30px var(--theme-primary, #00ff00),
+          0 0 45px var(--theme-primary, #00ff00);
       }
     }
 
@@ -773,7 +773,7 @@ export type WaifuPosition = 'floating-bottom-right' | 'hidden';
     }
 
     .waifu-frame[data-state="success"] {
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       animation: success-bounce 0.5s ease-in-out;
     }
 

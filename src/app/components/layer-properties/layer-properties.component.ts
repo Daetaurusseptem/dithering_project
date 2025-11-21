@@ -369,7 +369,12 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
         
         <!-- Layer Effects Section -->
         <div class="property-section">
-          <h4 class="section-title">Layer Effects (Fusion)</h4>
+          <h4 class="section-title">
+            Layer Effects (Fusion)
+            @if (selectedLayers().length > 1) {
+              <span class="batch-indicator">{{ selectedLayers().length }} layers</span>
+            }
+          </h4>
           
           <!-- Stroke Effect -->
           <div class="effect-subsection">
@@ -503,13 +508,18 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
         
         <!-- Dithering Section -->
         <div class="property-section">
-          <h4 class="section-title">Dithering</h4>
+          <h4 class="section-title">
+            Dithering
+            @if (selectedLayers().length > 1) {
+              <span class="batch-indicator">{{ selectedLayers().length }} layers</span>
+            }
+          </h4>
           
           <div class="property-row">
             <input 
               type="checkbox" 
               [(ngModel)]="layer.ditherExempt"
-              (ngModelChange)="updateLayer(layer)"
+              (ngModelChange)="updateDitherExempt(layer, $event)"
               id="dither-exempt-toggle">
             <label for="dither-exempt-toggle">
               Exclude from Dithering
@@ -703,7 +713,7 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
   `,
   styles: [`
     .layer-properties-panel {
-      background: linear-gradient(145deg, #1a2d1a 0%, #0f1f0f 100%);
+      background: linear-gradient(145deg, var(--theme-background, #1a2d1a) 0%, var(--theme-background, #0f1f0f) 100%);
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
@@ -714,17 +724,17 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     /* Batch Operations Section */
     .batch-operations-section {
       background: linear-gradient(145deg, #1a3d3d 0%, #0f2f2f 100%);
-      border: 2px solid #00ffcc;
+      border: 2px solid var(--theme-secondary, #00ffcc);
       border-radius: 4px;
       padding: 8px;
       margin: 8px;
-      box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+      box-shadow: 0 0 15px var(--theme-glow, rgba(0, 255, 204, 0.3));
     }
     
     .batch-title {
       font-size: 10px;
-      color: #00ffcc;
-      text-shadow: 0 0 10px rgba(0, 255, 204, 0.6);
+      color: var(--theme-secondary, #00ffcc);
+      text-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 204, 0.6));
       margin: 0 0 8px 0;
       text-align: center;
     }
@@ -739,13 +749,13 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     .btn-batch {
       padding: 6px 4px;
       background: linear-gradient(180deg, #2a4d4d 0%, #1a3d3d 100%);
-      border: 1px solid #00ffcc;
-      color: #00ffcc;
+      border: 1px solid var(--theme-secondary, #00ffcc);
+      color: var(--theme-secondary, #00ffcc);
       cursor: pointer;
       font-family: inherit;
       font-size: 7px;
       transition: all 0.2s;
-      box-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+      box-shadow: 0 0 5px var(--theme-glow, rgba(0, 255, 204, 0.3));
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -753,7 +763,7 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     
     .btn-batch:hover {
       background: linear-gradient(180deg, #3a6d6d 0%, #2a5d5d 100%);
-      box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+      box-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 204, 0.5));
       transform: translateY(-1px);
     }
     
@@ -771,10 +781,10 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .selection-badge {
-      background: rgba(0, 255, 204, 0.2);
-      color: #00ffcc;
+      background: var(--theme-glow, rgba(0, 255, 204, 0.2));
+      color: var(--theme-secondary, #00ffcc);
       padding: 2px 6px;
-      border: 1px solid rgba(0, 255, 204, 0.4);
+      border: 1px solid var(--theme-border, rgba(0, 255, 204, 0.4));
       font-size: 8px;
       border-radius: 2px;
       margin-left: 8px;
@@ -784,17 +794,30 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
       font-size: 9px;
     }
     
+    .batch-indicator {
+      background: var(--theme-glow, rgba(255, 165, 0, 0.2));
+      color: var(--theme-accent, #ffaa00);
+      padding: 2px 6px;
+      border: 1px solid var(--theme-border, rgba(255, 165, 0, 0.4));
+      font-size: 7px;
+      border-radius: 2px;
+      margin-left: auto;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    
     .properties-title {
-      background: linear-gradient(180deg, #005500 0%, #003300 100%);
-      color: #00ff00;
+      background: linear-gradient(180deg, var(--theme-surface, #005500) 0%, var(--theme-background, #003300) 100%);
+      color: var(--theme-primary, #00ff00);
       padding: 8px;
       font-weight: normal;
       font-size: 10px;
       display: flex;
       align-items: center;
       gap: 6px;
-      border-bottom: 2px solid #00ff00;
-      text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+      border-bottom: 2px solid var(--theme-primary, #00ff00);
+      text-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.6));
     }
     
     .title-icon {
@@ -814,11 +837,12 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
       margin: 0 0 10px 0;
       font-size: 10px;
       font-weight: normal;
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       display: flex;
       align-items: center;
       gap: 6px;
-      text-shadow: 0 0 5px rgba(0, 255, 0, 0.4);
+      text-shadow: 0 0 5px var(--theme-glow, rgba(0, 255, 0, 0.4));
+      width: 100%;
     }
     
     .property-grid {
@@ -836,16 +860,16 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     
     .property-field label {
       font-size: 8px;
-      color: #90ee90;
+      color: var(--theme-secondary, #90ee90);
       font-weight: normal;
     }
     
     .number-input-small {
       width: 100%;
       padding: 4px;
-      border: 1px solid #00ff00;
+      border: 1px solid var(--theme-primary, #00ff00);
       background: rgba(0, 0, 0, 0.6);
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       font-family: 'Courier New', monospace;
       font-size: 9px;
     }
@@ -869,7 +893,7 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     .property-row label {
       flex: 0 0 80px;
       font-size: 8px;
-      color: #90ee90;
+      color: var(--theme-secondary, #90ee90);
     }
     
     .effect-subsection {
@@ -884,7 +908,7 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     .effect-subsection > label {
       margin-left: 6px;
       font-size: 9px;
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       cursor: pointer;
     }
     
@@ -892,14 +916,14 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
       margin-top: 8px;
       margin-left: 20px;
       padding-left: 8px;
-      border-left: 2px solid rgba(0, 255, 0, 0.3);
+      border-left: 2px solid var(--theme-border, rgba(0, 255, 0, 0.3));
     }
     
     .custom-dither-controls {
       margin-top: 8px;
       margin-left: 20px;
       padding-left: 8px;
-      border-left: 2px solid rgba(0, 255, 0, 0.3);
+      border-left: 2px solid var(--theme-border, rgba(0, 255, 0, 0.3));
     }
     
     .slider {
@@ -911,7 +935,7 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
       flex: 0 0 50px;
       text-align: right;
       font-size: 8px;
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
     }
     
     .color-picker-row {
@@ -1071,55 +1095,84 @@ export class LayerPropertiesComponent {
   
   toggleEffect(layer: CompositionLayer, effectType: string, event: Event): void {
     const enabled = (event.target as HTMLInputElement).checked;
+    const selectedLayers = this.selectedLayers();
     
-    if (!layer.effects) {
-      layer.effects = {};
-    }
+    // Prepare effect object based on type
+    let effectConfig: any;
     
     switch (effectType) {
       case 'stroke':
-        layer.effects.stroke = {
+        effectConfig = {
           enabled,
-          color: '#ffffff',
-          width: 3,
-          position: 'outside'
+          color: layer.effects?.stroke?.color || '#ffffff',
+          width: layer.effects?.stroke?.width || 3,
+          position: layer.effects?.stroke?.position || 'outside'
         };
         break;
         
       case 'dropShadow':
-        layer.effects.dropShadow = {
+        effectConfig = {
           enabled,
-          color: '#000000',
-          opacity: 75,
-          angle: 135,
-          distance: 10,
-          spread: 0,
-          size: 10
+          color: layer.effects?.dropShadow?.color || '#000000',
+          opacity: layer.effects?.dropShadow?.opacity || 75,
+          angle: layer.effects?.dropShadow?.angle || 135,
+          distance: layer.effects?.dropShadow?.distance || 10,
+          spread: layer.effects?.dropShadow?.spread || 0,
+          size: layer.effects?.dropShadow?.size || 10
         };
         break;
         
       case 'outerGlow':
-        layer.effects.outerGlow = {
+        effectConfig = {
           enabled,
-          color: '#ffffff',
-          opacity: 75,
-          size: 10,
-          spread: 0
+          color: layer.effects?.outerGlow?.color || '#ffffff',
+          opacity: layer.effects?.outerGlow?.opacity || 75,
+          size: layer.effects?.outerGlow?.size || 10,
+          spread: layer.effects?.outerGlow?.spread || 0
         };
         break;
     }
     
-    this.updateLayer(layer);
+    // Apply to all selected layers
+    if (selectedLayers.length > 1) {
+      selectedLayers.forEach(selectedLayer => {
+        if (!selectedLayer.effects) {
+          selectedLayer.effects = {};
+        }
+        selectedLayer.effects[effectType as keyof typeof selectedLayer.effects] = effectConfig as any;
+        this.updateLayer(selectedLayer);
+      });
+    } else {
+      // Single layer
+      if (!layer.effects) {
+        layer.effects = {};
+      }
+      layer.effects[effectType as keyof typeof layer.effects] = effectConfig as any;
+      this.updateLayer(layer);
+    }
   }
   
   updateEffectProperty(layer: CompositionLayer, effectType: string, property: string, event: Event): void {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
     const value = target.type === 'range' ? parseFloat(target.value) : target.value;
+    const selectedLayers = this.selectedLayers();
     
-    if (layer.effects && layer.effects[effectType as keyof typeof layer.effects]) {
-      const effect = layer.effects[effectType as keyof typeof layer.effects] as any;
-      effect[property] = value;
-      this.updateLayer(layer);
+    // Apply to all selected layers
+    if (selectedLayers.length > 1) {
+      selectedLayers.forEach(selectedLayer => {
+        if (selectedLayer.effects && selectedLayer.effects[effectType as keyof typeof selectedLayer.effects]) {
+          const effect = selectedLayer.effects[effectType as keyof typeof selectedLayer.effects] as any;
+          effect[property] = value;
+          this.updateLayer(selectedLayer);
+        }
+      });
+    } else {
+      // Single layer
+      if (layer.effects && layer.effects[effectType as keyof typeof layer.effects]) {
+        const effect = layer.effects[effectType as keyof typeof layer.effects] as any;
+        effect[property] = value;
+        this.updateLayer(layer);
+      }
     }
   }
   
@@ -1259,38 +1312,51 @@ export class LayerPropertiesComponent {
    * Custom Dither Methods
    */
   
-  toggleCustomDither(layer: CompositionLayer, enabled: boolean): void {
-    if (enabled) {
-      // Initialize custom dither with default values
-      this.compositionService.updateLayer(layer.id, {
-        customDither: {
-          enabled: true,
-          algorithm: 'floyd-steinberg',
-          palette: 'monochrome',
-          threshold: 128,
-          bayerLevel: 4,
-          scale: 1,
-          contrast: 50,
-          midtones: 50,
-          highlights: 50,
-          blur: 0
-        }
+  updateDitherExempt(layer: CompositionLayer, value: boolean): void {
+    const selectedLayers = this.selectedLayers();
+    
+    // Apply to all selected layers
+    if (selectedLayers.length > 1) {
+      selectedLayers.forEach(selectedLayer => {
+        this.compositionService.updateLayer(selectedLayer.id, {
+          ditherExempt: value
+        });
       });
     } else {
-      // Disable custom dither
+      // Single layer
       this.compositionService.updateLayer(layer.id, {
-        customDither: {
-          enabled: false,
-          algorithm: 'floyd-steinberg',
-          palette: 'monochrome',
-          threshold: 128,
-          bayerLevel: 4,
-          scale: 1,
-          contrast: 50,
-          midtones: 50,
-          highlights: 50,
-          blur: 0
-        }
+        ditherExempt: value
+      });
+    }
+  }
+  
+  toggleCustomDither(layer: CompositionLayer, enabled: boolean): void {
+    const selectedLayers = this.selectedLayers();
+    
+    const ditherConfig = {
+      enabled,
+      algorithm: layer.customDither?.algorithm || 'floyd-steinberg',
+      palette: layer.customDither?.palette || 'monochrome',
+      threshold: layer.customDither?.threshold || 128,
+      bayerLevel: layer.customDither?.bayerLevel || 4,
+      scale: layer.customDither?.scale || 1,
+      contrast: layer.customDither?.contrast || 50,
+      midtones: layer.customDither?.midtones || 50,
+      highlights: layer.customDither?.highlights || 50,
+      blur: layer.customDither?.blur || 0
+    };
+    
+    // Apply to all selected layers
+    if (selectedLayers.length > 1) {
+      selectedLayers.forEach(selectedLayer => {
+        this.compositionService.updateLayer(selectedLayer.id, {
+          customDither: ditherConfig
+        });
+      });
+    } else {
+      // Single layer
+      this.compositionService.updateLayer(layer.id, {
+        customDither: ditherConfig
       });
     }
   }
@@ -1302,15 +1368,35 @@ export class LayerPropertiesComponent {
   ): void {
     if (!layer.customDither) return;
     
+    const selectedLayers = this.selectedLayers();
     const numericFields = ['threshold', 'bayerLevel', 'scale', 'contrast', 'midtones', 'highlights', 'blur'];
-    const updatedDither = {
-      ...layer.customDither,
-      [property]: numericFields.includes(property) ? Number(value) : value
-    };
+    const processedValue = numericFields.includes(property) ? Number(value) : value;
     
-    this.compositionService.updateLayer(layer.id, {
-      customDither: updatedDither
-    });
+    // Apply to all selected layers
+    if (selectedLayers.length > 1) {
+      selectedLayers.forEach(selectedLayer => {
+        if (!selectedLayer.customDither) return;
+        
+        const updatedDither = {
+          ...selectedLayer.customDither,
+          [property]: processedValue
+        };
+        
+        this.compositionService.updateLayer(selectedLayer.id, {
+          customDither: updatedDither
+        });
+      });
+    } else {
+      // Single layer
+      const updatedDither = {
+        ...layer.customDither,
+        [property]: processedValue
+      };
+      
+      this.compositionService.updateLayer(layer.id, {
+        customDither: updatedDither
+      });
+    }
   }
   
   /**

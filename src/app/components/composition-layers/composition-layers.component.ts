@@ -95,7 +95,16 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
               class="layer-item"
               [class.active]="layer.id === activeLayerId()"
               [class.selected]="isLayerSelected(layer.id)"
-              (click)="selectLayer(layer.id, $event)">
+              [class.dragging]="draggingLayerId() === layer.id"
+              [class.drag-over]="dragOverLayerId() === layer.id"
+              (click)="selectLayer(layer.id, $event)"
+              (contextmenu)="onContextMenu($event, layer)"
+              draggable="true"
+              (dragstart)="onDragStart($event, layer)"
+              (dragend)="onDragEnd($event)"
+              (dragover)="onDragOver($event, layer)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event, layer)">
               
               <!-- Layer Name Row -->
               <div class="layer-name-row">
@@ -196,6 +205,47 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
         }
       </div>
       
+      <!-- Context Menu -->
+      @if (contextMenu()) {
+        <div 
+          class="context-menu"
+          [style.left.px]="contextMenu()!.x"
+          [style.top.px]="contextMenu()!.y"
+          (click)="$event.stopPropagation()">
+          
+          <div class="context-menu-item" (click)="duplicateFromContext()">
+            <span class="menu-icon">⎘</span>
+            <span>Duplicate Layer{{ selectedLayers().length > 1 ? 's' : '' }}</span>
+          </div>
+          
+          @if (selectedLayers().length > 1) {
+            <div class="context-menu-item" (click)="mergeLayers()">
+              <span class="menu-icon">▨</span>
+              <span>Merge {{ selectedLayers().length }} Layers</span>
+            </div>
+          }
+          
+          <div class="context-menu-separator"></div>
+          
+          <div class="context-menu-item" (click)="toggleVisibilityFromContext()">
+            <span class="menu-icon">{{ contextMenuLayer()?.visible ? '👁' : '🚫' }}</span>
+            <span>{{ contextMenuLayer()?.visible ? 'Hide' : 'Show' }}</span>
+          </div>
+          
+          <div class="context-menu-item" (click)="toggleLockFromContext()">
+            <span class="menu-icon">{{ contextMenuLayer()?.locked ? '🔓' : '🔒' }}</span>
+            <span>{{ contextMenuLayer()?.locked ? 'Unlock' : 'Lock' }}</span>
+          </div>
+          
+          <div class="context-menu-separator"></div>
+          
+          <div class="context-menu-item danger" (click)="deleteFromContext()">
+            <span class="menu-icon">✖</span>
+            <span>Delete Layer{{ selectedLayers().length > 1 ? 's' : '' }}</span>
+          </div>
+        </div>
+      }
+      
       <!-- Hidden file input -->
       <input 
         #fileInput
@@ -207,15 +257,15 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
   `,
   styles: [`
     .composition-layers-panel {
-      background: linear-gradient(145deg, #1a2d1a 0%, #0f1f0f 100%);
-      border: 2px solid #00ff00;
+      background: linear-gradient(145deg, var(--theme-background, #1a2d1a) 0%, var(--theme-background, #0f1f0f) 100%);
+      border: 2px solid var(--theme-primary, #00ff00);
       padding: 8px;
       height: 100%;
       display: flex;
       flex-direction: column;
       font-family: 'Press Start 2P', 'Courier New', monospace;
       font-size: 10px;
-      box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1);
+      box-shadow: inset 0 0 20px var(--theme-glow, rgba(0, 255, 0, 0.1));
     }
     
     .layers-header {
@@ -231,8 +281,8 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
       margin: 0;
       font-size: 11px;
       font-weight: normal;
-      color: #00ff00;
-      text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+      color: var(--theme-primary, #00ff00);
+      text-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.6));
     }
     
     .header-buttons {
@@ -242,18 +292,18 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     
     .btn-small {
       padding: 4px 8px;
-      background: linear-gradient(180deg, #2a4d2a 0%, #1a3d1a 100%);
-      border: 1px solid #00ff00;
-      color: #00ff00;
+      background: linear-gradient(180deg, var(--theme-surface, #2a4d2a) 0%, var(--theme-background, #1a3d1a) 100%);
+      border: 1px solid var(--theme-primary, #00ff00);
+      color: var(--theme-primary, #00ff00);
       cursor: pointer;
       font-size: 12px;
       transition: all 0.2s;
-      box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+      box-shadow: 0 0 5px var(--theme-glow, rgba(0, 255, 0, 0.3));
     }
     
     .btn-small:hover {
-      background: linear-gradient(180deg, #3a5d3a 0%, #2a4d2a 100%);
-      box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+      background: linear-gradient(180deg, var(--theme-surface, #3a5d3a) 0%, var(--theme-surface, #2a4d2a) 100%);
+      box-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.5));
     }
     
     .btn-small:active {
@@ -270,20 +320,20 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
       flex: 1;
       overflow-y: auto;
       background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(0, 255, 0, 0.2);
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.2));
       padding: 4px;
     }
     
     .empty-state {
       text-align: center;
       padding: 40px 20px;
-      color: rgba(0, 255, 0, 0.4);
+      color: var(--theme-text-muted, rgba(0, 255, 0, 0.4));
     }
     
     .empty-state .hint {
       font-size: 8px;
       margin-top: 8px;
-      color: rgba(0, 255, 0, 0.3);
+      color: var(--theme-text-muted, rgba(0, 255, 0, 0.3));
     }
     
     .layer-item {
@@ -293,36 +343,50 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
       padding: 6px;
       margin-bottom: 4px;
       background: rgba(0, 20, 0, 0.6);
-      border: 1px solid rgba(0, 255, 0, 0.2);
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.2));
       cursor: pointer;
       transition: all 0.2s;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+    
+    .layer-item.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+    
+    .layer-item.drag-over {
+      border-top: 3px solid #00ffcc;
+      box-shadow: 0 -3px 10px rgba(0, 255, 204, 0.5);
     }
     
     .layer-item:hover {
       background: rgba(0, 40, 0, 0.8);
-      border-color: rgba(0, 255, 0, 0.4);
+      border-color: var(--theme-border, rgba(0, 255, 0, 0.4));
     }
     
     .layer-item.active {
       background: rgba(0, 100, 0, 0.4);
-      border-color: #00ff00;
-      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+      border-color: var(--theme-primary, #00ff00);
+      box-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.3));
     }
     
     /* Multiple selection styling */
     .layer-item.selected {
       background: rgba(0, 150, 150, 0.3);
-      border-color: #00ffcc;
-      box-shadow: 0 0 8px rgba(0, 255, 204, 0.25);
+      border-color: var(--theme-secondary, #00ffcc);
+      box-shadow: 0 0 8px var(--theme-glow, rgba(0, 255, 204, 0.25));
     }
     
     /* Active layer in multiple selection */
     .layer-item.active.selected {
       background: rgba(0, 100, 0, 0.5);
-      border-color: #00ff00;
+      border-color: var(--theme-primary, #00ff00);
       box-shadow: 
-        0 0 10px rgba(0, 255, 0, 0.4),
-        inset 0 0 8px rgba(0, 255, 204, 0.2);
+        0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.4)),
+        inset 0 0 8px var(--theme-glow, rgba(0, 255, 204, 0.2));
     }
     
     .layer-name-row {
@@ -341,7 +405,7 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     .layer-thumbnail {
       width: 40px;
       height: 40px;
-      border: 1px solid rgba(0, 255, 0, 0.3);
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
       background: repeating-conic-gradient(#0a0a0a 0% 25%, #1a1a1a 0% 50%) 
                   50% / 8px 8px;
       display: flex;
@@ -361,23 +425,25 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #90ee90;
+      color: var(--theme-secondary, #90ee90);
       font-size: 10px;
       cursor: text;
       padding: 2px;
+      user-select: none;
+      -webkit-user-select: none;
     }
     
     .layer-item.active .layer-name {
-      color: #00ff00;
-      text-shadow: 0 0 5px rgba(0, 255, 0, 0.6);
+      color: var(--theme-primary, #00ff00);
+      text-shadow: 0 0 5px var(--theme-glow, rgba(0, 255, 0, 0.6));
     }
     
     .layer-name-input {
       width: 100%;
       padding: 2px 4px;
-      border: 1px solid #00ff00;
+      border: 1px solid var(--theme-primary, #00ff00);
       background: rgba(0, 0, 0, 0.8);
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       font-family: inherit;
       font-size: 10px;
       font-weight: bold;
@@ -388,7 +454,7 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     .layer-meta {
       flex: 1;
       font-size: 8px;
-      color: rgba(0, 255, 0, 0.5);
+      color: var(--theme-text-muted, rgba(0, 255, 0, 0.5));
       display: flex;
       align-items: center;
       gap: 6px;
@@ -396,10 +462,10 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     }
     
     .badge {
-      background: rgba(0, 255, 0, 0.2);
-      color: #00ff00;
+      background: var(--theme-glow, rgba(0, 255, 0, 0.2));
+      color: var(--theme-primary, #00ff00);
       padding: 1px 4px;
-      border: 1px solid rgba(0, 255, 0, 0.4);
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.4));
       font-size: 7px;
     }
     
@@ -414,8 +480,8 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
       height: 20px;
       padding: 0;
       background: rgba(0, 40, 0, 0.6);
-      border: 1px solid rgba(0, 255, 0, 0.3);
-      color: #00ff00;
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      color: var(--theme-primary, #00ff00);
       cursor: pointer;
       font-size: 10px;
       display: flex;
@@ -426,8 +492,8 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     
     .btn-icon:hover:not(:disabled) {
       background: rgba(0, 60, 0, 0.8);
-      border-color: #00ff00;
-      box-shadow: 0 0 5px rgba(0, 255, 0, 0.4);
+      border-color: var(--theme-primary, #00ff00);
+      box-shadow: 0 0 5px var(--theme-glow, rgba(0, 255, 0, 0.4));
     }
     
     .btn-icon.active {
@@ -459,7 +525,7 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     .canvas-settings {
       margin-bottom: 12px;
       background: rgba(0, 50, 0, 0.3);
-      border: 1px solid rgba(0, 255, 0, 0.4);
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.4));
       border-radius: 4px;
     }
     
@@ -470,13 +536,13 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
       align-items: center;
       cursor: pointer;
       font-size: 10px;
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       font-weight: bold;
       transition: background 0.2s;
     }
     
     .settings-header:hover {
-      background: rgba(0, 255, 0, 0.1);
+      background: var(--theme-glow, rgba(0, 255, 0, 0.1));
     }
     
     .toggle-icon {
@@ -485,7 +551,7 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     
     .settings-content {
       padding: 8px 12px;
-      border-top: 1px solid rgba(0, 255, 0, 0.2);
+      border-top: 1px solid var(--theme-border, rgba(0, 255, 0, 0.2));
     }
     
     .input-row {
@@ -502,22 +568,70 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     .input-row label {
       flex: 0 0 60px;
       font-size: 10px;
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
     }
     
     .input-row input[type="number"] {
       flex: 1;
       padding: 4px 8px;
       background: #000000;
-      border: 1px solid #00ff00;
-      color: #00ff00;
+      border: 1px solid var(--theme-primary, #00ff00);
+      color: var(--theme-primary, #00ff00);
       font-family: 'Courier New', monospace;
       font-size: 10px;
     }
     
     .input-row input[type="number"]:focus {
       outline: none;
-      box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+      box-shadow: 0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.5));
+    }
+    
+    /* Context Menu */
+    .context-menu {
+      position: fixed;
+      background: linear-gradient(145deg, var(--theme-background, #1a2d1a) 0%, var(--theme-background, #0f1f0f) 100%);
+      border: 2px solid var(--theme-primary, #00ff00);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 20px var(--theme-glow, rgba(0, 255, 0, 0.3));
+      z-index: 10000;
+      min-width: 200px;
+      padding: 4px;
+      font-size: 10px;
+    }
+    
+    .context-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      color: var(--theme-primary, #00ff00);
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    
+    .context-menu-item:hover {
+      background: var(--theme-glow, rgba(0, 255, 0, 0.2));
+      box-shadow: inset 0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.1));
+    }
+    
+    .context-menu-item.danger {
+      color: #ff6666;
+    }
+    
+    .context-menu-item.danger:hover {
+      background: rgba(255, 102, 102, 0.2);
+    }
+    
+    .menu-icon {
+      font-size: 12px;
+      width: 16px;
+      text-align: center;
+    }
+    
+    .context-menu-separator {
+      height: 1px;
+      background: var(--theme-border, rgba(0, 255, 0, 0.2));
+      margin: 4px 8px;
     }
   `]
 })
@@ -545,9 +659,23 @@ export class CompositionLayersComponent implements AfterViewInit {
   editingLayerId = signal<string | null>(null);
   private clickTimeout: any = null;
   
+  // Drag & Drop state
+  draggingLayerId = signal<string | null>(null);
+  dragOverLayerId = signal<string | null>(null);
+  
+  // Context menu state
+  contextMenu = signal<{ x: number; y: number } | null>(null);
+  contextMenuLayer = signal<CompositionLayer | null>(null);
+  
   constructor() {
     // Draw thumbnails after view init
     setTimeout(() => this.updateAllThumbnails(), 100);
+    
+    // Close context menu on click outside
+    document.addEventListener('click', () => {
+      this.contextMenu.set(null);
+      this.contextMenuLayer.set(null);
+    });
   }
   
   ngAfterViewInit() {
@@ -816,6 +944,198 @@ export class CompositionLayersComponent implements AfterViewInit {
   
   cancelEditing(): void {
     this.editingLayerId.set(null);
+  }
+  
+  /**
+   * Context Menu Methods
+   */
+  
+  onContextMenu(event: MouseEvent, layer: CompositionLayer): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // If layer is not selected, select it
+    if (!this.isLayerSelected(layer.id)) {
+      this.selectLayer(layer.id);
+    }
+    
+    this.contextMenu.set({ x: event.clientX, y: event.clientY });
+    this.contextMenuLayer.set(layer);
+  }
+  
+  duplicateFromContext(): void {
+    const selected = this.selectedLayers();
+    if (selected.length > 0) {
+      this.duplicateSelectedLayers();
+    }
+    this.contextMenu.set(null);
+  }
+  
+  toggleVisibilityFromContext(): void {
+    const layer = this.contextMenuLayer();
+    if (layer) {
+      this.toggleVisibility(layer.id);
+    }
+    this.contextMenu.set(null);
+  }
+  
+  toggleLockFromContext(): void {
+    const layer = this.contextMenuLayer();
+    if (layer) {
+      this.toggleLock(layer.id);
+    }
+    this.contextMenu.set(null);
+  }
+  
+  deleteFromContext(): void {
+    const selected = this.selectedLayers();
+    if (selected.length > 0) {
+      selected.forEach(layer => this.deleteLayer(layer.id));
+    }
+    this.contextMenu.set(null);
+  }
+  
+  /**
+   * Merge Layers
+   */
+  mergeLayers(): void {
+    const selected = this.selectedLayers();
+    if (selected.length < 2) {
+      this.contextMenu.set(null);
+      return;
+    }
+    
+    // Sort layers by order (bottom to top)
+    const sortedLayers = [...selected].sort((a, b) => a.order - b.order);
+    
+    // Get canvas size from the first layer or use composition canvas size
+    const state = this.compositionState();
+    const canvasWidth = state.canvasWidth;
+    const canvasHeight = state.canvasHeight;
+    
+    // Create canvas for merged result
+    const mergeCanvas = document.createElement('canvas');
+    mergeCanvas.width = canvasWidth;
+    mergeCanvas.height = canvasHeight;
+    const mergeCtx = mergeCanvas.getContext('2d')!;
+    
+    // Render each layer onto merge canvas (in order)
+    sortedLayers.forEach(layer => {
+      if (!layer.visible) return;
+      
+      mergeCtx.save();
+      
+      // Apply opacity
+      mergeCtx.globalAlpha = layer.opacity / 100;
+      
+      // Apply transform
+      mergeCtx.translate(layer.x + layer.width / 2, layer.y + layer.height / 2);
+      mergeCtx.rotate((layer.rotation * Math.PI) / 180);
+      mergeCtx.translate(-layer.width / 2, -layer.height / 2);
+      
+      // Create temp canvas with layer image data
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = layer.imageData.width;
+      tempCanvas.height = layer.imageData.height;
+      const tempCtx = tempCanvas.getContext('2d')!;
+      tempCtx.putImageData(layer.imageData, 0, 0);
+      
+      // Draw layer
+      mergeCtx.drawImage(tempCanvas, 0, 0, layer.width, layer.height);
+      
+      mergeCtx.restore();
+    });
+    
+    // Get merged image data
+    const mergedImageData = mergeCtx.getImageData(0, 0, canvasWidth, canvasHeight);
+    
+    // Create new image from merged result
+    const mergedImg = new Image();
+    mergedImg.onload = () => {
+      // Add merged layer
+      const newLayerId = this.compositionService.addLayer(mergedImg, mergedImageData, { x: 0, y: 0 });
+      
+      // Update layer name
+      this.compositionService.updateLayer(newLayerId, {
+        name: `Merged (${selected.length} layers)`,
+        width: canvasWidth,
+        height: canvasHeight,
+        x: 0,
+        y: 0,
+        rotation: 0
+      });
+      
+      // Delete original layers
+      sortedLayers.forEach(layer => {
+        this.compositionService.removeLayer(layer.id);
+      });
+      
+      // Update thumbnails
+      setTimeout(() => this.updateAllThumbnails(), 100);
+    };
+    mergedImg.src = mergeCanvas.toDataURL();
+    
+    this.contextMenu.set(null);
+  }
+  
+  /**
+   * Drag & Drop Methods
+   */
+  
+  onDragStart(event: DragEvent, layer: CompositionLayer): void {
+    this.draggingLayerId.set(layer.id);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', layer.id);
+    }
+  }
+  
+  onDragEnd(event: DragEvent): void {
+    this.draggingLayerId.set(null);
+    this.dragOverLayerId.set(null);
+  }
+  
+  onDragOver(event: DragEvent, layer: CompositionLayer): void {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
+    
+    const draggingId = this.draggingLayerId();
+    if (draggingId && draggingId !== layer.id) {
+      this.dragOverLayerId.set(layer.id);
+    }
+  }
+  
+  onDragLeave(event: DragEvent): void {
+    this.dragOverLayerId.set(null);
+  }
+  
+  onDrop(event: DragEvent, targetLayer: CompositionLayer): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const draggingId = this.draggingLayerId();
+    if (!draggingId || draggingId === targetLayer.id) {
+      this.dragOverLayerId.set(null);
+      return;
+    }
+    
+    const layers = this.layers();
+    const fromIndex = layers.findIndex(l => l.id === draggingId);
+    const toIndex = layers.findIndex(l => l.id === targetLayer.id);
+    
+    if (fromIndex !== -1 && toIndex !== -1) {
+      // Convert to actual array indices (layers are reversed in display)
+      const state = this.compositionState();
+      const actualFromIndex = state.layers.findIndex(l => l.id === draggingId);
+      const actualToIndex = state.layers.findIndex(l => l.id === targetLayer.id);
+      
+      this.compositionService.reorderLayer(actualFromIndex, actualToIndex);
+    }
+    
+    this.draggingLayerId.set(null);
+    this.dragOverLayerId.set(null);
   }
   
   /**

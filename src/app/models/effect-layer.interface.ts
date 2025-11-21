@@ -58,6 +58,7 @@ export interface EffectOptions {
   
   // Flames options
   flameHeight?: number;
+  flameSpread?: number;
   flameIntensity?: number;
   flameColor?: 'red' | 'blue' | 'green' | 'purple' | 'rainbow';
   flameTurbulence?: number;
@@ -104,10 +105,11 @@ export const DEFAULT_EFFECT_OPTIONS: Record<EffectType, EffectOptions> = {
     particleCustomSprite: ''
   },
   'flames': {
-    flameHeight: 100,
+    flameHeight: 0.7,
+    flameSpread: 0.5,
     flameIntensity: 0.7,
     flameColor: 'red',
-    flameTurbulence: 1,
+    flameTurbulence: 0.5,
     flameAlgorithm: 'realistic'
   }
 };

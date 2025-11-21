@@ -1,1 +1,20 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Theme System - CSS Variables */
+:root {
+  /* Default theme colors (Retro Green) - will be overridden by ThemeService */
+  --theme-primary: #00ff00;
+  --theme-secondary: #90ee90;
+  --theme-background: #0f1f0f;
+  --theme-surface: #1a2d1a;
+  --theme-text: #00ff00;
+  --theme-text-secondary: rgba(0, 255, 0, 0.6);
+  --theme-border: #00ff00;
+  --theme-accent: #00ffcc;
+  --theme-accent-glow: rgba(0, 255, 204, 0.5);
+  --theme-success: #00ff00;
+  --theme-warning: #ffaa00;
+  --theme-danger: #ff6666;
+  --theme-shadow-color: rgba(0, 255, 0, 0.3);
+  --theme-glow-color: rgba(0, 255, 0, 0.6);
+}

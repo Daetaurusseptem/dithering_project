@@ -293,8 +293,8 @@ export type { ShapeType } from '../../services/composition-tool.service';
   `,
   styles: [`
     .composition-toolbar {
-      background: linear-gradient(145deg, #1a2d1a 0%, #0f1f0f 100%);
-      border: 2px solid #00ff00;
+      background: linear-gradient(145deg, var(--theme-background, #1a2d1a) 0%, var(--theme-background, #0f1f0f) 100%);
+      border: 2px solid var(--theme-primary, #00ff00);
       padding: 6px;
       display: flex;
       flex-direction: column;
@@ -317,7 +317,7 @@ export type { ShapeType } from '../../services/composition-tool.service';
     .tool-separator {
       width: 100%;
       height: 1px;
-      background: linear-gradient(90deg, transparent, #00ff00, transparent);
+      background: linear-gradient(90deg, transparent, var(--theme-primary, #00ff00), transparent);
       margin: 2px 0;
     }
     
@@ -325,8 +325,8 @@ export type { ShapeType } from '../../services/composition-tool.service';
       width: 100%;
       height: 36px;
       background: rgba(0, 40, 0, 0.6);
-      border: 1px solid rgba(0, 255, 0, 0.3);
-      color: #00ff00;
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      color: var(--theme-primary, #00ff00);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -337,17 +337,17 @@ export type { ShapeType } from '../../services/composition-tool.service';
     
     .tool-btn:hover {
       background: rgba(0, 60, 0, 0.8);
-      border-color: #00ff00;
-      box-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
+      border-color: var(--theme-primary, #00ff00);
+      box-shadow: 0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.4));
       transform: translateX(2px);
     }
     
     .tool-btn.active {
       background: rgba(0, 120, 0, 0.9);
-      border-color: #00ff00;
+      border-color: var(--theme-primary, #00ff00);
       border-width: 2px;
-      box-shadow: 0 0 12px rgba(0, 255, 0, 0.7),
-                  inset 0 0 8px rgba(0, 255, 0, 0.3);
+      box-shadow: 0 0 12px var(--theme-glow, rgba(0, 255, 0, 0.7)),
+                  inset 0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.3));
     }
     
     .tool-icon {
@@ -359,23 +359,23 @@ export type { ShapeType } from '../../services/composition-tool.service';
       left: 75px;
       top: 6px;
       background: rgba(0, 0, 0, 0.95);
-      border: 2px solid #00ff00;
+      border: 2px solid var(--theme-primary, #00ff00);
       padding: 10px;
       border-radius: 4px;
       min-width: 200px;
       max-width: 250px;
-      box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+      box-shadow: 0 4px 20px var(--theme-glow, rgba(0, 255, 0, 0.3));
       z-index: 100;
     }
     
     .options-header h4 {
-      color: #00ff00;
+      color: var(--theme-primary, #00ff00);
       font-size: 9px;
       margin: 0 0 10px 0;
       text-align: center;
-      text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+      text-shadow: 0 0 5px var(--theme-glow, rgba(0, 255, 0, 0.5));
       padding-bottom: 6px;
-      border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+      border-bottom: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
     }
     
     .options-content {
@@ -391,7 +391,7 @@ export type { ShapeType } from '../../services/composition-tool.service';
     }
     
     .option-group label {
-      color: #90ee90;
+      color: var(--theme-secondary, #90ee90);
       font-size: 8px;
       display: flex;
       align-items: center;

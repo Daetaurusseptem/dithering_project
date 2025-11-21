@@ -38,6 +38,9 @@ export interface DitheringSettings {
   highlights: number;
   blur: number;
   effectLayers?: any[]; // EffectLayer[] - evitamos circular dependency
+  // Composition mode specific
+  isComposition?: boolean;
+  compositionLayersCount?: number;
 }
 
 export interface UserProgress {

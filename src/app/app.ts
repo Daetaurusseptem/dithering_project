@@ -24,6 +24,11 @@ import { CompositionCanvasComponent } from './components/composition-canvas/comp
 import { CompositionToolbarComponent, ToolType, ToolOptions } from './components/composition-toolbar/composition-toolbar.component';
 import { LayerPropertiesComponent } from './components/layer-properties/layer-properties.component';
 import { GifEffectOptions } from './components/gif-options/gif-options.component';
+import { GifAdvancedSettingsComponent } from './components/gif-advanced-settings/gif-advanced-settings.component';
+import { VintageKnobComponent } from './components/vintage-knob/vintage-knob.component';
+import { SettingsComponent } from './components/settings/settings.component';
+import { I18nService } from './services/i18n.service';
+import { ThemeService } from './services/theme.service';
 import { EffectLayer, EffectType, DEFAULT_EFFECT_OPTIONS, EFFECT_NAMES } from './models/effect-layer.interface';
 import { DitheringSettings } from './models/achievement.interface';
 
@@ -41,7 +46,10 @@ import { DitheringSettings } from './models/achievement.interface';
     CompositionLayersComponent, 
     CompositionCanvasComponent,
     CompositionToolbarComponent,
-    LayerPropertiesComponent
+    LayerPropertiesComponent,
+    GifAdvancedSettingsComponent,
+    VintageKnobComponent,
+    SettingsComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -64,10 +72,12 @@ export class App implements AfterViewInit {
   gifStudioMode = signal(false); // Modo GIF Studio inline
   compositionMode = signal(false); // 🎨 NEW: Modo Composition Layers
   showGifOptions = signal(false); // Mantener para compatibilidad, pero no usar modal
+  showGifAdvancedSettings = signal(false); // Modal de configuración avanzada de GIF
   
   // Achievement & Gallery UI
   showAchievements = signal(false);
   showGallery = signal(false);
+  showSettings = signal(false);
   
   // Particle Editor
   showParticleEditor = signal(false);
@@ -93,6 +103,7 @@ export class App implements AfterViewInit {
   effectLayers = signal<EffectLayer[]>([]);
   selectedLayerId = signal<string | null>(null);
   editingLayerId = signal<string | null>(null);
+  effectEditorMode = signal<'normal' | 'advanced'>('normal'); // Normal = sliders, Advanced = knobs/vintage
   availableEffects: EffectType[] = ['scanline', 'vhs', 'noise', 'phosphor', 'rgb-split', 'motion-sense', 'particles', 'flames'];
   effectNames = EFFECT_NAMES;
   
@@ -205,7 +216,9 @@ export class App implements AfterViewInit {
     public galleryService: GalleryService,
     public compositionService: CompositionService,
     public compositionToolService: CompositionToolService,
-    public historyService: HistoryService
+    public historyService: HistoryService,
+    public i18nService: I18nService,
+    public themeService: ThemeService
   ) {
     this.algorithms.set(this.ditheringService.getAvailableAlgorithms());
     this.palettes.set(this.ditheringService.getAvailablePalettes());
@@ -3101,6 +3114,15 @@ export class App implements AfterViewInit {
 
   // ============ Effect Layers Management ============
   
+  addEffectFromSelect(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    const type = select.value as EffectType;
+    if (type) {
+      this.addEffectLayer(type);
+      select.value = ''; // Reset select
+    }
+  }
+  
   addEffectLayer(type: EffectType) {
     const newLayer: EffectLayer = {
       id: `layer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -3152,6 +3174,27 @@ export class App implements AfterViewInit {
 
   closeLayerEditor() {
     this.editingLayerId.set(null);
+  }
+
+  toggleEffectEditorMode() {
+    this.effectEditorMode.update(mode => mode === 'normal' ? 'advanced' : 'normal');
+  }
+
+  // GIF Advanced Settings Modal
+  openGifAdvancedSettings() {
+    this.showGifAdvancedSettings.set(true);
+  }
+
+  closeGifAdvancedSettings() {
+    this.showGifAdvancedSettings.set(false);
+  }
+
+  applyGifAdvancedSettings(settings: { frameCount: number; frameDelay: number; loopCount: number }) {
+    this.gifFrameCount.set(settings.frameCount);
+    this.setFrameDelayFromMs(settings.frameDelay);
+    this.gifLoopCount.set(settings.loopCount);
+    this.onGifOptionsUpdate();
+    this.closeGifAdvancedSettings();
   }
 
   updateLayerIntensity(layerId: string, intensity: number) {
@@ -3218,43 +3261,109 @@ export class App implements AfterViewInit {
     this.showGallery.set(!this.showGallery());
   }
   
+  toggleSettings() {
+    this.showSettings.set(!this.showSettings());
+  }
+  
+  canSaveToGallery(): boolean {
+    if (this.processing()) return true; // disabled during processing
+    
+    if (this.compositionMode()) {
+      const state = this.compositionService.compositionState();
+      return state.layers.length === 0; // disabled if no layers
+    } else {
+      return !this.imageLoaded(); // disabled if no image loaded
+    }
+  }
+  
   async saveToGallery() {
-    if (!this.processedCanvas) {
-      alert('No processed image to save!');
-      return;
+    const isCompositionMode = this.compositionMode();
+    const compositionState = this.compositionService.compositionState();
+    
+    // Validations
+    if (isCompositionMode) {
+      if (compositionState.layers.length === 0) {
+        alert('No layers in composition to save!');
+        return;
+      }
+    } else {
+      if (!this.processedCanvas || !this.imageLoaded()) {
+        alert('No processed image to save!');
+        return;
+      }
     }
     
-    // If in composition mode, render composition first
-    if (this.compositionMode() && this.compositionService.compositionState().layers.length > 0) {
-      this.renderCompositionToCanvas();
-    }
+    // Get default name based on mode
+    const defaultName = isCompositionMode 
+      ? `Composition ${new Date().toLocaleDateString()}`
+      : `Design ${new Date().toLocaleDateString()}`;
     
-    const canvas = this.processedCanvas.nativeElement;
-    const name = prompt('Enter a name for this design:', `Design ${new Date().toLocaleDateString()}`);
-    
+    const name = prompt('Enter a name for this design:', defaultName);
     if (!name) return;
     
-    const settings: DitheringSettings = {
-      algorithm: this.selectedAlgorithm(),
-      palette: this.selectedPalette(),
-      scale: this.scale(),
-      contrast: this.contrast(),
-      midtones: this.midtones(),
-      highlights: this.highlights(),
-      blur: this.blur(),
-      effectLayers: this.effectLayers()
-    };
-    
     try {
+      let canvas: HTMLCanvasElement;
+      let settings: DitheringSettings;
+      
+      if (isCompositionMode) {
+        // COMPOSITION MODE: Render composition with effects and dithering
+        const compositionData = this.compositionCanvasComponent?.getCompositionImageDataWithEffects();
+        
+        if (!compositionData) {
+          alert('Failed to render composition!');
+          return;
+        }
+        
+        // Create temporary canvas with composition result
+        canvas = document.createElement('canvas');
+        canvas.width = compositionData.width;
+        canvas.height = compositionData.height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.putImageData(compositionData, 0, 0);
+        
+        // Settings for composition mode
+        const ditheringOpts = this.compositionService.ditheringOptions();
+        settings = {
+          algorithm: ditheringOpts.algorithm || 'floyd-steinberg',
+          palette: ditheringOpts.palette || 'monochrome',
+          scale: ditheringOpts.scale || 1,
+          contrast: ditheringOpts.contrast || 0,
+          midtones: ditheringOpts.midtones || 0,
+          highlights: ditheringOpts.highlights || 0,
+          blur: ditheringOpts.blur || 0,
+          isComposition: true,
+          compositionLayersCount: compositionState.layers.length
+        };
+        
+      } else {
+        // PREVIEW MODE: Use processed canvas with effect layers
+        canvas = this.processedCanvas!.nativeElement;
+        
+        // Settings for preview mode
+        settings = {
+          algorithm: this.selectedAlgorithm(),
+          palette: this.selectedPalette(),
+          scale: this.scale(),
+          contrast: this.contrast(),
+          midtones: this.midtones(),
+          highlights: this.highlights(),
+          blur: this.blur(),
+          effectLayers: this.effectLayers(),
+          isComposition: false
+        };
+      }
+      
       await this.galleryService.saveToGallery(canvas, name, settings);
       
       // 🏆 Track achievement
       this.achievementService.trackGallerySave();
       
-      alert('Saved to gallery!');
+      const modeText = isCompositionMode ? 'composition' : 'design';
+      alert(`✅ ${modeText} saved to gallery!`);
+      
     } catch (error) {
       console.error('Error saving to gallery:', error);
-      alert('Error saving to gallery. Check console for details.');
+      alert('❌ Error saving to gallery. Check console for details.');
     }
   }
   

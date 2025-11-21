@@ -490,10 +490,10 @@ import { Achievement } from '../../models/achievement.interface';
       height: 100%;
       background: repeating-linear-gradient(
         90deg,
-        #00ff00,
-        #00ff00 6px,
-        #00cc00 6px,
-        #00cc00 12px
+        var(--theme-primary, #00ff00),
+        var(--theme-primary, #00ff00) 6px,
+        var(--theme-accent, #00cc00) 6px,
+        var(--theme-accent, #00cc00) 12px
       );
       transition: width 0.3s ease-out;
       animation: progressMove 0.6s linear infinite;
@@ -599,8 +599,8 @@ import { Achievement } from '../../models/achievement.interface';
     
     .daily-card.completed {
       background: linear-gradient(180deg, #d4ffcd 0%, #b8f5a8 100%);
-      border-color: #00ff00 #008000 #008000 #00ff00;
-      box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+      border-color: var(--theme-primary, #00ff00) var(--theme-accent-dark, #008000) var(--theme-accent-dark, #008000) var(--theme-primary, #00ff00);
+      box-shadow: 0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.5));
     }
     
     .daily-icon {
@@ -680,8 +680,8 @@ import { Achievement } from '../../models/achievement.interface';
       right: 8px;
       width: 32px;
       height: 32px;
-      background: #00ff00;
-      border: 2px solid #008000;
+      background: var(--theme-primary, #00ff00);
+      border: 2px solid var(--theme-accent-dark, #008000);
       border-radius: 50%;
       display: flex;
       align-items: center;

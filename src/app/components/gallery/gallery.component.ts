@@ -117,8 +117,13 @@ import { GalleryItem, DitheringSettings } from '../../models/achievement.interfa
               </div>
               
               <div class="item-settings-preview">
-                <span>{{ item.settings.algorithm }}</span>
-                <span>{{ item.settings.palette }}</span>
+                @if (item.settings.isComposition) {
+                  <span class="composition-badge">🎨 Composition</span>
+                  <span>{{ item.settings.compositionLayersCount }} layers</span>
+                } @else {
+                  <span>{{ item.settings.algorithm }}</span>
+                  <span>{{ item.settings.palette }}</span>
+                }
                 <span>{{ item.settings.scale }}x</span>
               </div>
             </div>
@@ -443,6 +448,18 @@ import { GalleryItem, DitheringSettings } from '../../models/achievement.interfa
       font-size: 10px;
       color: #666;
       padding-top: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .composition-badge {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: bold;
+      font-size: 9px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       border-top: 1px solid #e0e0e0;
     }
     
