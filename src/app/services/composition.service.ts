@@ -9,11 +9,13 @@ import {
   generateLayerId
 } from '../models/composition-layer.interface';
 import { DitheringOptions, DitheringService } from './dithering.service';
+import { AiBackgroundRemovalService } from './ai-background-removal.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CompositionService {
+  private aiBackgroundRemoval = inject(AiBackgroundRemovalService);
   // State
   compositionState = signal<CompositionState>({
     layers: [],
@@ -302,10 +304,22 @@ export class CompositionService {
    * Enhanced algorithm with edge detection and flood fill
    */
   
-  removeBackground(layer: CompositionLayer, options: BackgroundRemovalOptions): ImageData {
+  async removeBackground(layer: CompositionLayer, options: BackgroundRemovalOptions): Promise<ImageData> {
+    // Use AI removal if enabled and available
+    if (layer.useAiRemoval && this.aiBackgroundRemoval.isReady()) {
+      console.log('🤖 Using AI Background Removal...');
+      try {
+        return await this.aiBackgroundRemoval.removeBackground(layer.imageData);
+      } catch (error) {
+        console.error('❌ AI removal failed, falling back to manual:', error);
+        // Fallback to manual removal
+      }
+    }
+    
+    // Manual color-based removal
     const { color, threshold, feather } = options;
     
-    console.log('🎨 Remove background:', { color, threshold, feather });
+    console.log('🎨 Remove background (manual):', { color, threshold, feather });
     
     // Parse target color
     const targetRGB = this.hexToRgb(color);
@@ -516,7 +530,7 @@ export class CompositionService {
    * ===== COMPOSITION RENDERING =====
    */
   
-  renderComposition(): ImageData {
+  async renderComposition(): Promise<ImageData> {
     const state = this.compositionState();
     
     // Create output canvas
@@ -554,7 +568,7 @@ export class CompositionService {
       
       // Apply background removal
       if (layer.removeBackground && layer.backgroundColor) {
-        imageData = this.removeBackground(layer, {
+        imageData = await this.removeBackground(layer, {
           color: layer.backgroundColor,
           threshold: layer.backgroundThreshold,
           feather: 2
@@ -597,10 +611,10 @@ export class CompositionService {
    * Render composition with dither-exempt layers preserved
    * Returns both the ditherable content and exempt layers separately
    */
-  renderForDithering(): {
+  async renderForDithering(): Promise<{
     ditherableContent: ImageData;
     exemptLayers: Array<{ layer: CompositionLayer; imageData: ImageData }>;
-  } {
+  }> {
     const state = this.compositionState();
     
     // Separate layers
@@ -621,17 +635,19 @@ export class CompositionService {
     ditherableCtx.fillStyle = state.backgroundColor;
     ditherableCtx.fillRect(0, 0, ditherableCanvas.width, ditherableCanvas.height);
     
-    this.renderLayersToContext(ditherableCtx, ditherableLayers);
+    await this.renderLayersToContext(ditherableCtx, ditherableLayers);
     
     const ditherableContent = ditherableCtx.getImageData(
       0, 0, ditherableCanvas.width, ditherableCanvas.height
     );
     
     // Process exempt layers
-    const exemptLayersData = exemptLayers.map(layer => ({
-      layer,
-      imageData: this.renderSingleLayer(layer)
-    }));
+    const exemptLayersData = await Promise.all(
+      exemptLayers.map(async layer => ({
+        layer,
+        imageData: await this.renderSingleLayer(layer)
+      }))
+    );
     
     return {
       ditherableContent,
@@ -639,7 +655,7 @@ export class CompositionService {
     };
   }
   
-  private renderLayersToContext(ctx: CanvasRenderingContext2D, layers: CompositionLayer[]): void {
+  private async renderLayersToContext(ctx: CanvasRenderingContext2D, layers: CompositionLayer[]): Promise<void> {
     const sortedLayers = [...layers].sort((a, b) => a.order - b.order);
     
     for (const layer of sortedLayers) {
@@ -656,7 +672,7 @@ export class CompositionService {
       let imageData = layer.imageData;
       
       if (layer.removeBackground && layer.backgroundColor) {
-        imageData = this.removeBackground(layer, {
+        imageData = await this.removeBackground(layer, {
           color: layer.backgroundColor,
           threshold: layer.backgroundThreshold,
           feather: 2
@@ -752,11 +768,11 @@ export class CompositionService {
     }
   }
   
-  private renderSingleLayer(layer: CompositionLayer): ImageData {
+  private async renderSingleLayer(layer: CompositionLayer): Promise<ImageData> {
     let imageData = layer.imageData;
     
     if (layer.removeBackground && layer.backgroundColor) {
-      imageData = this.removeBackground(layer, {
+      imageData = await this.removeBackground(layer, {
         color: layer.backgroundColor,
         threshold: layer.backgroundThreshold,
         feather: 2

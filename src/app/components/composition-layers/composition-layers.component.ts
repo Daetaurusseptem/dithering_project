@@ -340,12 +340,13 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
       display: flex;
       flex-direction: column;
       gap: 4px;
-      padding: 6px;
-      margin-bottom: 4px;
-      background: rgba(0, 20, 0, 0.6);
+      padding: 8px;
+      margin-bottom: 6px;
+      background: var(--theme-surface, rgba(255, 255, 255, 0.03));
       border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.2));
+      border-radius: 4px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       user-select: none;
       -webkit-user-select: none;
       -moz-user-select: none;
@@ -363,30 +364,31 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     }
     
     .layer-item:hover {
-      background: rgba(0, 40, 0, 0.8);
-      border-color: var(--theme-border, rgba(0, 255, 0, 0.4));
+      background: var(--theme-surface, rgba(255, 255, 255, 0.06));
+      border-color: var(--theme-primary, rgba(0, 255, 0, 0.4));
+      transform: translateX(2px);
     }
     
     .layer-item.active {
-      background: rgba(0, 100, 0, 0.4);
+      background: var(--theme-surface, rgba(255, 255, 255, 0.1));
       border-color: var(--theme-primary, #00ff00);
-      box-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.3));
+      box-shadow: 0 0 12px var(--theme-glow, rgba(0, 255, 0, 0.25));
     }
     
     /* Multiple selection styling */
     .layer-item.selected {
-      background: rgba(0, 150, 150, 0.3);
-      border-color: var(--theme-secondary, #00ffcc);
-      box-shadow: 0 0 8px var(--theme-glow, rgba(0, 255, 204, 0.25));
+      background: var(--theme-surface, rgba(255, 255, 255, 0.08));
+      border-color: var(--theme-accent, rgba(255, 102, 0, 0.5));
+      box-shadow: 0 0 8px rgba(255, 102, 0, 0.2);
     }
     
     /* Active layer in multiple selection */
     .layer-item.active.selected {
-      background: rgba(0, 100, 0, 0.5);
+      background: var(--theme-surface, rgba(255, 255, 255, 0.12));
       border-color: var(--theme-primary, #00ff00);
       box-shadow: 
-        0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.4)),
-        inset 0 0 8px var(--theme-glow, rgba(0, 255, 204, 0.2));
+        0 0 12px var(--theme-glow, rgba(0, 255, 0, 0.3)),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
     
     .layer-name-row {
@@ -479,7 +481,7 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
       width: 20px;
       height: 20px;
       padding: 0;
-      background: rgba(0, 40, 0, 0.6);
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
       color: var(--theme-primary, #00ff00);
       cursor: pointer;
@@ -491,7 +493,7 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     }
     
     .btn-icon:hover:not(:disabled) {
-      background: rgba(0, 60, 0, 0.8);
+      background: rgba(255, 255, 255, 0.1);
       border-color: var(--theme-primary, #00ff00);
       box-shadow: 0 0 5px var(--theme-glow, rgba(0, 255, 0, 0.4));
     }
@@ -524,7 +526,7 @@ import { CompositionLayer } from '../../models/composition-layer.interface';
     /* Canvas Settings */
     .canvas-settings {
       margin-bottom: 12px;
-      background: rgba(0, 50, 0, 0.3);
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.4));
       border-radius: 4px;
     }

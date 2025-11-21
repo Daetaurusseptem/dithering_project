@@ -96,13 +96,12 @@ import { CommonModule } from '@angular/common';
     }
 
     .knob-label {
-      font-size: 0.65rem;
-      color: #00ff41;
+      font-size: 0.7rem;
+      color: var(--theme-text-muted, rgba(255, 255, 255, 0.6));
       text-transform: uppercase;
       letter-spacing: 0.5px;
       font-weight: 600;
-      text-shadow: 0 0 4px rgba(0, 255, 65, 0.5);
-      margin-bottom: 0.2rem;
+      margin-bottom: 0.3rem;
     }
 
     .knob-wrapper {
@@ -128,27 +127,25 @@ import { CommonModule } from '@angular/common';
     }
 
     .indicator-line {
-      filter: drop-shadow(0 0 3px #00ff41);
+      stroke: var(--theme-primary, #00ff00);
+      filter: drop-shadow(0 0 3px var(--theme-glow, rgba(0, 255, 0, 0.6)));
     }
 
     .indicator-dot {
-      filter: drop-shadow(0 0 4px #00ff41);
+      fill: var(--theme-primary, #00ff00);
+      filter: drop-shadow(0 0 4px var(--theme-glow, rgba(0, 255, 0, 0.6)));
     }
 
     .knob-value {
-      background: #0a0a0a;
-      border: 1px solid #2a2a2a;
-      border-radius: 3px;
-      padding: 0.25rem 0.5rem;
+      background: var(--theme-surface, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      border-radius: 4px;
+      padding: 0.35rem 0.6rem;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #00ff41;
-      font-family: 'Courier New', monospace;
-      text-shadow: 0 0 6px rgba(0, 255, 65, 0.4);
-      box-shadow: 
-        inset 0 1px 3px rgba(0, 0, 0, 0.8),
-        0 0 8px rgba(0, 255, 65, 0.15);
-      min-width: 45px;
+      color: var(--theme-primary, #00ff00);
+      font-family: 'SF Mono', 'Courier New', monospace;
+      min-width: 50px;
       text-align: center;
     }
 
@@ -157,7 +154,7 @@ import { CommonModule } from '@angular/common';
       justify-content: space-between;
       width: 100%;
       font-size: 0.65rem;
-      color: #666;
+      color: var(--theme-text-muted, rgba(255, 255, 255, 0.4));
       padding: 0 0.25rem;
     }
 

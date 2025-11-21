@@ -358,7 +358,7 @@ export class App implements AfterViewInit {
     this.waifuState.set('processing');
 
     // Usar setTimeout para no bloquear la UI
-    setTimeout(() => {
+    setTimeout(async () => {
       const options: DitheringOptions = {
         algorithm: this.selectedAlgorithm(),
         scale: this.scale(),
@@ -374,7 +374,7 @@ export class App implements AfterViewInit {
       // 🎨 Check if composition mode is active
       if (this.compositionMode() && this.compositionService.compositionState().layers.length > 0) {
         // Use composition rendering
-        const compositionResult = this.compositionService.renderForDithering();
+        const compositionResult = await this.compositionService.renderForDithering();
         imageData = compositionResult.ditherableContent;
         
         // Apply dithering to ditherable content

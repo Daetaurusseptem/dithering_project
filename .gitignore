@@ -6,10 +6,11 @@
 /out-tsc
 /bazel-out
 
-# Node
+# Node & Bun
 /node_modules
 npm-debug.log
 yarn-error.log
+bun.lockb
 
 # IDEs and editors
 .idea/
@@ -41,3 +42,14 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# AI Models (muy pesados, no subir a Git)
+# Los usuarios deben descargarlos con: bun run download:models
+public/models/**/*.onnx
+public/models/**/*.bin
+public/models/**/model_quantized.*
+public/models/**/pytorch_model.*
+
+# Mantener estructura de carpetas
+!public/models/.gitkeep
+!public/models/README.md

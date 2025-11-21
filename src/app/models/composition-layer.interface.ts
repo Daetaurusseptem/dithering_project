@@ -18,8 +18,9 @@ export interface CompositionLayer {
   
   // Visual effects
   removeBackground: boolean;
-  backgroundColor?: string; // Color to remove (hex)
-  backgroundThreshold: number; // 0-100, tolerance for removal
+  useAiRemoval?: boolean; // Use AI-powered background removal (Transformers.js)
+  backgroundColor?: string; // Color to remove (hex) - for manual method
+  backgroundThreshold: number; // 0-100, tolerance for removal - for manual method
   
   tint: boolean;
   tintColor: string; // hex color

@@ -6,6 +6,7 @@ import { ModalService } from '../../services/modal.service';
 import { HistoryService, DeleteLayerCommand, BatchUpdateLayersCommand } from '../../services/history.service';
 import { StorageService } from '../../services/storage.service';
 import { DitheringService } from '../../services/dithering.service';
+import { AiBackgroundRemovalService } from '../../services/ai-background-removal.service';
 import { CompositionLayer, BlendMode } from '../../models/composition-layer.interface';
 
 @Component({
@@ -284,34 +285,75 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
           
           @if (layer.removeBackground) {
             <div class="property-row">
-              <label>Color</label>
-              <div class="color-picker-row">
-                <input 
-                  type="color" 
-                  [(ngModel)]="layer.backgroundColor"
-                  (ngModelChange)="updateLayer(layer)"
-                  class="color-input">
-                <span class="color-value">{{ layer.backgroundColor }}</span>
+              <label>Method</label>
+              <div class="button-group-inline">
+                <button 
+                  class="btn-toggle"
+                  [class.active]="layer.useAiRemoval"
+                  (click)="layer.useAiRemoval = true; updateLayer(layer)">
+                  🤖 AI
+                </button>
+                <button 
+                  class="btn-toggle"
+                  [class.active]="!layer.useAiRemoval"
+                  (click)="layer.useAiRemoval = false; updateLayer(layer)">
+                  🎨 Manual
+                </button>
               </div>
             </div>
             
-            <div class="property-row">
-              <label>Threshold</label>
-              <input 
-                type="range" 
-                [(ngModel)]="layer.backgroundThreshold"
-                (ngModelChange)="updateLayer(layer)"
-                min="0"
-                max="255"
-                class="slider">
-              <span class="value-display">{{ layer.backgroundThreshold }}</span>
-            </div>
+            @if (!layer.useAiRemoval) {
+              <div class="property-row">
+                <label>Color</label>
+                <div class="color-picker-row">
+                  <input 
+                    type="color" 
+                    [(ngModel)]="layer.backgroundColor"
+                    (ngModelChange)="updateLayer(layer)"
+                    class="color-input">
+                  <span class="color-value">{{ layer.backgroundColor }}</span>
+                </div>
+              </div>
+              
+              <div class="property-row">
+                <label>Threshold</label>
+                <input 
+                  type="range" 
+                  [(ngModel)]="layer.backgroundThreshold"
+                  (ngModelChange)="updateLayer(layer)"
+                  min="0"
+                  max="255"
+                  class="slider">
+                <span class="value-display">{{ layer.backgroundThreshold }}</span>
+              </div>
+              
+              <button 
+                class="btn-action"
+                (click)="pickBackgroundColor(layer)">
+                Pick Color from Image
+              </button>
+            }
             
-            <button 
-              class="btn-action"
-              (click)="pickBackgroundColor(layer)">
-              Pick Color from Image
-            </button>
+            @if (layer.useAiRemoval) {
+              <button 
+                class="btn-action"
+                [disabled]="aiStatus().processing"
+                (click)="applyAiBackgroundRemoval(layer)">
+                @if (aiStatus().processing) {
+                  ⏳ {{ aiMessage() }} ({{ aiStatus().progress }}%)
+                } @else {
+                  🤖 Apply AI Background Removal
+                }
+              </button>
+              
+              <div class="hint">
+                AI-powered removal (RMBG-1.4 quantized ~25MB)
+                @if (!aiStatus().initialized) {
+                  <br>
+                  Model will download on first use (one-time, cached after)
+                }
+              </div>
+            }
           }
         </div>
         
@@ -774,10 +816,10 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     
     .batch-info {
       font-size: 7px;
-      color: rgba(0, 255, 204, 0.6);
+      color: var(--theme-text-muted, rgba(255, 255, 255, 0.6));
       text-align: center;
       padding: 4px;
-      background: rgba(0, 0, 0, 0.3);
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 2px;
     }
     
@@ -786,13 +828,11 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
       color: var(--theme-secondary, #00ffcc);
       padding: 2px 6px;
       border: 1px solid var(--theme-border, rgba(0, 255, 204, 0.4));
-      font-size: 8px;
+      font-size: 0.7rem;
       border-radius: 2px;
       margin-left: 8px;
-      height: 100%;
-      overflow-y: auto;
-      font-family: 'Press Start 2P', 'Courier New', monospace;
-      font-size: 9px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-weight: 600;
     }
     
     .batch-indicator {
@@ -911,7 +951,7 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     
     .effect-subsection {
       padding: 8px 0;
-      border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+      border-bottom: 1px solid var(--theme-border, rgba(0, 255, 0, 0.1));
     }
     
     .effect-subsection:last-child {
@@ -963,37 +1003,44 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     .color-input {
       width: 50px;
       height: 30px;
-      border: 1px solid #00ff00;
-      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      background: var(--theme-surface, rgba(255, 255, 255, 0.05));
       cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s ease;
     }
     
     .color-value {
-      font-family: 'Courier New', monospace;
-      font-size: 8px;
-      color: #90ee90;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-size: 0.7rem;
+      color: var(--theme-text-muted, rgba(255, 255, 255, 0.6));
+      font-weight: 500;
     }
     
     .select-input {
       flex: 1;
-      padding: 4px;
-      border: 1px solid #00ff00;
-      background: rgba(0, 0, 0, 0.6);
-      color: #00ff00;
-      font-family: 'Courier New', monospace;
-      font-size: 9px;
+      padding: 0.5rem;
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      background: var(--theme-surface, rgba(255, 255, 255, 0.05));
+      color: var(--theme-text, rgba(255, 255, 255, 0.9));
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      transition: all 0.2s ease;
     }
     
     .textarea-input {
       width: 100%;
-      padding: 4px;
-      border: 1px solid #00ff00;
-      background: rgba(0, 0, 0, 0.6);
-      color: #00ff00;
-      font-family: 'Courier New', monospace;
-      font-size: 9px;
+      padding: 0.5rem;
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      background: var(--theme-surface, rgba(255, 255, 255, 0.05));
+      color: var(--theme-text, rgba(255, 255, 255, 0.9));
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-size: 0.75rem;
       resize: vertical;
       min-height: 50px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
     }
     
     .button-group-inline {
@@ -1004,47 +1051,60 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     
     .btn-toggle {
       flex: 1;
-      padding: 4px 8px;
-      background: rgba(0, 40, 0, 0.6);
-      border: 1px solid rgba(0, 255, 0, 0.3);
-      color: #00ff00;
+      padding: 0.5rem 0.75rem;
+      background: var(--theme-surface, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      color: var(--theme-text, rgba(255, 255, 255, 0.85));
       cursor: pointer;
-      font-size: 10px;
-      transition: all 0.2s;
+      font-size: 0.7rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 4px;
+      font-weight: 500;
     }
     
     .btn-toggle:hover {
-      background: rgba(0, 60, 0, 0.8);
-      border-color: #00ff00;
+      background: var(--theme-surface, rgba(255, 255, 255, 0.1));
+      border-color: var(--theme-primary, #00ff00);
+      transform: translateY(-1px);
     }
     
     .btn-toggle.active {
-      background: rgba(0, 120, 0, 0.9);
-      border-color: #00ff00;
-      box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+      background: var(--theme-primary, #00ff00);
+      border-color: var(--theme-primary, #00ff00);
+      color: rgba(0, 0, 0, 0.85);
+      box-shadow: 0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.5));
     }
     
     .btn-action {
       width: 100%;
-      padding: 6px 12px;
-      margin-bottom: 6px;
-      background: linear-gradient(180deg, #2a4d2a 0%, #1a3d1a 100%);
-      border: 1px solid #00ff00;
-      color: #00ff00;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.5rem;
+      background: var(--theme-surface, rgba(255, 255, 255, 0.05));
+      border: 1.5px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      color: var(--theme-text, rgba(255, 255, 255, 0.9));
       cursor: pointer;
       font-family: inherit;
-      font-size: 8px;
-      transition: all 0.2s;
-      box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+      font-size: 0.7rem;
+      font-weight: 600;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 4px;
     }
     
     .btn-action:hover {
-      background: linear-gradient(180deg, #3a5d3a 0%, #2a4d2a 100%);
-      box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+      background: var(--theme-surface, rgba(255, 255, 255, 0.1));
+      border-color: var(--theme-primary, #00ff00);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px var(--theme-glow, rgba(0, 255, 0, 0.3));
     }
     
     .btn-action:active {
       transform: translateY(1px);
+    }
+    
+    .btn-action:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
     }
     
     .btn-danger:hover {
@@ -1054,15 +1114,15 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .hint {
-      font-size: 7px;
-      color: rgba(0, 255, 0, 0.4);
+      font-size: 0.65rem;
+      color: var(--theme-text-muted, rgba(255, 255, 255, 0.5));
       font-style: italic;
     }
     
     .empty-state {
       text-align: center;
       padding: 60px 20px;
-      color: rgba(0, 255, 0, 0.4);
+      color: var(--theme-text-muted, rgba(255, 255, 255, 0.5));
     }
     
     .empty-state .hint {
@@ -1077,9 +1137,14 @@ export class LayerPropertiesComponent {
   private historyService = inject(HistoryService);
   private storageService = inject(StorageService);
   private ditheringService = inject(DitheringService);
+  private aiBackgroundRemoval = inject(AiBackgroundRemovalService);
   
   // Expose Math for template
   Math = Math;
+  
+  // AI service status
+  aiStatus = this.aiBackgroundRemoval.getStatus.bind(this.aiBackgroundRemoval);
+  aiMessage = this.aiBackgroundRemoval.getLoadingMessageSignal();
   
   // Palettes for custom dither
   palettes = signal(this.ditheringService.getAvailablePalettes());
@@ -1194,6 +1259,25 @@ export class LayerPropertiesComponent {
   /**
    * Background Removal
    */
+  
+  async applyAiBackgroundRemoval(layer: CompositionLayer): Promise<void> {
+    try {
+      console.log('🤖 Starting AI background removal for layer:', layer.name);
+      
+      // Apply AI background removal
+      const resultImageData = await this.aiBackgroundRemoval.removeBackground(layer.imageData);
+      
+      // Update layer with result
+      this.compositionService.updateLayer(layer.id, {
+        imageData: resultImageData
+      });
+      
+      console.log('✅ AI background removal complete');
+    } catch (error) {
+      console.error('❌ AI background removal failed:', error);
+      alert('Failed to remove background: ' + (error as Error).message);
+    }
+  }
   
   pickBackgroundColor(layer: CompositionLayer): void {
     // Create a simple color picker modal
