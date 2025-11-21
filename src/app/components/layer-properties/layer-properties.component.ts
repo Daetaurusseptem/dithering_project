@@ -713,7 +713,7 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
   `,
   styles: [`
     .layer-properties-panel {
-      background: linear-gradient(145deg, var(--theme-background, #1a2d1a) 0%, var(--theme-background, #0f1f0f) 100%);
+      background: transparent;
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
@@ -723,47 +723,48 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     
     /* Batch Operations Section */
     .batch-operations-section {
-      background: linear-gradient(145deg, #1a3d3d 0%, #0f2f2f 100%);
-      border: 2px solid var(--theme-secondary, #00ffcc);
-      border-radius: 4px;
-      padding: 8px;
-      margin: 8px;
-      box-shadow: 0 0 15px var(--theme-glow, rgba(0, 255, 204, 0.3));
+      background: var(--theme-surface, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.25));
+      border-radius: 6px;
+      padding: 1rem;
+      margin: 0.75rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     
     .batch-title {
-      font-size: 10px;
-      color: var(--theme-secondary, #00ffcc);
-      text-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 204, 0.6));
-      margin: 0 0 8px 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--theme-text, rgba(255, 255, 255, 0.9));
+      margin: 0 0 0.75rem 0;
       text-align: center;
+      letter-spacing: 0.5px;
     }
     
     .batch-buttons {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 4px;
-      margin-bottom: 8px;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
     }
     
     .btn-batch {
-      padding: 6px 4px;
-      background: linear-gradient(180deg, #2a4d4d 0%, #1a3d3d 100%);
-      border: 1px solid var(--theme-secondary, #00ffcc);
-      color: var(--theme-secondary, #00ffcc);
+      padding: 0.5rem 0.75rem;
+      background: var(--theme-surface, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      border-radius: 4px;
+      color: var(--theme-text, rgba(255, 255, 255, 0.85));
       cursor: pointer;
       font-family: inherit;
-      font-size: 7px;
-      transition: all 0.2s;
-      box-shadow: 0 0 5px var(--theme-glow, rgba(0, 255, 204, 0.3));
+      font-size: 0.7rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     
     .btn-batch:hover {
-      background: linear-gradient(180deg, #3a6d6d 0%, #2a5d5d 100%);
-      box-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 204, 0.5));
+      background: var(--theme-surface, rgba(255, 255, 255, 0.1));
+      border-color: var(--theme-primary, rgba(0, 255, 0, 0.5));
       transform: translateY(-1px);
     }
     
@@ -808,16 +809,16 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .properties-title {
-      background: linear-gradient(180deg, var(--theme-surface, #005500) 0%, var(--theme-background, #003300) 100%);
-      color: var(--theme-primary, #00ff00);
-      padding: 8px;
-      font-weight: normal;
-      font-size: 10px;
+      background: transparent;
+      color: var(--theme-text, rgba(255, 255, 255, 0.95));
+      padding: 1rem 1.25rem;
+      font-weight: 600;
+      font-size: 0.85rem;
       display: flex;
       align-items: center;
-      gap: 6px;
-      border-bottom: 2px solid var(--theme-primary, #00ff00);
-      text-shadow: 0 0 10px var(--theme-glow, rgba(0, 255, 0, 0.6));
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--theme-border, rgba(0, 255, 0, 0.2));
+      letter-spacing: 0.5px;
     }
     
     .title-icon {
@@ -825,8 +826,8 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .property-section {
-      padding: 12px 8px;
-      border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--theme-border, rgba(0, 255, 0, 0.1));
     }
     
     .property-section:last-child {
@@ -834,22 +835,23 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .section-title {
-      margin: 0 0 10px 0;
-      font-size: 10px;
-      font-weight: normal;
-      color: var(--theme-primary, #00ff00);
+      margin: 0 0 0.75rem 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--theme-text-muted, rgba(255, 255, 255, 0.7));
       display: flex;
       align-items: center;
-      gap: 6px;
-      text-shadow: 0 0 5px var(--theme-glow, rgba(0, 255, 0, 0.4));
+      gap: 0.5rem;
       width: 100%;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     
     .property-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 10px;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
     }
     
     .property-field {
@@ -859,19 +861,29 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .property-field label {
-      font-size: 8px;
-      color: var(--theme-secondary, #90ee90);
-      font-weight: normal;
+      font-size: 0.7rem;
+      color: var(--theme-text-muted, rgba(255, 255, 255, 0.6));
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
     
     .number-input-small {
       width: 100%;
-      padding: 4px;
-      border: 1px solid var(--theme-primary, #00ff00);
-      background: rgba(0, 0, 0, 0.6);
-      color: var(--theme-primary, #00ff00);
-      font-family: 'Courier New', monospace;
-      font-size: 9px;
+      padding: 0.5rem;
+      border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
+      border-radius: 4px;
+      background: var(--theme-surface, rgba(255, 255, 255, 0.05));
+      color: var(--theme-text, rgba(255, 255, 255, 0.9));
+      font-family: 'SF Mono', 'Courier New', monospace;
+      font-size: 0.8rem;
+      transition: all 0.2s ease;
+    }
+    
+    .number-input-small:focus {
+      outline: none;
+      border-color: var(--theme-primary, #00ff00);
+      box-shadow: 0 0 0 2px var(--theme-glow, rgba(0, 255, 0, 0.2));
     }
     
     .section-title input[type="checkbox"] {
@@ -891,9 +903,10 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .property-row label {
-      flex: 0 0 80px;
-      font-size: 8px;
-      color: var(--theme-secondary, #90ee90);
+      flex: 0 0 100px;
+      font-size: 0.75rem;
+      color: var(--theme-text-muted, rgba(255, 255, 255, 0.6));
+      font-weight: 500;
     }
     
     .effect-subsection {
@@ -932,10 +945,12 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .value-display {
-      flex: 0 0 50px;
+      flex: 0 0 60px;
       text-align: right;
-      font-size: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
       color: var(--theme-primary, #00ff00);
+      font-family: 'SF Mono', 'Courier New', monospace;
     }
     
     .color-picker-row {
