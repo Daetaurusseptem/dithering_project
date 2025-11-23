@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type ToolType = 'select' | 'hand' | 'zoom' | 'shape' | 'text' | 'brush';
+export type ToolType = 'select' | 'hand' | 'zoom' | 'crop' | 'shape' | 'text' | 'brush' | 'eraser';
 export type ShapeType = 'rectangle' | 'circle' | 'ellipse' | 'polygon' | 'star' | 'line';
 
 export type FillType = 'solid' | 'gradient' | 'none';
@@ -34,6 +34,10 @@ export interface ToolOptions {
   brushSize?: number;
   brushColor?: string;
   brushOpacity?: number;
+  
+  // Eraser options
+  eraserSize?: number;
+  eraserHardness?: number; // 0-100, controls edge softness
 }
 
 @Injectable({
@@ -68,7 +72,11 @@ export class CompositionToolService {
     // Brush defaults
     brushSize: 10,
     brushColor: '#000000',
-    brushOpacity: 100
+    brushOpacity: 100,
+    
+    // Eraser defaults
+    eraserSize: 20,
+    eraserHardness: 100
   });
   
   setTool(tool: ToolType): void {

@@ -15,9 +15,10 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
   imports: [CommonModule, FormsModule],
   template: `
     <div class="layer-properties-panel">
-      @if (activeLayer(); as layer) {
-        <!-- Layer Title -->
-        <div class="properties-title">
+      <div class="properties-scroll-container">
+        @if (activeLayer(); as layer) {
+          <!-- Layer Title -->
+          <div class="properties-title">
           <span class="title-icon">⚙️</span>
           <span>Properties</span>
           @if (selectedLayers().length > 1) {
@@ -345,15 +346,27 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
                   🤖 Apply AI Background Removal
                 }
               </button>
-              
-              <div class="hint">
+            }
+            
+            <!-- Crop to Content Button -->
+            <button 
+              class="btn-action"
+              (click)="cropLayerToContent(layer)"
+              title="Remove transparent borders">
+              ✂️ Crop to Content
+            </button>
+            
+            <div class="hint">
+              @if (layer.useAiRemoval) {
                 AI-powered removal (RMBG-1.4 quantized ~25MB)
                 @if (!aiStatus().initialized) {
                   <br>
                   Model will download on first use (one-time, cached after)
                 }
-              </div>
-            }
+              } @else {
+                Remove background by color similarity. Pick a color or adjust threshold for best results.
+              }
+            </div>
           }
         </div>
         
@@ -745,22 +758,33 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
           </button>
         </div>
         
-      } @else {
-        <div class="empty-state">
-          <p>No layer selected</p>
-          <p class="hint">Select a layer to edit its properties</p>
-        </div>
-      }
+        } @else {
+          <div class="empty-state">
+            <p>No layer selected</p>
+            <p class="hint">Select a layer to edit its properties</p>
+          </div>
+        }
+      </div>
     </div>
   `,
   styles: [`
     .layer-properties-panel {
       background: transparent;
       padding: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
       user-select: none;
       -webkit-user-select: none;
       -moz-user-select: none;
       -ms-user-select: none;
+    }
+
+    .properties-scroll-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-height: 0;
     }
     
     /* Batch Operations Section */
@@ -866,7 +890,7 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .property-section {
-      padding: 1rem 1.25rem;
+      padding: 0.75rem 1rem;
       border-bottom: 1px solid var(--theme-border, rgba(0, 255, 0, 0.1));
     }
     
@@ -875,8 +899,8 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .section-title {
-      margin: 0 0 0.75rem 0;
-      font-size: 0.75rem;
+      margin: 0 0 0.5rem 0;
+      font-size: 0.7rem;
       font-weight: 600;
       color: var(--theme-text-muted, rgba(255, 255, 255, 0.7));
       display: flex;
@@ -938,19 +962,22 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     .property-row {
       display: flex;
       align-items: center;
-      margin-bottom: 8px;
-      gap: 8px;
+      margin-bottom: 6px;
+      gap: 6px;
     }
     
     .property-row label {
-      flex: 0 0 100px;
-      font-size: 0.75rem;
+      flex: 0 0 70px;
+      font-size: 0.7rem;
       color: var(--theme-text-muted, rgba(255, 255, 255, 0.6));
       font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     
     .effect-subsection {
-      padding: 8px 0;
+      padding: 6px 0;
       border-bottom: 1px solid var(--theme-border, rgba(0, 255, 0, 0.1));
     }
     
@@ -960,15 +987,15 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     
     .effect-subsection > label {
       margin-left: 6px;
-      font-size: 9px;
+      font-size: 0.7rem;
       color: var(--theme-primary, #00ff00);
       cursor: pointer;
     }
     
     .effect-controls {
-      margin-top: 8px;
-      margin-left: 20px;
-      padding-left: 8px;
+      margin-top: 6px;
+      margin-left: 16px;
+      padding-left: 6px;
       border-left: 2px solid var(--theme-border, rgba(0, 255, 0, 0.3));
     }
     
@@ -981,13 +1008,14 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     
     .slider {
       flex: 1;
-      height: 16px;
+      height: 14px;
+      min-width: 0;
     }
     
     .value-display {
-      flex: 0 0 60px;
+      flex: 0 0 50px;
       text-align: right;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 600;
       color: var(--theme-primary, #00ff00);
       font-family: 'SF Mono', 'Courier New', monospace;
@@ -1001,12 +1029,12 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
     }
     
     .color-input {
-      width: 50px;
-      height: 30px;
+      width: 40px;
+      height: 24px;
       border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
       background: var(--theme-surface, rgba(255, 255, 255, 0.05));
       cursor: pointer;
-      border-radius: 4px;
+      border-radius: 3px;
       transition: all 0.2s ease;
     }
     
@@ -1267,16 +1295,106 @@ export class LayerPropertiesComponent {
       // Apply AI background removal
       const resultImageData = await this.aiBackgroundRemoval.removeBackground(layer.imageData);
       
-      // Update layer with result
+      // Auto-crop to content bounds
+      const croppedData = this.cropToContent(resultImageData);
+      
+      // Calculate new position to keep image centered at original position
+      const centerX = layer.x + layer.width / 2;
+      const centerY = layer.y + layer.height / 2;
+      const newX = centerX - croppedData.width / 2;
+      const newY = centerY - croppedData.height / 2;
+      
+      // Update layer with cropped result
       this.compositionService.updateLayer(layer.id, {
-        imageData: resultImageData
+        imageData: croppedData,
+        width: croppedData.width,
+        height: croppedData.height,
+        x: newX,
+        y: newY
       });
       
-      console.log('✅ AI background removal complete');
+      console.log('✅ AI background removal complete with auto-crop');
     } catch (error) {
       console.error('❌ AI background removal failed:', error);
       alert('Failed to remove background: ' + (error as Error).message);
     }
+  }
+  
+  /**
+   * Crop ImageData to non-transparent content bounds
+   */
+  private cropToContent(imageData: ImageData): ImageData {
+    const { data, width, height } = imageData;
+    
+    // Find bounds of non-transparent pixels
+    let minX = width, minY = height, maxX = 0, maxY = 0;
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const alpha = data[(y * width + x) * 4 + 3];
+        if (alpha > 0) {
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+    }
+    
+    // If no content found, return original
+    if (minX >= width || minY >= height) {
+      return imageData;
+    }
+    
+    // Calculate crop dimensions
+    const cropWidth = maxX - minX + 1;
+    const cropHeight = maxY - minY + 1;
+    
+    // Create new ImageData with cropped size
+    const croppedData = new ImageData(cropWidth, cropHeight);
+    
+    // Copy cropped region
+    for (let y = 0; y < cropHeight; y++) {
+      for (let x = 0; x < cropWidth; x++) {
+        const srcIndex = ((minY + y) * width + (minX + x)) * 4;
+        const dstIndex = (y * cropWidth + x) * 4;
+        croppedData.data[dstIndex] = data[srcIndex];
+        croppedData.data[dstIndex + 1] = data[srcIndex + 1];
+        croppedData.data[dstIndex + 2] = data[srcIndex + 2];
+        croppedData.data[dstIndex + 3] = data[srcIndex + 3];
+      }
+    }
+    
+    return croppedData;
+  }
+  
+  /**
+   * Crop layer to content (remove transparent borders)
+   */
+  cropLayerToContent(layer: CompositionLayer): void {
+    const croppedData = this.cropToContent(layer.imageData);
+    
+    if (croppedData === layer.imageData) {
+      console.log('No transparent borders to crop');
+      return;
+    }
+    
+    // Calculate new position to keep image centered
+    const centerX = layer.x + layer.width / 2;
+    const centerY = layer.y + layer.height / 2;
+    const newX = centerX - croppedData.width / 2;
+    const newY = centerY - croppedData.height / 2;
+    
+    // Update layer
+    this.compositionService.updateLayer(layer.id, {
+      imageData: croppedData,
+      width: croppedData.width,
+      height: croppedData.height,
+      x: newX,
+      y: newY
+    });
+    
+    console.log(`✂️ Cropped layer from ${layer.width}x${layer.height} to ${croppedData.width}x${croppedData.height}`);
   }
   
   pickBackgroundColor(layer: CompositionLayer): void {

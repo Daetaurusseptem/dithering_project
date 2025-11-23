@@ -21,14 +21,58 @@ export class I18nService {
   private translations: Translations = {
     // Main UI
     'app.title': {
-      en: 'Dithering Studio',
-      es: 'Estudio de Dithering',
-      ja: 'ディザリングスタジオ'
+      en: 'Ditheroid',
+      es: 'Ditheroid',
+      ja: 'Ditheroid'
+    },
+    'app.subtitle': {
+      en: 'Advanced Creative Error Diffusion',
+      es: 'Difusión de Error Creativa Avanzada',
+      ja: '高度なエラー拡散処理'
     },
     'app.preview': {
       en: 'Preview',
       es: 'Vista Previa',
       ja: 'プレビュー'
+    },
+    
+    // Upload
+    'upload.title': {
+      en: 'Click to Upload Image',
+      es: 'Haz clic para Cargar Imagen',
+      ja: '画像をアップロードするにはクリック'
+    },
+    'upload.dragDrop': {
+      en: 'or drag and drop your image here',
+      es: 'o arrastra y suelta tu imagen aquí',
+      ja: 'または画像をドラッグ＆ドロップ'
+    },
+    'upload.formats': {
+      en: 'Supports JPG, PNG, GIF',
+      es: 'Soporta JPG, PNG, GIF',
+      ja: 'JPG、PNG、GIF対応'
+    },
+    
+    // Controls
+    'controls.title': {
+      en: 'Controls',
+      es: 'Controles',
+      ja: 'コントロール'
+    },
+    'controls.reset': {
+      en: 'Reset',
+      es: 'Restablecer',
+      ja: 'リセット'
+    },
+    'controls.style': {
+      en: 'Style',
+      es: 'Estilo',
+      ja: 'スタイル'
+    },
+    'controls.createPalette': {
+      en: 'Create Custom Palette',
+      es: 'Crear Paleta Personalizada',
+      ja: 'カスタムパレットを作成'
     },
     'app.composition': {
       en: 'Composition',
@@ -103,6 +147,53 @@ export class I18nService {
       en: 'Blur',
       es: 'Desenfoque',
       ja: 'ぼかし'
+    },
+    
+    // Buttons & Actions
+    'button.presets': {
+      en: 'Presets',
+      es: 'Ajustes Predefinidos',
+      ja: 'プリセット'
+    },
+    'button.customWaifu': {
+      en: 'Custom Waifu Sprite',
+      es: 'Sprite Waifu Personalizado',
+      ja: 'カスタムスプライト'
+    },
+    'button.level': {
+      en: 'Level',
+      es: 'Nivel',
+      ja: 'レベル'
+    },
+    'button.gallery': {
+      en: 'Gallery',
+      es: 'Galería',
+      ja: 'ギャラリー'
+    },
+    'button.settings': {
+      en: 'Settings',
+      es: 'Configuración',
+      ja: '設定'
+    },
+    'button.gifStudio': {
+      en: 'GIF Studio',
+      es: 'Estudio GIF',
+      ja: 'GIFスタジオ'
+    },
+    'button.gifMode': {
+      en: 'GIF Mode',
+      es: 'Modo GIF',
+      ja: 'GIFモード'
+    },
+    'button.compositionMode': {
+      en: 'Composition Mode',
+      es: 'Modo Composición',
+      ja: 'コンポジションモード'
+    },
+    'button.showWaifu': {
+      en: 'Show Waifu',
+      es: 'Mostrar Waifu',
+      ja: 'Waifuを表示'
     },
     
     // Layers

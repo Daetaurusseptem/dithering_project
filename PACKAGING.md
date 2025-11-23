@@ -21,8 +21,8 @@ Antes de empaquetar, debes descargar los modelos de IA:
 ### Opción A: Modelo Recomendado (RMBG-1.4, ~40MB)
 
 ```bash
-# Windows
-npm run download:models
+# Windows (usando Bun)
+bun run download:models
 
 # O manualmente:
 scripts\download-models.bat
@@ -31,7 +31,7 @@ scripts\download-models.bat
 ### Opción B: Modelo Ligero (ModNet, ~25MB)
 
 ```bash
-npm run download:models:light
+bun run download:models:light
 ```
 
 ### Verificar Descarga
@@ -53,7 +53,7 @@ public/models/rmbg-1.4/
 ### Instalación de Dependencias
 
 ```bash
-npm install --save-dev electron electron-builder
+bun add -d electron electron-builder
 ```
 
 ### Configuración: `electron.js` (crear en raíz)
@@ -167,7 +167,7 @@ app.on('window-all-closed', () => {
 ### Compilar
 
 ```bash
-npm run electron:build
+bun run electron:build
 ```
 
 **Resultado:** Instalador en `dist/` (`.exe`, `.dmg`, `.AppImage`)
@@ -179,8 +179,8 @@ npm run electron:build
 ### Instalación de Capacitor
 
 ```bash
-npm install @capacitor/core @capacitor/cli
-npx cap init
+bun add @capacitor/core @capacitor/cli
+bunx cap init
 ```
 
 **Responder:**
@@ -192,12 +192,12 @@ npx cap init
 
 ```bash
 # Android
-npm install @capacitor/android
-npx cap add android
+bun add @capacitor/android
+bunx cap add android
 
 # iOS (solo en Mac)
-npm install @capacitor/ios
-npx cap add ios
+bun add @capacitor/ios
+bunx cap add ios
 ```
 
 ### Configuración: `capacitor.config.ts`
@@ -246,9 +246,9 @@ cp -r public/models ios/App/App/public/
 ```json
 {
   "scripts": {
-    "ionic:prepare": "ng build && npx cap copy && npx cap sync",
-    "ionic:android": "npm run ionic:prepare && npx cap open android",
-    "ionic:ios": "npm run ionic:prepare && npx cap open ios"
+    "ionic:prepare": "ng build && bunx cap copy && bunx cap sync",
+    "ionic:android": "bun run ionic:prepare && bunx cap open android",
+    "ionic:ios": "bun run ionic:prepare && bunx cap open ios"
   }
 }
 ```
@@ -256,7 +256,7 @@ cp -r public/models ios/App/App/public/
 ### Compilar para Android
 
 ```bash
-npm run ionic:android
+bun run ionic:android
 ```
 
 Esto abre Android Studio → Build → Generate Signed APK
@@ -361,18 +361,18 @@ npm run download:models:light
 
 ```bash
 # 1. Descargar modelos
-npm run download:models
+bun run download:models
 
 # 2. Build y empaquetar Electron
-npm run electron:build
+bun run electron:build
 
 # 3. Build y empaquetar Android
-npm run ionic:android
+bun run ionic:android
 
 # 4. Limpiar todo y empezar de cero
 rm -rf dist/ node_modules/
-npm install
-npm run download:models
+bun install
+bun run download:models
 ```
 
 ---

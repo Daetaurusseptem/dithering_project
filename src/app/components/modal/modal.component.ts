@@ -156,7 +156,7 @@ export interface ModalConfig {
       border-bottom-color: #dfdfdf;
       font-size: 11px;
       font-family: 'MS Sans Serif', sans-serif;
-      background: white;
+      background: var(--theme-surface);
     }
     
     .modal-input:focus {

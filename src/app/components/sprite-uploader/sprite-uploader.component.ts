@@ -235,7 +235,7 @@ type EmotionType = 'idle' | 'processing' | 'success' | 'error' | 'thinking' | 'h
       border: 2px solid #999;
       border-radius: 4px;
       font-size: 14px;
-      background: white;
+      background: var(--theme-surface);
       box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
@@ -321,7 +321,7 @@ type EmotionType = 'idle' | 'processing' | 'success' | 'error' | 'thinking' | 'h
       border: 2px solid #999;
       border-radius: 4px;
       font-size: 12px;
-      background: white;
+      background: var(--theme-surface);
       box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 

@@ -72,9 +72,9 @@ import { ThemeService, ThemeId } from '../../services/theme.service';
           <!-- Info Section -->
           <div class="settings-section info-section">
             <h3>ℹ️ About</h3>
-            <p><strong>Dithering Studio</strong></p>
+            <p><strong>Ditheroid</strong></p>
             <p>Version 1.0.0</p>
-            <p>A retro pixel art & dithering tool</p>
+            <p>Advanced creative error diffusion editor</p>
             <p class="credits">Made with 💚 by the community</p>
           </div>
         </div>

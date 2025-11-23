@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Script para descargar modelos de IA para background removal offline
  * Uso: bun download-models.js [modelo]

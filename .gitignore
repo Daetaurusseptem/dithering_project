@@ -6,11 +6,10 @@
 /out-tsc
 /bazel-out
 
-# Node & Bun
+# Node
 /node_modules
 npm-debug.log
 yarn-error.log
-bun.lockb
 
 # IDEs and editors
 .idea/

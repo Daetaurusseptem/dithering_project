@@ -256,9 +256,9 @@ import { Achievement } from '../../models/achievement.interface';
       gap: 16px;
       margin-bottom: 16px;
       padding: 12px;
-      background: #ffffff;
+      background: var(--theme-surface);
       border: 2px solid;
-      border-color: #ffffff #808080 #808080 #ffffff;
+      border-color: var(--theme-accent) var(--theme-shadow-color) var(--theme-shadow-color) var(--theme-accent);
       box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), 2px 2px 0 rgba(0, 0, 0, 0.2);
     }
     
@@ -295,7 +295,7 @@ import { Achievement } from '../../models/achievement.interface';
     
     .xp-bar {
       height: 24px;
-      background: #ffffff;
+      background: var(--theme-surface);
       border: 2px solid;
       border-color: #808080 #ffffff #ffffff #808080;
       box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3);
@@ -336,7 +336,7 @@ import { Achievement } from '../../models/achievement.interface';
     }
     
     .stat-item {
-      background: #ffffff;
+      background: var(--theme-surface);
       padding: 10px;
       border: 2px solid;
       border-color: #ffffff #808080 #808080 #ffffff;
@@ -384,7 +384,7 @@ import { Achievement } from '../../models/achievement.interface';
     }
     
     .tab-btn.active {
-      background: #ffffff;
+      background: var(--theme-surface);
       border-top-color: #808080;
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
     }
@@ -401,7 +401,7 @@ import { Achievement } from '../../models/achievement.interface';
       flex: 1;
       overflow-y: auto;
       padding: 12px;
-      background: #ffffff;
+      background: var(--theme-surface);
       border-top: 2px solid #808080;
     }
     
@@ -480,7 +480,7 @@ import { Achievement } from '../../models/achievement.interface';
     .progress-bar-small {
       flex: 1;
       height: 12px;
-      background: #ffffff;
+      background: var(--theme-surface);
       border: 1px solid #808080;
       box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
       overflow: hidden;
@@ -629,7 +629,7 @@ import { Achievement } from '../../models/achievement.interface';
     
     .daily-progress-bar {
       height: 16px;
-      background: #ffffff;
+      background: var(--theme-surface);
       border: 2px solid;
       border-color: #808080 #ffffff #ffffff #808080;
       box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
@@ -711,7 +711,7 @@ import { Achievement } from '../../models/achievement.interface';
     .dailies-stat {
       text-align: center;
       padding: 12px;
-      background: #ffffff;
+      background: var(--theme-surface);
       border: 2px solid;
       border-color: #ffffff #808080 #808080 #ffffff;
     }

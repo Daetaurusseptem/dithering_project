@@ -1,46 +1,416 @@
-﻿<div class="app-container">
-  <header class="header">
-    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-      <div>
-        <h1>🎨 Dithering Studio</h1>
-        <p class="subtitle">Advanced Creative Error Diffusion</p>
+﻿<div class="app-container" [class]="deviceService.getResponsiveClasses().join(' ')">
+  <!-- Desktop Header -->
+  @if (deviceService.isDesktop()) {
+    <header class="header">
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <img [src]="navbarLogoUrl()" alt="Logo" class="navbar-logo">
+          <div>
+            <h1>{{ i18nService.t('app.title') }}</h1>
+            <p class="subtitle">{{ i18nService.t('app.subtitle') }}</p>
+          </div>
+        </div>
+        <!-- Test Achievement Button -->
+        <button class="btn-test-achievement" (click)="testAchievementNotification()" title="Test Achievement">
+          🏆 Test
+        </button>
       </div>
-      <!-- Test Achievement Button -->
-      <button class="btn-test-achievement" (click)="testAchievementNotification()" title="Test Achievement">
-        🏆 Test
-      </button>
-    </div>
-  </header>
+    </header>
+  }
+  
+  <!-- Mobile Header (compact) -->
+  @if (deviceService.isMobile()) {
+    <header class="header header-mobile">
+      <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
+        <img [src]="navbarLogoUrl()" alt="Logo" class="navbar-logo-mobile">
+        <h1 style="font-size: 1.2rem; margin: 0;">{{ i18nService.t('app.title') }}</h1>
+      </div>
+    </header>
+  }
   
   <!-- Hidden file input (always present) -->
   <input #fileInput type="file" accept="image/*" (change)="onFileSelected($event)" style="display: none;">
   
-  <!-- Show Waifu Button (cuando está oculta) -->
-  @if (waifuPositionService.position() === 'hidden') {
-    <button class="show-waifu-btn" (click)="waifuPositionService.showWaifu()" title="Show Waifu">
-      <span class="waifu-emoji">◠‿◠</span>
-      <span class="btn-text">Show Waifu</span>
-    </button>
-  }
-
-  <div class="main-content">
-    @if (!imageLoaded()) {
-      <div class="upload-section">
-        <div class="upload-area" (click)="triggerFileInput()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <h2>Click to Upload Image</h2>
-          <p>or drag and drop your image here</p>
-          <p class="file-info">Supports JPG, PNG, GIF</p>
+  <!-- MOBILE INTERFACE -->
+  @if (deviceService.isMobile()) {
+    <div class="mobile-app-content">
+      @if (mobileActiveTab() === 'upload') {
+        <app-upload-mobile (fileSelected)="onMobileFileSelected($event)"></app-upload-mobile>
+      }
+      
+      @if (imageLoaded() && mobileActiveTab() === 'canvas') {
+        <app-canvas-mobile 
+          [imageData]="processedImageData"
+          [originalImageData]="originalImageData"
+          (download)="downloadImage()">
+        </app-canvas-mobile>
+        
+        <!-- Upload new image FAB -->
+        <button class="fab-upload" (click)="triggerFileInput()" title="Upload New Image"></button>
+        
+        <!-- Controls Bottom Sheet -->
+        @if (showMobileControls()) {
+          <div class="mobile-controls-overlay" (click)="showMobileControls.set(false)">
+            <div class="mobile-controls-sheet" (click)="$event.stopPropagation()">
+              <app-controls-mobile
+                [options]="{
+                  algorithm: selectedAlgorithm(),
+                  palette: selectedPalette(),
+                  scale: scale(),
+                  contrast: contrast(),
+                  midtones: midtones(),
+                  highlights: highlights(),
+                  blur: blur()
+                }"
+                [algorithms]="algorithms()"
+                [palettes]="palettes()"
+                (optionsChange)="onMobileControlsChange($event)"
+                (reset)="resetControls()"
+                (apply)="showMobileControls.set(false)">
+              </app-controls-mobile>
+            </div>
+          </div>
+        }
+        
+        <!-- Floating controls button -->
+        <button class="fab-controls" (click)="showMobileControls.set(true)" title="Controls"></button>
+      }
+      
+      @if (mobileActiveTab() === 'composition') {
+        <!-- Nivel 0: Canvas (Fullscreen Background) -->
+        <div class="composition-workspace">
+          <app-composition-canvas></app-composition-canvas>
         </div>
-      </div>
+        
+        <!-- Nivel 2: Toolbar Flotante (Izquierda, Colapsable) -->
+        <div class="composition-tools-strip" [class.collapsed]="toolsCollapsed()">
+          <button class="tools-toggle" (click)="toolsCollapsed.set(!toolsCollapsed())">
+            {{ toolsCollapsed() ? '❯' : '❮' }}
+          </button>
+          @if (!toolsCollapsed()) {
+            <app-composition-toolbar></app-composition-toolbar>
+          }
+        </div>
+        
+        <!-- Nivel 1: Top Bar Compacto (Undo/Redo) -->
+        <div class="composition-top-bar">
+          <button class="top-btn" [disabled]="!historyService.canUndo()" (click)="historyService.undo()" title="Undo">↶</button>
+          <button class="top-btn" [disabled]="!historyService.canRedo()" (click)="historyService.redo()" title="Redo">↷</button>
+          <div class="top-divider"></div>
+          <button class="top-btn" (click)="showCompositionLayers.set(true)" title="Layers">📚</button>
+          <button class="top-btn" (click)="showLayerProps.set(true)" title="Properties">⚙️</button>
+        </div>
+        
+        <!-- Nivel 3: Layers Panel (Bottom Sheet) -->
+        @if (showCompositionLayers()) {
+          <div class="bottom-sheet-overlay" (click)="showCompositionLayers.set(false)">
+            <div class="bottom-sheet" (click)="$event.stopPropagation()">
+              <div class="sheet-handle"></div>
+              <div class="sheet-header">
+                <h3>Layers</h3>
+                <button class="sheet-close" (click)="showCompositionLayers.set(false)">✕</button>
+              </div>
+              <div class="sheet-content">
+                <app-composition-layers></app-composition-layers>
+              </div>
+            </div>
+          </div>
+        }
+        
+        <!-- Nivel 3: Properties Panel (Bottom Sheet) -->
+        @if (showLayerProps()) {
+          <div class="bottom-sheet-overlay" (click)="showLayerProps.set(false)">
+            <div class="bottom-sheet" (click)="$event.stopPropagation()">
+              <div class="sheet-handle"></div>
+              <div class="sheet-header">
+                <h3>Layer Properties</h3>
+                <button class="sheet-close" (click)="showLayerProps.set(false)">✕</button>
+              </div>
+              <div class="sheet-content">
+                <app-layer-properties></app-layer-properties>
+              </div>
+            </div>
+          </div>
+        }
+      }
+      
+      @if (mobileActiveTab() === 'gif') {
+        <!-- Hidden composition canvas for rendering -->
+        <div style="position: absolute; left: -9999px; top: -9999px; pointer-events: none;">
+          <app-composition-canvas></app-composition-canvas>
+        </div>
+        
+        <!-- Nivel 0: GIF Preview Workspace (Fullscreen Background) -->
+        <div class="gif-workspace-mobile">
+          <div class="gif-preview-mobile">
+            @if (originalImage) {
+              <!-- Use composition canvas for preview with effects applied -->
+              <canvas #gifStudioCanvas 
+                      [width]="originalImageData?.width || 800" 
+                      [height]="originalImageData?.height || 600"
+                      class="gif-canvas-mobile"></canvas>
+            } @else {
+              <div class="gif-placeholder-mobile">
+                <span class="placeholder-icon">🎬</span>
+                <p>Upload an image to start</p>
+              </div>
+            }
+          </div>
+        </div>
+        
+        <!-- Download Button (Floating) -->
+        <button class="gif-download-btn" 
+                [disabled]="effectLayers().length === 0" 
+                (click)="downloadGifMobile()" 
+                title="Download GIF">
+          <span class="download-icon">💾</span>
+        </button>
+        
+        <!-- Effect Layers Panel (Bottom Drawer - Compact) -->
+        <div class="gif-studio-mobile-panel" [class.collapsed]="gifPanelCollapsed()">
+          <button class="panel-toggle" (click)="toggleGifPanel()">
+            <span class="toggle-icon">{{ gifPanelCollapsed() ? '▲' : '▼' }}</span>
+            <span class="toggle-text">Effects ({{ effectLayers().length }})</span>
+          </button>
+          
+          <div class="mobile-panel-content">
+            <!-- Effect Pills (Compact) -->
+            <div class="effect-pills-mobile">
+              @for (layer of getSortedLayers(); track layer.id) {
+                <div class="effect-pill-mobile" 
+                     [class.active]="editingLayerId() === layer.id"
+                     [class.disabled]="!layer.enabled"
+                     (click)="editLayer(layer.id)">
+                  <span class="pill-icon">{{ effectNames[layer.type].split(' ')[0] }}</span>
+                  <span class="pill-name">{{ effectNames[layer.type].split(' ').slice(1).join(' ') }}</span>
+                  <div class="pill-actions">
+                    <button class="pill-btn-mini" 
+                            (click)="toggleLayerEnabled(layer.id); $event.stopPropagation()">
+                      {{ layer.enabled ? '👁' : '⚫' }}
+                    </button>
+                    <button class="pill-btn-mini pill-btn-danger" 
+                            (click)="removeEffectLayer(layer.id); $event.stopPropagation()">
+                      ×
+                    </button>
+                  </div>
+                </div>
+              }
+
+              @if (effectLayers().length === 0) {
+                <div class="empty-layers-mobile">
+                  <p>No effects added</p>
+                </div>
+              }
+            </div>
+
+            <!-- Add Effect Dropdown (Compact) -->
+            <select class="select-add-effect-mobile" (change)="addEffectFromSelect($event)" [value]="''">
+              <option value="" disabled selected>+ Add Effect</option>
+              @for (effectType of availableEffects; track effectType) {
+                <option [value]="effectType">{{ effectNames[effectType] }}</option>
+              }
+            </select>
+
+            <!-- Effect Editor (Inline when editing) -->
+            @if (editingLayerId()) {
+              @for (layer of effectLayers(); track layer.id) {
+                @if (layer.id === editingLayerId()) {
+                  <div class="effect-editor-mobile">
+                    <div class="editor-header-mobile">
+                      <h4>{{ effectNames[layer.type] }}</h4>
+                      <button class="editor-close-btn" (click)="closeLayerEditor()">×</button>
+                    </div>
+                    
+                    <div class="editor-controls-mobile">
+                      <!-- Intensity -->
+                      <div class="control-group-mobile">
+                        <div class="control-label-row">
+                          <label>Intensity</label>
+                          <span class="control-value">{{ (layer.intensity * 100).toFixed(0) }}%</span>
+                        </div>
+                        <input type="range" 
+                               [value]="layer.intensity * 100" 
+                               (input)="updateLayerIntensityMobile(layer.id, $event)" 
+                               min="0" max="100" step="1">
+                      </div>
+
+                      <!-- Effect-specific controls -->
+                      @switch (layer.type) {
+                        @case ('scanline') {
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Thickness</label>
+                              <span class="control-value">{{ layer.options.scanlineThickness || 2 }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.scanlineThickness || 2" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'scanlineThickness', $event)" 
+                                   min="1" max="10" step="0.5">
+                          </div>
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Spacing</label>
+                              <span class="control-value">{{ layer.options.scanlineSpacing || 4 }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.scanlineSpacing || 4" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'scanlineSpacing', $event)" 
+                                   min="2" max="20" step="1">
+                          </div>
+                        }
+                        @case ('vhs') {
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Distortion</label>
+                              <span class="control-value">{{ layer.options.vhsDistortion || 5 }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.vhsDistortion || 5" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'vhsDistortion', $event)" 
+                                   min="0" max="20" step="1">
+                          </div>
+                        }
+                        @case ('noise') {
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Size</label>
+                              <span class="control-value">{{ layer.options.noiseSize || 1 }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.noiseSize || 1" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'noiseSize', $event)" 
+                                   min="1" max="10" step="1">
+                          </div>
+                        }
+                        @case ('rgb-split') {
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Amount</label>
+                              <span class="control-value">{{ layer.options.rgbSplitAmount || 5 }}px</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.rgbSplitAmount || 5" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'rgbSplitAmount', $event)" 
+                                   min="0" max="20" step="1">
+                          </div>
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+              }
+            }
+          </div>
+        </div>
+      }
+      
+      @if (mobileActiveTab() === 'gallery') {
+        <!-- Gallery Mobile View -->
+        <div class="gallery-mobile-wrapper">
+          <!-- Search Bar (Top) -->
+          <div class="gallery-search-bar">
+            <input type="text" 
+                   class="search-input-mobile" 
+                   placeholder="🔍 Search gallery..."
+                   [(ngModel)]="gallerySearchQuery"
+                   (input)="onGallerySearch()">
+          </div>
+          
+          <!-- Gallery Grid -->
+          <div class="gallery-grid-mobile">
+            @if (galleryService.gallery().length === 0) {
+              <div class="gallery-empty-mobile">
+                <span class="empty-icon">🖼️</span>
+                <p>No saved images</p>
+                <p class="empty-hint">Save your work to see it here</p>
+              </div>
+            } @else {
+              @for (item of filteredGalleryItems(); track item.id) {
+                <div class="gallery-item-mobile" (click)="openGalleryItemMobile(item)">
+                  <img [src]="item.thumbnail" [alt]="item.name" class="gallery-thumb-mobile">
+                  <div class="gallery-item-overlay">
+                    <span class="item-name">{{ item.name }}</span>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+        
+        <!-- Gallery Item Preview Modal -->
+        @if (selectedGalleryItem()) {
+          <div class="gallery-modal-overlay" (click)="closeGalleryItemMobile()">
+            <div class="gallery-modal-content" (click)="$event.stopPropagation()">
+              <button class="modal-close-btn" (click)="closeGalleryItemMobile()">×</button>
+              <img [src]="selectedGalleryItem()!.fullImage" 
+                   [alt]="selectedGalleryItem()!.name" 
+                   class="gallery-modal-image">
+              <div class="gallery-modal-actions">
+                <button class="modal-action-btn" (click)="loadGalleryItemToCanvas(selectedGalleryItem()!)">
+                  <span class="action-icon">📤</span>
+                  <span>Load to Canvas</span>
+                </button>
+                <button class="modal-action-btn modal-action-danger" (click)="deleteGalleryItemMobile(selectedGalleryItem()!)">
+                  <span class="action-icon">🗑️</span>
+                  <span>Delete</span>
+                </button>
+              </div>
+              <div class="gallery-modal-info">
+                <p><strong>{{ selectedGalleryItem()!.name }}</strong></p>
+                <p class="info-detail">{{ formatGalleryDate(selectedGalleryItem()!.createdAt) }}</p>
+                @if (selectedGalleryItem()!.tags && selectedGalleryItem()!.tags!.length > 0) {
+                  <div class="gallery-tags-mobile">
+                    @for (tag of selectedGalleryItem()!.tags; track tag) {
+                      <span class="tag-badge-mobile">{{ tag }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      }
+      
+      @if (mobileActiveTab() === 'settings') {
+        <div style="padding: 2rem; text-align: center; color: var(--theme-text);">
+          <h2>Settings</h2>
+          <p>Mobile Settings coming soon...</p>
+        </div>
+      }
+      
+      <app-navigation-mobile 
+        [activeTab]="mobileActiveTab()"
+        (tabChange)="mobileActiveTab.set($event)">
+      </app-navigation-mobile>
+    </div>
+  }
+  
+  <!-- DESKTOP INTERFACE -->
+  @if (deviceService.isDesktop()) {
+    <!-- Show Waifu Button (cuando est� oculta) -->
+    @if (waifuPositionService.position() === 'hidden') {
+      <button class="show-waifu-btn" (click)="waifuPositionService.showWaifu()" [title]="i18nService.t('button.showWaifu')">
+      </button>
     }
 
-    @if (imageLoaded()) {
-      <div class="editor-section">
+    <div class="main-content">
+      @if (!imageLoaded()) {
+        <div class="upload-section">
+          <div class="upload-area" (click)="triggerFileInput()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <h2>{{ i18nService.t('upload.title') }}</h2>
+            <p>{{ i18nService.t('upload.dragDrop') }}</p>
+            <p class="file-info">{{ i18nService.t('upload.formats') }}</p>
+          </div>
+        </div>
+      }
+
+      @if (imageLoaded()) {
+        <div class="editor-section">
         <!-- CRT Waifu Monitor (draggable floating mode) -->
         <app-crt-waifu 
           [state]="waifuState()"
@@ -54,14 +424,14 @@
         <div class="editor-content">
           <div class="controls-panel">
             <div class="panel-header">
-              <h3>Controls</h3>
-              <button class="btn-secondary" (click)="resetControls()">Reset</button>
+              <h3>{{ i18nService.t('controls.title') }}</h3>
+              <button class="btn-secondary" (click)="resetControls()">{{ i18nService.t('controls.reset') }}</button>
             </div>
 
           <div class="control-group">
             <label class="control-label">
               <span class="label-icon"></span>
-              <span>Style</span>
+              <span>{{ i18nService.t('controls.style') }}</span>
             </label>
             <select class="select-input" [ngModel]="selectedAlgorithm()" (ngModelChange)="selectedAlgorithm.set($event); onAlgorithmChange()">
               @for (category of categoryKeys; track category) {
@@ -77,7 +447,7 @@
           <div class="control-group">
             <label class="control-label">
               <span class="label-icon"></span>
-              <span>Palette</span>
+              <span>{{ i18nService.t('dither.palette') }}</span>
             </label>
             <div style="display: flex; gap: 8px;">
               <select class="select-input" style="flex: 1;" [ngModel]="selectedPalette()" (ngModelChange)="selectedPalette.set($event); onPaletteChange()">
@@ -85,7 +455,7 @@
                   <option [value]="palette.id">{{ palette.name }}</option>
                 }
               </select>
-              <button class="btn-icon" (click)="togglePaletteCreator()" title="Create Custom Palette">+</button>
+              <button class="btn-icon" (click)="togglePaletteCreator()" [title]="i18nService.t('controls.createPalette')">+</button>
             </div>
             <!-- Palette Color Preview -->
             <div class="palette-preview">
@@ -100,7 +470,7 @@
           <div class="control-group">
             <label class="control-label">
               <span class="label-icon"></span>
-              <span>Scale</span>
+              <span>{{ i18nService.t('dither.scale') }}</span>
               <span class="control-value">{{ scale() }}</span>
             </label>
             <input type="range" min="1" max="5" step="0.1" class="slider" [ngModel]="scale()" (ngModelChange)="scale.set($event); onControlChange()">
@@ -109,7 +479,7 @@
           <div class="control-group">
             <label class="control-label">
               <span class="label-icon"></span>
-              <span>Contrast</span>
+              <span>{{ i18nService.t('dither.contrast') }}</span>
               <span class="control-value">{{ contrast() }}</span>
             </label>
             <input type="range" min="0" max="100" step="1" class="slider" [ngModel]="contrast()" (ngModelChange)="contrast.set($event); onControlChange()">
@@ -118,7 +488,7 @@
           <div class="control-group">
             <label class="control-label">
               <span class="label-icon"></span>
-              <span>Midtones</span>
+              <span>{{ i18nService.t('dither.midtones') }}</span>
               <span class="control-value">{{ midtones() }}</span>
             </label>
             <input type="range" min="0" max="100" step="1" class="slider" [ngModel]="midtones()" (ngModelChange)="midtones.set($event); onControlChange()">
@@ -127,7 +497,7 @@
           <div class="control-group">
             <label class="control-label">
               <span class="label-icon"></span>
-              <span>Highlights</span>
+              <span>{{ i18nService.t('dither.highlights') }}</span>
               <span class="control-value">{{ highlights() }}</span>
             </label>
             <input type="range" min="0" max="100" step="1" class="slider" [ngModel]="highlights()" (ngModelChange)="highlights.set($event); onControlChange()">
@@ -136,7 +506,7 @@
           <div class="control-group">
             <label class="control-label">
               <span class="label-icon"></span>
-              <span>Blur</span>
+              <span>{{ i18nService.t('dither.blur') }}</span>
               <span class="control-value">{{ blur() }}</span>
             </label>
             <input type="range" min="0" max="5" step="1" class="slider" [ngModel]="blur()" (ngModelChange)="blur.set($event); onControlChange()">
@@ -146,30 +516,30 @@
 
           <div class="action-buttons">
             <button class="btn-secondary" (click)="togglePresetManager()" style="width: 100%;">
-              💾 Presets
+              💾 {{ i18nService.t('button.presets') }}
             </button>
             <button class="btn-secondary" (click)="showSpriteUploader.set(true)" style="width: 100%;">
-              🎨 Custom Waifu Sprite
+              🎨 {{ i18nService.t('button.customWaifu') }}
             </button>
             
             <div class="divider"></div>
             
             <!-- Achievement & Gallery Buttons -->
             <div class="button-group" style="width: 100%;">
-              <button class="btn-secondary btn-group-left" (click)="toggleAchievements()" title="View Achievements">
-                <span>🏆 Level {{ achievementService.userProgress().level }}</span>
+              <button class="btn-secondary btn-group-left" (click)="toggleAchievements()" [title]="i18nService.t('achievement.title')">
+                <span>🏆 {{ i18nService.t('button.level') }} {{ achievementService.userProgress().level }}</span>
               </button>
-              <button class="btn-secondary btn-group-right" (click)="toggleGallery()" title="Open Gallery">
-                <span>🖼️ Gallery ({{ galleryService.gallery().length }})</span>
+              <button class="btn-secondary btn-group-right" (click)="toggleGallery()" [title]="i18nService.t('gallery.title')">
+                <span>🖼️ {{ i18nService.t('button.gallery') }} ({{ galleryService.gallery().length }})</span>
               </button>
             </div>
             
-            <button class="btn-secondary" (click)="toggleSettings()" title="Settings" style="width: 100%;">
-              ⚙️ Settings
+            <button class="btn-secondary" (click)="toggleSettings()" [title]="i18nService.t('button.settings')" style="width: 100%;">
+              ⚙️ {{ i18nService.t('button.settings') }}
             </button>
             
             <button class="btn-secondary" (click)="saveToGallery()" [disabled]="canSaveToGallery()" style="width: 100%;">
-              💾 Save to Gallery
+              💾 {{ i18nService.t('button.saveGallery') }}
             </button>
             
             <div class="divider"></div>
@@ -179,7 +549,7 @@
                 @if (processing()) {
                   <span>⏳</span>
                 } @else {
-                  <span>💾 PNG</span>
+                  <span>💾 {{ i18nService.t('button.download') }}</span>
                 }
               </button>
               <button class="btn-secondary btn-group-right" 
@@ -187,9 +557,9 @@
                       (click)="toggleGifStudioMode()" 
                       [disabled]="processing()">
                 @if (gifStudioMode()) {
-                  <span>✨ GIF Mode</span>
+                  <span>✨ {{ i18nService.t('button.gifMode') }}</span>
                 } @else {
-                  <span>🎬 GIF Studio</span>
+                  <span>🎬 {{ i18nService.t('button.gifStudio') }}</span>
                 }
               </button>
             </div>
@@ -292,7 +662,7 @@
 
                     @if (effectLayers().length === 0) {
                       <div class="empty-layers">
-                        <p>No effect layers yet. Add one below! 👇</p>
+                        <p>No effect layers yet. Add one below! 🎨</p>
                       </div>
                     }
                   </div>
@@ -329,7 +699,7 @@
                           <button class="rack-mode-toggle" 
                                   (click)="toggleEffectEditorMode()"
                                   [title]="effectEditorMode() === 'normal' ? 'Switch to Advanced Mode' : 'Switch to Normal Mode'">
-                            {{ effectEditorMode() === 'normal' ? '🎛️' : '📊' }}
+                            {{ effectEditorMode() === 'normal' ? '⚙️' : '🛠️' }}
                           </button>
                           <button class="rack-close-btn" (click)="closeLayerEditor()">✕</button>
                         </div>
@@ -342,7 +712,7 @@
                       <!-- Normal Mode: Sliders -->
                       @if (effectEditorMode() === 'normal') {
                         <div class="editor-panel-body">
-                        <!-- Intensity Control (común para todos) -->
+                        <!-- Intensity Control (com�n para todos) -->
                         <div class="control-group">
                           <label class="control-label">
                             <span>Intensity</span>
@@ -413,7 +783,7 @@
                                  [ngModel]="layer.options.vhsTrackingNoise" 
                                  (ngModelChange)="updateLayerOption(layer.id, 'vhsTrackingNoise', $event)">
                         </div>
-                        <div class="control-group-header">🎨 Color Channel Bleeding</div>
+                        <div class="control-group-header"> Color Channel Bleeding</div>
                         <div class="control-group">
                           <label class="control-label">
                             <span style="color: #ff6b6b;">Red Shift</span>
@@ -452,9 +822,9 @@
                           <select class="select-input" 
                                   [ngModel]="layer.options.noiseType" 
                                   (ngModelChange)="updateLayerOption(layer.id, 'noiseType', $event)">
-                            <option value="film">🎞️ Film</option>
-                            <option value="digital">💾 Digital</option>
-                            <option value="grain">🌾 Grain</option>
+                            <option value="film"> Film</option>
+                            <option value="digital"> Digital</option>
+                            <option value="grain"> Grain</option>
                           </select>
                         </div>
                         <div class="control-group">
@@ -499,9 +869,9 @@
                           <select class="select-input" 
                                   [ngModel]="layer.options.rgbSplitDirection" 
                                   (ngModelChange)="updateLayerOption(layer.id, 'rgbSplitDirection', $event)">
-                            <option value="horizontal">↔️ Horizontal</option>
-                            <option value="vertical">↕️ Vertical</option>
-                            <option value="diagonal">↗️ Diagonal</option>
+                            <option value="horizontal"> Horizontal</option>
+                            <option value="vertical"> Vertical</option>
+                            <option value="diagonal"> Diagonal</option>
                           </select>
                         </div>
                         <div class="control-group">
@@ -524,10 +894,10 @@
                           <select class="select-input" 
                                   [ngModel]="layer.options.motionDirection" 
                                   (ngModelChange)="updateLayerOption(layer.id, 'motionDirection', $event)">
-                            <option value="horizontal">↔️ Horizontal</option>
-                            <option value="vertical">↕️ Vertical</option>
-                            <option value="radial">🌀 Radial</option>
-                            <option value="zoom">🔍 Zoom</option>
+                            <option value="horizontal"> Horizontal</option>
+                            <option value="vertical"> Vertical</option>
+                            <option value="radial"> Radial</option>
+                            <option value="zoom"> Zoom</option>
                           </select>
                         </div>
                         <div class="control-group">
@@ -577,10 +947,10 @@
                           <select class="select-input" 
                                   [ngModel]="layer.options.particleColor" 
                                   (ngModelChange)="updateLayerOption(layer.id, 'particleColor', $event)">
-                            <option value="white">⚪ White</option>
-                            <option value="rainbow">🌈 Rainbow</option>
-                            <option value="warm">🔥 Warm</option>
-                            <option value="cool">❄️ Cool</option>
+                            <option value="white"> White</option>
+                            <option value="rainbow"> Rainbow</option>
+                            <option value="warm"> Warm</option>
+                            <option value="cool"> Cool</option>
                           </select>
                         </div>
                         <div class="control-group">
@@ -590,11 +960,11 @@
                           <select class="select-input" 
                                   [ngModel]="layer.options.particleShape" 
                                   (ngModelChange)="updateLayerOption(layer.id, 'particleShape', $event)">
-                            <option value="circle">⭕ Circle</option>
-                            <option value="star">⭐ Star</option>
-                            <option value="square">⬜ Square</option>
-                            <option value="sparkle">✨ Sparkle</option>
-                            <option value="custom">🎨 Custom</option>
+                            <option value="circle"> Circle</option>
+                            <option value="star"> Star</option>
+                            <option value="square"> Square</option>
+                            <option value="sparkle"> Sparkle</option>
+                            <option value="custom"> Custom</option>
                           </select>
                         </div>
                         <div class="control-group">
@@ -604,13 +974,13 @@
                           <select class="select-input" 
                                   [ngModel]="layer.options.particleEmissionMode" 
                                   (ngModelChange)="updateLayerOption(layer.id, 'particleEmissionMode', $event)">
-                            <option value="float">🎈 Float (Everywhere)</option>
-                            <option value="burst">💥 Burst (Explosion)</option>
-                            <option value="fountain">⛲ Fountain (From Bottom)</option>
-                            <option value="spiral">🌀 Spiral</option>
-                            <option value="edges">📐 Edges (From Borders)</option>
-                            <option value="rain">🌧️ Rain (From Top)</option>
-                            <option value="center">⭕ Center (Pulse)</option>
+                            <option value="float"> Float (Everywhere)</option>
+                            <option value="burst"> Burst (Explosion)</option>
+                            <option value="fountain"> Fountain (From Bottom)</option>
+                            <option value="spiral"> Spiral</option>
+                            <option value="edges"> Edges (From Borders)</option>
+                            <option value="rain"> Rain (From Top)</option>
+                            <option value="center"> Center (Pulse)</option>
                           </select>
                         </div>
                         
@@ -618,7 +988,7 @@
                         @if (layer.options.particleShape === 'custom') {
                           <div class="control-group">
                             <button class="btn-secondary" (click)="openParticleEditor(layer.id)" style="width: 100%;">
-                              🎨 Draw Custom Particle
+                               Draw Custom Particle
                             </button>
                           </div>
                         }
@@ -633,12 +1003,12 @@
                           <select class="select-input" 
                                   [ngModel]="layer.options.flameAlgorithm" 
                                   (ngModelChange)="updateLayerOption(layer.id, 'flameAlgorithm', $event)">
-                            <option value="classic">📼 Classic</option>
-                            <option value="realistic">🔥 Realistic</option>
-                            <option value="plasma">⚡ Plasma</option>
-                            <option value="dragon">🐉 Dragon</option>
-                            <option value="wispy">💨 Wispy</option>
-                            <option value="inferno">🌋 Inferno</option>
+                            <option value="classic"> Classic</option>
+                            <option value="realistic"> Realistic</option>
+                            <option value="plasma"> Plasma</option>
+                            <option value="dragon"> Dragon</option>
+                            <option value="wispy"> Wispy</option>
+                            <option value="inferno"> Inferno</option>
                           </select>
                         </div>
                         <div class="control-group">
@@ -675,11 +1045,11 @@
                           <select class="select-input" 
                                   [ngModel]="layer.options.flameColor" 
                                   (ngModelChange)="updateLayerOption(layer.id, 'flameColor', $event)">
-                            <option value="red">🔴 Red</option>
-                            <option value="blue">🔵 Blue</option>
-                            <option value="green">🟢 Green</option>
-                            <option value="purple">🟣 Purple</option>
-                            <option value="rainbow">🌈 Rainbow</option>
+                            <option value="red"> Red</option>
+                            <option value="blue"> Blue</option>
+                            <option value="green"> Green</option>
+                            <option value="purple"> Purple</option>
+                            <option value="rainbow"> Rainbow</option>
                           </select>
                         </div>
                       }
@@ -689,12 +1059,12 @@
                         <button class="btn-secondary btn-small" 
                                 (click)="moveLayerUp(layer.id)"
                                 [disabled]="layer.order === 0">
-                          ⬆️ Move Up
+                           Move Up
                         </button>
                         <button class="btn-secondary btn-small" 
                                 (click)="moveLayerDown(layer.id)"
                                 [disabled]="layer.order === effectLayers().length - 1">
-                          ⬇️ Move Down
+                           Move Down
                         </button>
                       </div>
                         </div>
@@ -703,7 +1073,7 @@
                       <!-- Advanced Mode: Vintage Knobs -->
                       @if (effectEditorMode() === 'advanced') {
                         <div class="vintage-rack-body">
-                          <!-- Intensity Knob (común para todos) -->
+                          <!-- Intensity Knob (com�n para todos) -->
                           <div class="knobs-row">
                             <app-vintage-knob
                               [label]="'Intensity'"
@@ -881,7 +1251,7 @@
                   </div>
                 } @else {
                   <div class="empty-editor-message">
-                    <div class="empty-icon">✏️</div>
+                    <div class="empty-icon"></div>
                     <p>Select an effect layer above and click <strong>Edit</strong> to configure its properties</p>
                   </div>
                 }
@@ -890,14 +1260,14 @@
               <div class="section-divider"></div>
               <div class="gif-actions">
                 <button class="btn-secondary" (click)="openGifAdvancedSettings()" style="width: 48%;">
-                  ⚙️ Settings
+                   Settings
                 </button>
                 <button class="btn-primary" (click)="downloadAnimatedGif()" 
                         [disabled]="generatingGif()" style="width: 48%;">
                   @if (generatingGif()) {
-                    <span>🔄 Generating...</span>
+                    <span> Generating...</span>
                   } @else {
-                    <span>✨ Generate</span>
+                    <span> Generate</span>
                   }
                 </button>
               </div>
@@ -927,36 +1297,22 @@
                 
                 <!-- Controles de zoom para GIF Preview -->
                 <div class="canvas-controls-overlay">
-                  <div class="tv-control-panel">
-                    <button class="tv-btn" (click)="gifZoomOut()" [disabled]="gifZoomLevel() <= 25" title="Zoom Out">
-                      <span class="tv-btn-icon">➖</span>
-                    </button>
-                    <span class="tv-display">{{ gifZoomLevel() }}%</span>
-                    <button class="tv-btn" (click)="gifZoomIn()" [disabled]="gifZoomLevel() >= 200" title="Zoom In">
-                      <span class="tv-btn-icon">➕</span>
-                    </button>
-                    <button class="tv-btn" (click)="resetGifZoom()" title="Reset Zoom">
-                      <span class="tv-btn-text">100%</span>
-                    </button>
-                    <div class="tv-divider"></div>
-                    <button class="tv-btn" 
-                            [class.active]="gifViewMode() === 'fit'"
-                            (click)="setGifViewMode('fit')" 
-                            title="Fit to View">
-                      <span class="tv-btn-icon">⬚</span>
-                    </button>
-                    <button class="tv-btn" 
-                            [class.active]="gifViewMode() === 'original'"
-                            (click)="setGifViewMode('original')" 
-                            title="Original Size">
-                      <span class="tv-btn-icon">⊡</span>
-                    </button>
+                  <div class="zoom-controls">
+                    <button class="zoom-btn" (click)="gifZoomOut()" [disabled]="gifZoomLevel() <= 25" title="Zoom Out">−</button>
+                    <span class="zoom-level">{{ gifZoomLevel() }}%</span>
+                    <button class="zoom-btn" (click)="gifZoomIn()" [disabled]="gifZoomLevel() >= 200" title="Zoom In">+</button>
+                    <button class="zoom-btn zoom-reset" (click)="resetGifZoom()" title="Reset Zoom">⊙</button>
                   </div>
                 </div>
                 
-                <div class="gif-preview-scroll-container">
-                  <div class="gif-preview-content" [style.width.px]="getGifScaledWidth()" [style.height.px]="getGifScaledHeight()">
-                    <canvas #processedCanvas></canvas>
+                <div class="gif-preview-scroll-container"
+                     [class.can-pan]="gifZoomLevel() > 100"
+                     (mousedown)="startGifPan($event)"
+                     (mousemove)="updateGifPan($event)"
+                     (mouseup)="endGifPan()"
+                     (mouseleave)="endGifPan()">
+                  <div class="gif-preview-content">
+                    <canvas #processedCanvas [style.transform]="'scale(' + (gifZoomLevel() / 100) + ')'"></canvas>
                   </div>
                 </div>
               </div>
@@ -977,9 +1333,9 @@
               <!-- Main Canvas Area -->
               <div class="composition-canvas-area">
                 <div class="canvas-header">
-                  <h3>🎨 Composition Canvas</h3>
+                  <h3> Composition Canvas</h3>
                   <div class="canvas-info">
-                    {{ compositionService.compositionState().canvasWidth }} × 
+                    {{ compositionService.compositionState().canvasWidth }} � 
                     {{ compositionService.compositionState().canvasHeight }}px
                   </div>
                   
@@ -990,7 +1346,7 @@
                       [disabled]="!historyService.canUndo()"
                       (click)="historyService.undo()"
                       [title]="'Undo: ' + (historyService.getUndoDescription() || 'Nothing to undo') + ' (Ctrl+Z)'">
-                      <span class="icon">↶</span>
+                      <span class="icon"></span>
                       <span class="label">Undo</span>
                     </button>
                     <button 
@@ -998,7 +1354,7 @@
                       [disabled]="!historyService.canRedo()"
                       (click)="historyService.redo()"
                       [title]="'Redo: ' + (historyService.getRedoDescription() || 'Nothing to redo') + ' (Ctrl+Y)'">
-                      <span class="icon">↷</span>
+                      <span class="icon"></span>
                       <span class="label">Redo</span>
                     </button>
                     <div class="history-info">
@@ -1037,55 +1393,41 @@
                 </div>
               }
               
-              <!-- Controles internos del canvas (estilo TV analógica) -->
+              <!-- Controles de zoom -->
               <div class="canvas-controls-overlay">
-                <div class="tv-control-panel">
-                  <button class="tv-btn" (click)="zoomOut()" [disabled]="zoomLevel() <= 25" title="Zoom Out">
-                    <span class="tv-btn-icon">➖</span>
-                  </button>
-                  <span class="tv-display">{{ zoomLevel() }}%</span>
-                  <button class="tv-btn" (click)="zoomIn()" [disabled]="zoomLevel() >= 200" title="Zoom In">
-                    <span class="tv-btn-icon">➕</span>
-                  </button>
-                  <button class="tv-btn" (click)="resetZoom()" title="Reset Zoom">
-                    <span class="tv-btn-text">100%</span>
-                  </button>
-                  <div class="tv-divider"></div>
-                  <button class="tv-btn" 
-                          [class.active]="viewMode() === 'fit'"
-                          (click)="setViewMode('fit')" 
-                          title="Fit to View">
-                    <span class="tv-btn-icon">⬚</span>
-                  </button>
-                  <button class="tv-btn" 
-                          [class.active]="viewMode() === 'original'"
-                          (click)="setViewMode('original')" 
-                          title="Original Size">
-                    <span class="tv-btn-icon">⊡</span>
-                  </button>
+                <div class="zoom-controls">
+                  <button class="zoom-btn" (click)="zoomOut()" [disabled]="zoomLevel() <= 25" title="Zoom Out">−</button>
+                  <span class="zoom-level">{{ zoomLevel() }}%</span>
+                  <button class="zoom-btn" (click)="zoomIn()" [disabled]="zoomLevel() >= 200" title="Zoom In">+</button>
+                  <button class="zoom-btn zoom-reset" (click)="resetZoom()" title="Reset Zoom">⊙</button>
                 </div>
               </div>
-              <div class="comparison-scroll-container">
-                <div class="comparison-container" [style.width.px]="getScaledWidth()" [style.height.px]="getScaledHeight()">
+              <div class="comparison-scroll-container" 
+                   [class.can-pan]="zoomLevel() > 100"
+                   (mousedown)="startCanvasPan($event)"
+                   (mousemove)="updateCanvasPan($event)"
+                   (mouseup)="endCanvasPan()"
+                   (mouseleave)="endCanvasPan()">
+                <div class="comparison-container">
                   <!-- Imagen Original (fondo) -->
                   <div class="comparison-layer original-layer">
-                    <canvas #originalCompareCanvas></canvas>
+                    <canvas #originalCompareCanvas [style.transform]="'scale(' + (zoomLevel() / 100) + ')'"></canvas>
                   </div>
                   
                   <!-- Imagen Dithered (revelable) -->
                   <div class="comparison-layer dithered-layer" [style.clip-path]="getClipPath()">
-                    <canvas #processedCanvas></canvas>
+                    <canvas #processedCanvas [style.transform]="'scale(' + (zoomLevel() / 100) + ')'"></canvas>
                   </div>
                   
-                  <!-- Slider de división -->
+                  <!-- Slider de divisi�n -->
                   <div class="comparison-slider" 
                        [style.left.%]="sliderPosition()"
                        (mousedown)="startDragging($event)"
                        (touchstart)="startDragging($event)">
                     <div class="slider-line"></div>
                     <div class="slider-handle">
-                      <span class="slider-arrow left">◀</span>
-                      <span class="slider-arrow right">▶</span>
+                      <span class="slider-arrow left"></span>
+                      <span class="slider-arrow right"></span>
                     </div>
                   </div>
                   
@@ -1104,9 +1446,14 @@
       </div>
       <!-- Fin editor-section -->
     }
-  </div>
+    </div>
+    <!-- Fin main-content -->
+  }
+  <!-- End DESKTOP INTERFACE -->
 </div>
+<!-- End app-container -->
 
+<!-- SHARED MODALS (both mobile and desktop) -->
 <!-- Palette Creator Modal -->
 @if (showPaletteCreator()) {
   <div class="modal-overlay" (click)="togglePaletteCreator()">
@@ -1172,8 +1519,8 @@
   <div class="modal-overlay" (click)="togglePresetManager()">
     <div class="modal-content preset-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>💾 Preset Manager</h2>
-        <button class="btn-close" (click)="togglePresetManager()">✕</button>
+        <h2> Preset Manager</h2>
+        <button class="btn-close" (click)="togglePresetManager()"></button>
       </div>
       
       <div class="modal-body">
@@ -1193,11 +1540,11 @@
             <div class="preset-item">
               <div class="preset-info">
                 <span class="preset-name">{{ preset.name }}</span>
-                <span class="preset-details">{{ preset.algorithm }} • {{ preset.palette }}</span>
+                <span class="preset-details">{{ preset.algorithm }} � {{ preset.palette }}</span>
               </div>
               <div class="preset-actions">
                 <button class="btn-secondary" (click)="loadPreset(preset.id)">Load</button>
-                <button class="btn-remove" (click)="deletePreset(preset.id)">✕</button>
+                <button class="btn-remove" (click)="deletePreset(preset.id)"></button>
               </div>
             </div>
           }
@@ -1237,8 +1584,8 @@
   <div class="modal-overlay" (click)="closeParticleEditor()">
     <div class="modal-content particle-editor-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>🎨 Custom Particle Editor</h3>
-        <button class="btn-close" (click)="closeParticleEditor()">✕</button>
+        <h3> Custom Particle Editor</h3>
+        <button class="btn-close" (click)="closeParticleEditor()"></button>
       </div>
       
       <div class="modal-body">
@@ -1284,10 +1631,10 @@
             
             <div class="button-group">
               <button class="btn-secondary" (click)="clearParticleCanvas()">
-                🗑️ Clear
+                 Clear
               </button>
               <button class="btn-secondary" (click)="fillParticleCanvas()">
-                🎨 Fill
+                 Fill
               </button>
             </div>
             
@@ -1301,7 +1648,7 @@
                     <img [src]="sprite.data" alt="Particle sprite">
                     <button class="btn-delete-sprite" 
                             (click)="deleteParticleSprite(sprite.id); $event.stopPropagation()">
-                      ✕
+                      
                     </button>
                   </div>
                 }
@@ -1316,7 +1663,7 @@
       
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeParticleEditor()">Cancel</button>
-        <button class="btn-primary" (click)="saveParticleSprite()">💾 Save & Use</button>
+        <button class="btn-primary" (click)="saveParticleSprite()"> Save & Use</button>
       </div>
     </div>
   </div>
@@ -1355,3 +1702,4 @@
     (closed)="showSettings.set(false)">
   </app-settings>
 }
+

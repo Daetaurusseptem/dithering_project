@@ -173,6 +173,10 @@ export class ThemeService {
     return this.themes[themeId].colors;
   }
   
+  getThemeData(themeId: ThemeId): Theme {
+    return this.themes[themeId];
+  }
+  
   private applyTheme(themeId: ThemeId): void {
     const theme = this.themes[themeId];
     const root = document.documentElement;
@@ -183,6 +187,88 @@ export class ThemeService {
       root.style.setProperty(cssVarName, value as string);
     });
     
+    // Update theme-color meta tag (cambia el color del navegador/barra de estado)
+    this.updateThemeColorMeta(theme.colors.primary);
+    
+    // Update dynamic favicon (cambia el icono según el tema)
+    this.updateFavicon(theme.colors.primary, theme.colors.background);
+    
     console.log(`🎨 Theme applied: ${theme.name}`);
+  }
+  
+  private updateThemeColorMeta(color: string): void {
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', color);
+  }
+  
+  private updateFavicon(primaryColor: string, backgroundColor: string): void {
+    // Crear SVG dinámico con los colores del tema
+    const svg = `
+      <svg width="520" height="520" viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+        <path fill="${primaryColor}" d="
+          M 60,0  H 460
+          V 20 H 500
+          V 60 H 520
+          V 460
+          H 500 V 500
+          H 460 V 520
+          H 60
+          V 500 H 20
+          V 460 H 0
+          V 60
+          H 20 V 20
+          H 60 V 0 Z
+        "/>
+        
+        <path fill="${backgroundColor}" d="
+          M 80,20 H 440
+          V 40 H 480
+          V 80 H 500
+          V 440
+          H 480 V 480
+          H 440 V 500
+          H 80
+          V 480 H 40
+          V 440 H 20
+          V 80
+          H 40 V 40
+          H 80 V 20 Z
+        "/>
+        
+        <g transform="translate(4, 4)">
+          <defs>
+            <pattern id="ditherPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+              <rect width="20" height="20" fill="${primaryColor}"/>
+              <rect x="20" y="20" width="20" height="20" fill="${primaryColor}"/>
+            </pattern>
+          </defs>
+          
+          <path d="M120 120 H 300 V 300 H 120 Z" fill="${primaryColor}"/>
+          <path d="M300 120 H 400 V 400 H 120 V 300 H 300 Z" fill="url(#ditherPattern)"/>
+          <rect x="360" y="140" width="40" height="40" fill="${primaryColor}" opacity="0.6"/>
+        </g>
+      </svg>
+    `;
+    
+    // Convertir SVG a Data URI
+    const encoded = encodeURIComponent(svg)
+      .replace(/'/g, '%27')
+      .replace(/"/g, '%22');
+    const dataUri = `data:image/svg+xml,${encoded}`;
+    
+    // Actualizar el favicon SVG
+    let link = document.querySelector('link[rel="icon"][type="image/svg+xml"]') as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/svg+xml';
+      document.head.appendChild(link);
+    }
+    link.href = dataUri;
   }
 }

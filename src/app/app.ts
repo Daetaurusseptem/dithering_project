@@ -1,4 +1,4 @@
-import { Component, signal, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, signal, computed, effect, untracked, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DitheringService, DitheringOptions } from './services/dithering.service';
@@ -27,8 +27,13 @@ import { GifEffectOptions } from './components/gif-options/gif-options.component
 import { GifAdvancedSettingsComponent } from './components/gif-advanced-settings/gif-advanced-settings.component';
 import { VintageKnobComponent } from './components/vintage-knob/vintage-knob.component';
 import { SettingsComponent } from './components/settings/settings.component';
+import { NavigationMobileComponent, MobileNavigationTab } from './components/mobile/navigation-mobile/navigation-mobile.component';
+import { UploadMobileComponent } from './components/mobile/upload-mobile/upload-mobile.component';
+import { CanvasMobileComponent } from './components/mobile/canvas-mobile/canvas-mobile.component';
+import { ControlsMobileComponent, ControlsMobileOptions } from './components/mobile/controls-mobile/controls-mobile.component';
 import { I18nService } from './services/i18n.service';
 import { ThemeService } from './services/theme.service';
+import { DeviceDetectionService } from './services/device-detection.service';
 import { EffectLayer, EffectType, DEFAULT_EFFECT_OPTIONS, EFFECT_NAMES } from './models/effect-layer.interface';
 import { DitheringSettings } from './models/achievement.interface';
 
@@ -39,7 +44,7 @@ import { DitheringSettings } from './models/achievement.interface';
     FormsModule, 
     CrtWaifuComponent, 
     SpriteUploaderComponent, 
-    GifLoadingComponent, 
+    GifLoadingComponent,
     AchievementNotificationComponent, 
     AchievementsPanelComponent, 
     GalleryComponent, 
@@ -49,7 +54,11 @@ import { DitheringSettings } from './models/achievement.interface';
     LayerPropertiesComponent,
     GifAdvancedSettingsComponent,
     VintageKnobComponent,
-    SettingsComponent
+    SettingsComponent,
+    NavigationMobileComponent,
+    UploadMobileComponent,
+    CanvasMobileComponent,
+    ControlsMobileComponent
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'
@@ -60,6 +69,7 @@ export class App implements AfterViewInit {
   @ViewChild('originalCompareCanvas') originalCompareCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('particleCanvas') particleCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('gifStudioCanvas') gifStudioCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild(CompositionCanvasComponent) compositionCanvasComponent?: CompositionCanvasComponent;
 
   // Estado de la aplicación
@@ -79,6 +89,10 @@ export class App implements AfterViewInit {
   showGallery = signal(false);
   showSettings = signal(false);
   
+  // Mobile Navigation
+  mobileActiveTab = signal<MobileNavigationTab>('upload');
+  showMobileControls = signal(false);
+  
   // Particle Editor
   showParticleEditor = signal(false);
   editingParticleLayerId: string | null = null;
@@ -94,10 +108,20 @@ export class App implements AfterViewInit {
   private isDragging = false;
   zoomLevel = signal(100); // Porcentaje de zoom
   viewMode = signal<'fit' | 'original'>('fit'); // Modo de vista del canvas
+  private isPanningCanvas = false;
+  private panStartX = 0;
+  private panStartY = 0;
+  private scrollStartX = 0;
+  private scrollStartY = 0;
   
   // GIF Preview Zoom & View
   gifZoomLevel = signal(100); // Porcentaje de zoom para GIF
   gifViewMode = signal<'fit' | 'original'>('fit'); // Modo de vista del GIF
+  private isPanningGif = false;
+  private gifPanStartX = 0;
+  private gifPanStartY = 0;
+  private gifScrollStartX = 0;
+  private gifScrollStartY = 0;
   
   // Effect Layers System
   effectLayers = signal<EffectLayer[]>([]);
@@ -122,6 +146,8 @@ export class App implements AfterViewInit {
   private previewFrames: string[] = [];
   private currentPreviewFrame = 0;
   private previewInterval: any = null;
+  private gifMobileAnimationInterval: any = null;
+  private gifMobileFrames: GifFrame[] = []; // Store frames for download
   isGeneratingPreview = false; // Público para el template
   private previewDebounceTimer: any = null;
   private lastPreviewUpdate = 0;
@@ -130,7 +156,7 @@ export class App implements AfterViewInit {
   // Imagen original
   originalImageData: ImageData | null = null;
   processedImageData: ImageData | null = null; // Imagen con dithering aplicado
-  private originalImage: HTMLImageElement | null = null;
+  originalImage: HTMLImageElement | null = null;
 
   // Opciones de dithering
   selectedAlgorithm = signal('floyd-steinberg');
@@ -143,6 +169,9 @@ export class App implements AfterViewInit {
 
   // Waifu CRT
   waifuSpriteUrl = signal('assets/waifu-sprite.jpg'); // Aquí puedes poner la URL de tu sprite sheet
+  
+  // Dynamic Logo (computed from theme)
+  navbarLogoUrl = signal('');
   
   // Listas de opciones
   algorithms = signal<{ id: string; name: string; category: string }[]>([]);
@@ -218,12 +247,46 @@ export class App implements AfterViewInit {
     public compositionToolService: CompositionToolService,
     public historyService: HistoryService,
     public i18nService: I18nService,
-    public themeService: ThemeService
+    public themeService: ThemeService,
+    public deviceService: DeviceDetectionService
   ) {
     this.algorithms.set(this.ditheringService.getAvailableAlgorithms());
     this.palettes.set(this.ditheringService.getAvailablePalettes());
     this.loadCustomPalettesAndPresets();
     this.loadSavedSprite();
+    
+    // Update navbar logo when theme changes
+    effect(() => {
+      const themeId = this.themeService.currentTheme();
+      this.updateNavbarLogo();
+    });
+    
+    // Initialize composition when entering composition tab in mobile
+    effect(() => {
+      if (this.mobileActiveTab() === 'composition' && this.deviceService.isMobile()) {
+        // Use untracked to avoid infinite loops
+        untracked(() => this.initializeCompositionIfNeeded());
+      }
+    });
+    
+    // Render GIF preview in mobile when effect layers change or when entering tab
+    effect(() => {
+      const tab = this.mobileActiveTab();
+      if (tab === 'gif' && this.deviceService.isMobile()) {
+        // Track changes to effect layers, composition state, and processed image
+        const layers = this.effectLayers();
+        const compositionState = this.compositionService.compositionState();
+        const hasProcessed = this.processedImageData;
+        // Render preview
+        untracked(() => this.renderGifMobilePreview());
+      } else {
+        // Clean up animation when leaving GIF tab
+        if (this.gifMobileAnimationInterval) {
+          clearInterval(this.gifMobileAnimationInterval);
+          this.gifMobileAnimationInterval = null;
+        }
+      }
+    });
     
     // Sistema de diálogos esporádicos
     this.startDialogueSystem();
@@ -293,6 +356,39 @@ export class App implements AfterViewInit {
   }
 
   /**
+   * Handle mobile file selection
+   */
+  async onMobileFileSelected(file: File) {
+    if (this.imageLoaded()) {
+      const confirmed = await this.modalService.confirm(
+        'Loading a new image will reset all layers and effects. Continue?',
+        'Load New Image'
+      );
+      
+      if (!confirmed) return;
+      this.resetAllModes();
+    }
+    
+    this.loadImage(file);
+  }
+
+  /**
+   * Handle mobile controls change
+   */
+  onMobileControlsChange(options: ControlsMobileOptions): void {
+    this.selectedAlgorithm.set(options.algorithm);
+    this.selectedPalette.set(options.palette);
+    this.scale.set(options.scale);
+    this.contrast.set(options.contrast);
+    this.midtones.set(options.midtones);
+    this.highlights.set(options.highlights);
+    this.blur.set(options.blur);
+    
+    // Reprocess image with new options
+    this.processImage();
+  }
+
+  /**
    * Carga una imagen desde un archivo
    */
   private loadImage(file: File) {
@@ -310,14 +406,21 @@ export class App implements AfterViewInit {
         this.compositionService.clearAllLayers();
         console.log('🔄 Composition layers cleared for new image');
         
+        // Switch to canvas tab in mobile after image loads
+        if (this.deviceService.isMobile()) {
+          this.mobileActiveTab.set('canvas');
+        }
+        
         // Forzar detección de cambios y esperar a que Angular renderice
         this.cdr.detectChanges();
         
         // Usar un delay más largo para asegurar que el DOM está listo
         setTimeout(() => {
-          if (this.processedCanvas) {
-            // Extraer los datos de la imagen para procesamiento
-            this.extractImageData(img);
+          // Extraer los datos de la imagen para procesamiento
+          this.extractImageData(img);
+          
+          // En mobile procesar inmediatamente, en desktop esperar el canvas
+          if (this.deviceService.isMobile() || this.processedCanvas) {
             this.processImage();
           }
         }, 100);
@@ -352,7 +455,11 @@ export class App implements AfterViewInit {
    * Procesa la imagen con el algoritmo seleccionado
    */
   processImage() {
-    if (!this.originalImageData || !this.processedCanvas) return;
+    if (!this.originalImageData) return;
+    
+    // En mobile no necesitamos el canvas desktop
+    const isMobile = this.deviceService.isMobile();
+    if (!isMobile && !this.processedCanvas) return;
 
     this.processing.set(true);
     this.waifuState.set('processing');
@@ -437,16 +544,19 @@ export class App implements AfterViewInit {
         
         // Apply dithering
         this.processedImageData = this.ditheringService.applyDithering(imageData, options);
+        console.log('📱 Dithering applied:', this.processedImageData.width, 'x', this.processedImageData.height);
       }
 
-      // Dibujar resultado
-      const canvas = this.processedCanvas.nativeElement;
-      canvas.width = this.processedImageData.width;
-      canvas.height = this.processedImageData.height;
-      const ctx = canvas.getContext('2d');
-      
-      if (ctx) {
-        ctx.putImageData(this.processedImageData, 0, 0);
+      // Dibujar resultado (solo en desktop)
+      if (!isMobile && this.processedCanvas) {
+        const canvas = this.processedCanvas.nativeElement;
+        canvas.width = this.processedImageData.width;
+        canvas.height = this.processedImageData.height;
+        const ctx = canvas.getContext('2d');
+        
+        if (ctx) {
+          ctx.putImageData(this.processedImageData, 0, 0);
+        }
       }
 
       this.processing.set(false);
@@ -460,10 +570,12 @@ export class App implements AfterViewInit {
       
       // 🖼️ ALWAYS draw original in comparison (Preview mode should be isolated)
       // This ensures the original image is always visible regardless of mode changes
-      this.drawOriginalInComparison();
+      if (!isMobile) {
+        this.drawOriginalInComparison();
+      }
       
       // Si estamos en modo GIF Studio, regenerar el preview con las nuevas opciones
-      if (this.gifStudioMode()) {
+      if (this.gifStudioMode() && !isMobile) {
         this.generateGifPreview();
       }
       
@@ -603,6 +715,68 @@ export class App implements AfterViewInit {
 
   setGifViewMode(mode: 'fit' | 'original') {
     this.gifViewMode.set(mode);
+  }
+
+  // Pan para modo comparación
+  startCanvasPan(event: MouseEvent) {
+    if (this.zoomLevel() <= 100) return;
+    const target = event.target as HTMLElement;
+    const scrollContainer = target.closest('.comparison-scroll-container') as HTMLElement;
+    if (!scrollContainer) return;
+    
+    this.isPanningCanvas = true;
+    this.panStartX = event.clientX;
+    this.panStartY = event.clientY;
+    this.scrollStartX = scrollContainer.scrollLeft;
+    this.scrollStartY = scrollContainer.scrollTop;
+    event.preventDefault();
+  }
+
+  updateCanvasPan(event: MouseEvent) {
+    if (!this.isPanningCanvas) return;
+    const target = event.target as HTMLElement;
+    const scrollContainer = target.closest('.comparison-scroll-container') as HTMLElement;
+    if (!scrollContainer) return;
+    
+    const deltaX = this.panStartX - event.clientX;
+    const deltaY = this.panStartY - event.clientY;
+    scrollContainer.scrollLeft = this.scrollStartX + deltaX;
+    scrollContainer.scrollTop = this.scrollStartY + deltaY;
+  }
+
+  endCanvasPan() {
+    this.isPanningCanvas = false;
+  }
+
+  // Pan para modo GIF
+  startGifPan(event: MouseEvent) {
+    if (this.gifZoomLevel() <= 100) return;
+    const target = event.target as HTMLElement;
+    const scrollContainer = target.closest('.gif-preview-scroll-container') as HTMLElement;
+    if (!scrollContainer) return;
+    
+    this.isPanningGif = true;
+    this.gifPanStartX = event.clientX;
+    this.gifPanStartY = event.clientY;
+    this.gifScrollStartX = scrollContainer.scrollLeft;
+    this.gifScrollStartY = scrollContainer.scrollTop;
+    event.preventDefault();
+  }
+
+  updateGifPan(event: MouseEvent) {
+    if (!this.isPanningGif) return;
+    const target = event.target as HTMLElement;
+    const scrollContainer = target.closest('.gif-preview-scroll-container') as HTMLElement;
+    if (!scrollContainer) return;
+    
+    const deltaX = this.gifPanStartX - event.clientX;
+    const deltaY = this.gifPanStartY - event.clientY;
+    scrollContainer.scrollLeft = this.gifScrollStartX + deltaX;
+    scrollContainer.scrollTop = this.gifScrollStartY + deltaY;
+  }
+
+  endGifPan() {
+    this.isPanningGif = false;
   }
 
   // Calcula dimensiones escaladas para GIF
@@ -1079,6 +1253,68 @@ export class App implements AfterViewInit {
   }
 
   /**
+   * Navbar Logo - Dynamic SVG generation
+   */
+  updateNavbarLogo() {
+    const themeId = this.themeService.currentTheme();
+    const theme = this.themeService.getThemeData(themeId);
+    const primaryColor = theme.colors.primary;
+    const backgroundColor = theme.colors.background;
+    
+    // Generate the EXACT same SVG structure as favicon
+    const svg = `
+      <svg width="520" height="520" viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+        <path fill="${primaryColor}" d="
+          M 60,0  H 460
+          V 20 H 500
+          V 60 H 520
+          V 460
+          H 500 V 500
+          H 460 V 520
+          H 60
+          V 500 H 20
+          V 460 H 0
+          V 60
+          H 20 V 20
+          H 60 V 0 Z
+        "/>
+        
+        <path fill="${backgroundColor}" d="
+          M 80,20 H 440
+          V 40 H 480
+          V 80 H 500
+          V 440
+          H 480 V 480
+          H 440 V 500
+          H 80
+          V 480 H 40
+          V 440 H 20
+          V 80
+          H 40 V 40
+          H 80 V 20 Z
+        "/>
+        
+        <g transform="translate(4, 4)">
+          <defs>
+            <pattern id="navbarDitherPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+              <rect width="20" height="20" fill="${primaryColor}"/>
+              <rect x="20" y="20" width="20" height="20" fill="${primaryColor}"/>
+            </pattern>
+          </defs>
+          
+          <path d="M120 120 H 300 V 300 H 120 Z" fill="${primaryColor}"/>
+          <path d="M300 120 H 400 V 400 H 120 V 300 H 300 Z" fill="url(#navbarDitherPattern)"/>
+          <rect x="360" y="140" width="40" height="40" fill="${primaryColor}" opacity="0.6"/>
+        </g>
+      </svg>
+    `;
+    
+    const encoded = encodeURIComponent(svg).replace(/'/g, '%27').replace(/"/g, '%22');
+    const dataUri = `data:image/svg+xml,${encoded}`;
+    this.navbarLogoUrl.set(dataUri);
+  }
+
+  /**
    * Sprite Uploader Methods
    */
   loadSavedSprite() {
@@ -1161,6 +1397,337 @@ export class App implements AfterViewInit {
     }
   }
   
+  // Composition mobile UI state
+  showCompositionLayers = signal(false);
+  showLayerProps = signal(false);
+  toolsCollapsed = signal(false);
+  
+  // GIF mode mobile UI state
+  showGifLayers = signal(false);
+  isGifPlaying = signal(false);
+  activeEffectLayerId = signal<string | null>(null);
+  gifPanelCollapsed = signal(true); // Start collapsed to not obstruct preview
+  
+  // Gallery mobile UI state
+  gallerySearchQuery = '';
+  selectedGalleryItem = signal<any | null>(null);
+  filteredGalleryItems = computed(() => {
+    const items = this.galleryService.gallery();
+    if (!this.gallerySearchQuery.trim()) return items;
+    const query = this.gallerySearchQuery.toLowerCase();
+    return items.filter((item: any) => 
+      item.name.toLowerCase().includes(query) ||
+      item.tags?.some((tag: string) => tag.toLowerCase().includes(query))
+    );
+  });
+
+  // GIF mode helpers
+  canExportGif(): boolean {
+    return this.effectLayers().length > 0;
+  }
+
+  exportGif(): void {
+    if (this.canExportGif()) {
+      this.generateGifPreview();
+    }
+  }
+
+  toggleGifPlayback(): void {
+    // Toggle GIF playback if preview exists
+    const img = document.querySelector('.gif-preview') as HTMLImageElement;
+    if (img) {
+      // GIFs play automatically, this is just UI feedback
+      this.isGifPlaying.update((v: boolean) => !v);
+    }
+  }
+
+  getEffectLayerName(layer: any): string {
+    const typeNames: Record<string, string> = {
+      'scanline': 'Scanlines',
+      'vhs': 'VHS',
+      'noise': 'Noise',
+      'phosphor': 'Phosphor',
+      'rgb-split': 'RGB Split',
+      'motion-sense': 'Motion',
+      'particles': 'Particles',
+      'flames': 'Flames'
+    };
+    return typeNames[layer.type] || layer.type;
+  }
+
+  editEffectLayer(id: string): void {
+    // Set active layer for editing
+    this.activeEffectLayerId.set(id);
+    this.showGifOptions.set(true);
+  }
+
+  deleteEffectLayer(id: string): void {
+    const layers = this.effectLayers();
+    const filtered = layers.filter(l => l.id !== id);
+    this.effectLayers.set(filtered);
+    if (this.activeEffectLayerId() === id) {
+      this.activeEffectLayerId.set(null);
+    }
+  }
+
+  addEffectLayerMobile(): void {
+    // Default to scanline effect when adding from mobile
+    this.addEffectLayer('scanline');
+  }
+
+  toggleGifPanel(): void {
+    this.gifPanelCollapsed.update(v => !v);
+  }
+
+  async renderGifMobilePreview(): Promise<void> {
+    // Wait for canvas to be available if needed
+    if (!this.gifStudioCanvas) {
+      setTimeout(() => this.renderGifMobilePreview(), 100);
+      return;
+    }
+
+    const canvas = this.gifStudioCanvas.nativeElement;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Get composition image data (with all composition layers)
+    let baseImageData: ImageData | null = null;
+    
+    // Check if there are composition layers (regardless of compositionMode)
+    const compositionState = this.compositionService.compositionState();
+    if (compositionState.layers.length > 0 && this.compositionCanvasComponent) {
+      // Use composition with all its layers (includes per-layer effects)
+      baseImageData = this.compositionCanvasComponent.getCompositionImageDataWithEffects();
+      console.log('🎨 GIF using composition base:', baseImageData?.width, 'x', baseImageData?.height);
+    } else if (this.processedImageData) {
+      // Fallback to processed image
+      baseImageData = this.processedImageData;
+      console.log('📊 GIF using processed image base:', baseImageData?.width, 'x', baseImageData?.height);
+    }
+    
+    if (!baseImageData) {
+      return;
+    }
+
+    // Get enabled effect layers in order
+    const enabledLayers = this.getSortedLayers().filter(layer => layer.enabled);
+    
+    if (enabledLayers.length === 0) {
+      // No effects, just show composition/processed image - clear any animation first
+      if (this.gifMobileAnimationInterval) {
+        clearInterval(this.gifMobileAnimationInterval);
+        this.gifMobileAnimationInterval = null;
+      }
+      ctx.putImageData(baseImageData, 0, 0);
+      return;
+    }
+
+    // Generate animated frames like desktop
+    const frames = await this.createLayeredEffectFrames(baseImageData, enabledLayers);
+    
+    if (frames.length > 0) {
+      // Store frames for download
+      this.gifMobileFrames = frames;
+      
+      // Animate frames
+      let currentFrame = 0;
+      const fps = this.gifFps();
+      const interval = 1000 / fps;
+      
+      // Stop previous animation if any
+      if (this.gifMobileAnimationInterval) {
+        clearInterval(this.gifMobileAnimationInterval);
+      }
+      
+      // Start animation loop
+      this.gifMobileAnimationInterval = setInterval(() => {
+        ctx.putImageData(frames[currentFrame].imageData, 0, 0);
+        currentFrame = (currentFrame + 1) % frames.length;
+      }, interval);
+      
+      // Show first frame immediately
+      ctx.putImageData(frames[0].imageData, 0, 0);
+    }
+  }
+
+  async downloadGifMobile(): Promise<void> {
+    if (this.gifMobileFrames.length === 0) {
+      console.warn('No frames available for download');
+      return;
+    }
+
+    this.generatingGif.set(true);
+    this.gifProgress.set(0);
+    this.gifLoadingMessage.set('Generating GIF...');
+
+    try {
+      const blob = await this.gifService.exportAsGif(
+        this.gifMobileFrames,
+        {
+          quality: 10,
+          workers: 2,
+          repeat: this.gifLoopCount()
+        },
+        (progress) => {
+          this.gifProgress.set(progress);
+        }
+      );
+
+      // Download the GIF
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dithered-gif-${Date.now()}.gif`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Achievement
+      this.achievementService.trackGifCreated(this.effectLayers().filter(l => l.enabled).length);
+    } catch (error) {
+      console.error('Error generating GIF:', error);
+    } finally {
+      this.generatingGif.set(false);
+    }
+  }
+
+  updateLayerIntensityMobile(layerId: string, event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const intensity = parseFloat(target.value) / 100;
+    this.updateLayerIntensity(layerId, intensity);
+  }
+
+  updateLayerOptionMobile(layerId: string, optionKey: string, event: Event, scale: number = 1): void {
+    const target = event.target as HTMLInputElement;
+    const value = parseFloat(target.value) * scale;
+    this.updateLayerOption(layerId, optionKey, value);
+  }
+
+  // Gallery Mobile Methods
+  onGallerySearch(): void {
+    // Trigger reactivity - filteredGalleryItems computed will update automatically
+  }
+
+  openGalleryItemMobile(item: any): void {
+    this.selectedGalleryItem.set(item);
+  }
+
+  closeGalleryItemMobile(): void {
+    this.selectedGalleryItem.set(null);
+  }
+
+  loadGalleryItemToCanvas(item: any): void {
+    // Load the gallery item back to canvas
+    const img = new Image();
+    img.onload = () => {
+      this.originalImage = img;
+      this.imageLoaded.set(true);
+      
+      // Extract canvas data
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      this.originalImageData = ctx.getImageData(0, 0, img.width, img.height);
+      
+      // Apply stored settings if available
+      if (item.settings) {
+        this.applySettingsFromGallery(item.settings);
+      }
+      
+      // Process and switch to canvas tab
+      this.processImage();
+      this.mobileActiveTab.set('canvas');
+      this.closeGalleryItemMobile();
+    };
+    img.src = item.fullImage;
+  }
+
+  applySettingsFromGallery(settings: any): void {
+    // Apply dithering settings from gallery item
+    if (settings.algorithm) this.selectedAlgorithm.set(settings.algorithm);
+    if (settings.palette) this.selectedPalette.set(settings.palette);
+    // Note: Other settings like threshold, colorCount, brightness, etc.
+    // would need to be applied through the mobile controls component
+    // or stored as signals in this component. For now just apply algorithm and palette.
+  }
+
+  deleteGalleryItemMobile(item: any): void {
+    if (confirm(`Delete "${item.name}"?`)) {
+      this.galleryService.removeItem(item.id);
+      this.closeGalleryItemMobile();
+    }
+  }
+
+  formatGalleryDate(date: Date): string {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  }
+
+  gifPreviewUrl = computed(() => {
+    // Return null for now - will be implemented when GIF generation is connected
+    // TODO: Return actual generated GIF URL
+    return null as string | null;
+  });
+
+  gifPreviewData = computed(() => {
+    // Check if GIF has been generated
+    return this.gifProgress() === 100 && this.gifLoadingMessage() === 'Complete!';
+  });
+
+  downloadGif(): void {
+    // Trigger GIF download
+    if (this.gifPreviewData()) {
+      // Use existing download logic from desktop
+      const link = document.createElement('a');
+      const canvas = document.querySelector('.gif-canvas-mobile') as HTMLCanvasElement;
+      if (canvas) {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = `dithered-gif-${Date.now()}.gif`;
+            link.click();
+            URL.revokeObjectURL(url);
+          }
+        });
+      }
+    }
+  }
+
+  initializeCompositionIfNeeded() {
+    // Initialize composition when entering mobile composition tab
+    if (!this.originalImage || !this.originalImageData) {
+      console.log('⚠️ No image loaded, cannot initialize composition');
+      return;
+    }
+
+    const state = this.compositionService.compositionState();
+    
+    // Sync dithering options
+    this.syncDitheringOptionsToComposition();
+    
+    // Set canvas size to match ORIGINAL image
+    this.compositionService.setCanvasSize(
+      this.originalImageData.width,
+      this.originalImageData.height
+    );
+    
+    // Only initialize layers if there are none
+    if (state.layers.length === 0) {
+      console.log('📱 Initializing mobile composition with base layer');
+      this.compositionService.addLayer(this.originalImage, this.originalImageData, { x: 0, y: 0 });
+    }
+  }
+
+
+
   toggleCompositionMode() {
     this.compositionMode.update(current => !current);
     

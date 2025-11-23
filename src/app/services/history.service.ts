@@ -142,6 +142,35 @@ export class UpdateLayerCommand implements Command {
 }
 
 /**
+ * Eraser Command - replaces entire layer with erased version
+ */
+export class EraserCommand implements Command {
+  description: string;
+
+  constructor(
+    private compositionService: any,
+    private oldLayer: CompositionLayer,
+    private newLayer: CompositionLayer
+  ) {
+    this.description = `Erase on "${oldLayer.name}"`;
+  }
+
+  execute(): void {
+    // Delete old layer and add new erased layer
+    this.compositionService.deleteLayer(this.oldLayer.id);
+    this.compositionService.addLayerWithId(this.newLayer);
+    this.compositionService.setActiveLayer(this.newLayer.id);
+  }
+
+  undo(): void {
+    // Delete erased layer and restore original
+    this.compositionService.deleteLayer(this.newLayer.id);
+    this.compositionService.addLayerWithId(this.oldLayer);
+    this.compositionService.setActiveLayer(this.oldLayer.id);
+  }
+}
+
+/**
  * Reorder Layers Command
  */
 export class ReorderLayersCommand implements Command {

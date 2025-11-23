@@ -38,6 +38,14 @@ export type { ShapeType } from '../../services/composition-tool.service';
           <span class="tool-icon">🔍</span>
         </button>
         
+        <button 
+          class="tool-btn"
+          [class.active]="activeTool() === 'crop'"
+          (click)="selectTool('crop')"
+          title="Crop Tool (C)">
+          <span class="tool-icon">✂</span>
+        </button>
+        
         <div class="tool-separator"></div>
         
         <button 
@@ -62,6 +70,14 @@ export type { ShapeType } from '../../services/composition-tool.service';
           (click)="selectTool('brush')"
           title="Brush Tool (B)">
           <span class="tool-icon">🖌</span>
+        </button>
+        
+        <button 
+          class="tool-btn"
+          [class.active]="activeTool() === 'eraser'"
+          (click)="selectTool('eraser')"
+          title="Eraser Tool (E)">
+          <span class="tool-icon">♨</span>
         </button>
       </div>
       
@@ -280,10 +296,44 @@ export type { ShapeType } from '../../services/composition-tool.service';
               </div>
             }
             
+            <!-- Eraser Options -->
+            @if (activeTool() === 'eraser') {
+              <div class="option-group">
+                <label>Eraser Size: {{ toolOptions.eraserSize }}px</label>
+                <input 
+                  type="range" 
+                  min="5" 
+                  max="150" 
+                  [(ngModel)]="toolOptions.eraserSize"
+                  (input)="emitOptionsChange()">
+              </div>
+              
+              <div class="option-group">
+                <label>Hardness: {{ toolOptions.eraserHardness }}%</label>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  [(ngModel)]="toolOptions.eraserHardness"
+                  (input)="emitOptionsChange()">
+              </div>
+              
+              <div class="option-group">
+                <p class="hint">Drag to erase pixels<br>Hardness controls edge softness</p>
+              </div>
+            }
+            
             <!-- Zoom Options -->
             @if (activeTool() === 'zoom') {
               <div class="option-group">
                 <p class="hint">Click to zoom in<br>Alt + Click to zoom out</p>
+              </div>
+            }
+            
+            <!-- Crop Options -->
+            @if (activeTool() === 'crop') {
+              <div class="option-group">
+                <p class="hint">Drag to select crop area<br>Press Enter to apply<br>Press Esc to cancel</p>
               </div>
             }
           </div>
@@ -324,9 +374,9 @@ export type { ShapeType } from '../../services/composition-tool.service';
     .tool-btn {
       width: 100%;
       height: 36px;
-      background: rgba(0, 40, 0, 0.6);
+      background: transparent;
       border: 1px solid var(--theme-border, rgba(0, 255, 0, 0.3));
-      color: var(--theme-primary, #00ff00);
+      color: var(--theme-text, rgba(255, 255, 255, 0.7));
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -336,18 +386,17 @@ export type { ShapeType } from '../../services/composition-tool.service';
     }
     
     .tool-btn:hover {
-      background: rgba(0, 60, 0, 0.8);
-      border-color: var(--theme-primary, #00ff00);
-      box-shadow: 0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.4));
+      background: var(--theme-surface);
+      border-color: var(--theme-border);
+      color: var(--theme-text);
       transform: translateX(2px);
     }
     
     .tool-btn.active {
-      background: rgba(0, 120, 0, 0.9);
+      background: var(--theme-surface);
       border-color: var(--theme-primary, #00ff00);
       border-width: 2px;
-      box-shadow: 0 0 12px var(--theme-glow, rgba(0, 255, 0, 0.7)),
-                  inset 0 0 8px var(--theme-glow, rgba(0, 255, 0, 0.3));
+      color: var(--theme-primary, #00ff00);
     }
     
     .tool-icon {
@@ -496,7 +545,9 @@ export class CompositionToolbarComponent {
       'select': 'Select',
       'hand': 'Hand',
       'zoom': 'Zoom',
+      'crop': 'Crop',
       'shape': 'Shape',
+      'eraser': 'Eraser',
       'text': 'Text',
       'brush': 'Brush'
     };

@@ -4,7 +4,7 @@ import { CompositionService } from '../../services/composition.service';
 import { DitheringService } from '../../services/dithering.service';
 import { CompositionToolService } from '../../services/composition-tool.service';
 import { ModalService } from '../../services/modal.service';
-import { HistoryService, MoveLayerCommand, TransformLayerCommand, AddLayerCommand, BatchUpdateLayersCommand } from '../../services/history.service';
+import { HistoryService, MoveLayerCommand, TransformLayerCommand, AddLayerCommand, BatchUpdateLayersCommand, EraserCommand } from '../../services/history.service';
 import { CompositionLayer } from '../../models/composition-layer.interface';
 import { TextEditorComponent } from '../text-editor/text-editor.component';
 
@@ -32,15 +32,18 @@ interface TransformHandle {
         (mousemove)="onMouseMove($event)"
         (mouseup)="onMouseUp($event)"
         (mouseleave)="onMouseUp($event)"
+        (touchstart)="onTouchStart($event)"
+        (touchmove)="onTouchMove($event)"
+        (touchend)="onTouchEnd($event)"
         (wheel)="onWheel($event)">
       </canvas>
       
       <!-- Zoom Controls -->
       <div class="zoom-controls">
-        <button class="zoom-btn" (click)="zoomIn()" title="Zoom In">+</button>
+        <button class="zoom-btn" (click)="zoomOut()" title="Zoom Out">−</button>
         <span class="zoom-level">{{ Math.round(canvasZoom() * 100) }}%</span>
-        <button class="zoom-btn" (click)="zoomOut()" title="Zoom Out">-</button>
-        <button class="zoom-btn" (click)="resetZoom()" title="Reset Zoom">1:1</button>
+        <button class="zoom-btn" (click)="zoomIn()" title="Zoom In">+</button>
+        <button class="zoom-btn zoom-reset" (click)="resetZoom()" title="Reset Zoom">⊙</button>
       </div>
       
       @if (activeLayer()) {
@@ -85,35 +88,71 @@ interface TransformHandle {
       position: relative;
       width: 100%;
       height: 100%;
-      background: linear-gradient(45deg, #606060 25%, transparent 25%),
-                  linear-gradient(-45deg, #606060 25%, transparent 25%),
-                  linear-gradient(45deg, transparent 75%, #606060 75%),
-                  linear-gradient(-45deg, transparent 75%, #606060 75%);
+      /* Checkerboard pattern con colores del tema */
+      background: linear-gradient(45deg, var(--theme-surface) 25%, transparent 25%),
+                  linear-gradient(-45deg, var(--theme-surface) 25%, transparent 25%),
+                  linear-gradient(45deg, transparent 75%, var(--theme-surface) 75%),
+                  linear-gradient(-45deg, transparent 75%, var(--theme-surface) 75%);
       background-size: 20px 20px;
       background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-      background-color: #707070;
+      background-color: var(--theme-background);
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: auto;
-      max-height: calc(100vh - 200px);
+      overflow: hidden;
+      padding: 40px;
       user-select: none;
       -webkit-user-select: none;
       -moz-user-select: none;
       -ms-user-select: none;
     }
     
+    /* CRT scanlines sutiles en movimiento */
+    .composition-canvas-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.03) 0px,
+        rgba(0, 0, 0, 0.03) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      animation: crt-scanlines 8s linear infinite;
+    }
+    
+    @keyframes crt-scanlines {
+      0% {
+        transform: translateY(0);
+      }
+      100% {
+        transform: translateY(4px);
+      }
+    }
+    
     .composition-canvas {
-      border: 2px solid #000000;
-      background: #ffffff;
+      border: 2px solid var(--theme-border);
+      background: transparent;
       cursor: default;
       image-rendering: pixelated;
       image-rendering: -moz-crisp-edges;
       image-rendering: crisp-edges;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.5),
+        0 0 30px var(--theme-glow-color, rgba(0, 255, 0, 0.15));
       transition: transform 0.1s ease-out;
+      transform-origin: center center;
+      display: block;
       max-width: 100%;
-      max-height: calc(100vh - 220px);
+      position: relative;
+      z-index: 2;
+      max-height: 100%;
       object-fit: contain;
     }
     
@@ -177,45 +216,62 @@ interface TransformHandle {
     
     .zoom-controls {
       position: absolute;
-      bottom: 12px;
-      right: 12px;
+      bottom: 16px;
+      right: 16px;
       display: flex;
-      gap: 6px;
+      gap: 4px;
       align-items: center;
       background: rgba(0, 0, 0, 0.85);
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid #00ff00;
-      font-family: 'Press Start 2P', monospace;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--theme-primary);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
     }
     
     .zoom-btn {
-      background: linear-gradient(145deg, rgba(0, 80, 0, 0.8), rgba(0, 40, 0, 0.8));
-      border: 1px solid #00ff00;
-      color: #00ff00;
-      width: 32px;
-      height: 32px;
-      font-size: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--theme-primary);
+      color: var(--theme-text);
+      width: 28px;
+      height: 28px;
+      font-size: 18px;
+      font-weight: 700;
       cursor: pointer;
       border-radius: 4px;
-      font-family: 'Press Start 2P', monospace;
-      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      font-family: monospace;
     }
     
     .zoom-btn:hover {
-      background: linear-gradient(145deg, rgba(0, 120, 0, 0.9), rgba(0, 60, 0, 0.9));
-      box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+      background: var(--theme-primary);
+      color: var(--theme-background);
+      border-color: var(--theme-primary);
     }
     
     .zoom-btn:active {
       transform: scale(0.95);
     }
+
+    .zoom-btn.zoom-reset {
+      font-size: 18px;
+      margin-left: 2px;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      padding-left: 6px;
+      border-radius: 0 4px 4px 0;
+    }
     
     .zoom-level {
-      color: #00ff00;
-      font-size: 10px;
-      min-width: 50px;
+      color: var(--theme-primary);
+      font-size: 11px;
+      min-width: 48px;
       text-align: center;
+      font-weight: 600;
+      font-family: monospace;
+      padding: 0 4px;
     }
   `]
 })
@@ -252,7 +308,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
       this.compositionState(); // Subscribe to state changes
       // Don't schedule render here during interaction (will cause double renders)
       // The render will be triggered by scheduleRender() calls in interaction methods
-      if (!this.isDragging && !this.isResizing && !this.isRotating && !this.isBrushing && !this.isDrawingShape && !this.isDrawingTextBox) {
+      if (!this.isDragging && !this.isResizing && !this.isRotating && !this.isBrushing && !this.isErasing && !this.isDrawingShape && !this.isDrawingTextBox && !this.isCropping) {
         this.scheduleRender();
       }
     });
@@ -260,7 +316,7 @@ export class CompositionCanvasComponent implements AfterViewInit {
     // Watch for dithering options changes and re-render
     effect(() => {
       this.compositionService.ditheringOptions(); // Subscribe to dithering options changes
-      if (!this.isDragging && !this.isResizing && !this.isRotating && !this.isBrushing && !this.isDrawingShape && !this.isDrawingTextBox) {
+      if (!this.isDragging && !this.isResizing && !this.isRotating && !this.isBrushing && !this.isErasing && !this.isDrawingShape && !this.isDrawingTextBox) {
         this.scheduleRender();
       }
     });
@@ -274,6 +330,8 @@ export class CompositionCanvasComponent implements AfterViewInit {
   private isDrawingShape = false;
   private isDrawingTextBox = false;
   private isBrushing = false;
+  private isErasing = false;
+  private isCropping = false;
   private dragStartX = 0;
   private dragStartY = 0;
   private dragStartLayerX = 0;
@@ -295,6 +353,11 @@ export class CompositionCanvasComponent implements AfterViewInit {
   private currentMouseX = 0;
   private currentMouseY = 0;
   private brushPoints: { x: number; y: number }[] = [];
+  private eraserPoints: { x: number; y: number }[] = [];
+  private cropStartX = 0;
+  private cropStartY = 0;
+  private cropCurrentX = 0;
+  private cropCurrentY = 0;
 
   // Multiple selection drag support
   private multipleLayersDragStart: Map<string, { x: number; y: number }> = new Map();
@@ -354,7 +417,8 @@ export class CompositionCanvasComponent implements AfterViewInit {
       canvas.height = state.canvasHeight;
     }
 
-    // Clear canvas
+    // Clear canvas - Limpieza completa para evitar "fantasmas"
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = state.backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -469,6 +533,32 @@ export class CompositionCanvasComponent implements AfterViewInit {
       ctx.restore();
     }
 
+    // Draw eraser stroke in progress
+    if (this.isErasing && this.eraserPoints.length > 1) {
+      const options = this.toolService.toolOptions();
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.lineWidth = options.eraserSize!;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      // Apply hardness via shadow blur (inverse: 100% = sharp, 0% = soft)
+      const softness = 100 - options.eraserHardness!;
+      if (softness > 0) {
+        ctx.shadowBlur = (softness / 100) * options.eraserSize! * 0.5;
+        ctx.shadowColor = 'rgba(0,0,0,1)';
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(this.eraserPoints[0].x, this.eraserPoints[0].y);
+      for (let i = 1; i < this.eraserPoints.length; i++) {
+        ctx.lineTo(this.eraserPoints[i].x, this.eraserPoints[i].y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
     // Draw text box preview while drawing
     if (this.isDrawingTextBox) {
       const width = Math.abs(this.currentMouseX - this.textBoxStartX);
@@ -481,6 +571,45 @@ export class CompositionCanvasComponent implements AfterViewInit {
       ctx.lineWidth = 2 / this.canvasZoom();
       ctx.setLineDash([5, 5]);
       ctx.strokeRect(left, top, width, height);
+      ctx.restore();
+    }
+
+    // Draw crop overlay
+    if (this.isCropping && this.activeLayer()) {
+      const layer = this.activeLayer()!;
+      const cropX = Math.min(this.cropStartX, this.cropCurrentX);
+      const cropY = Math.min(this.cropStartY, this.cropCurrentY);
+      const cropWidth = Math.abs(this.cropCurrentX - this.cropStartX);
+      const cropHeight = Math.abs(this.cropCurrentY - this.cropStartY);
+
+      ctx.save();
+
+      // Dim the areas outside the crop region
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      
+      // Top area
+      ctx.fillRect(0, 0, state.canvasWidth, cropY);
+      // Bottom area
+      ctx.fillRect(0, cropY + cropHeight, state.canvasWidth, state.canvasHeight - cropY - cropHeight);
+      // Left area
+      ctx.fillRect(0, cropY, cropX, cropHeight);
+      // Right area
+      ctx.fillRect(cropX + cropWidth, cropY, state.canvasWidth - cropX - cropWidth, cropHeight);
+
+      // Draw crop rectangle
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 2 / this.canvasZoom();
+      ctx.setLineDash([10, 5]);
+      ctx.strokeRect(cropX, cropY, cropWidth, cropHeight);
+
+      // Draw corner handles
+      const handleSize = 12 / this.canvasZoom();
+      ctx.fillStyle = '#00ff00';
+      ctx.fillRect(cropX - handleSize / 2, cropY - handleSize / 2, handleSize, handleSize);
+      ctx.fillRect(cropX + cropWidth - handleSize / 2, cropY - handleSize / 2, handleSize, handleSize);
+      ctx.fillRect(cropX - handleSize / 2, cropY + cropHeight - handleSize / 2, handleSize, handleSize);
+      ctx.fillRect(cropX + cropWidth - handleSize / 2, cropY + cropHeight - handleSize / 2, handleSize, handleSize);
+
       ctx.restore();
     }
   }
@@ -929,6 +1058,12 @@ export class CompositionCanvasComponent implements AfterViewInit {
       return;
     }
 
+    // Eraser tool - start erasing
+    if (currentTool === 'eraser') {
+      this.startEraserStroke(x, y);
+      return;
+    }
+
     // Zoom tool - zoom in/out
     if (currentTool === 'zoom') {
       if (event.altKey) {
@@ -937,6 +1072,15 @@ export class CompositionCanvasComponent implements AfterViewInit {
         this.zoomIn();
       }
       return;
+    }
+
+    // Crop tool - start crop selection
+    if (currentTool === 'crop') {
+      const layer = this.activeLayer();
+      if (layer) {
+        this.startCrop(x, y);
+        return;
+      }
     }
 
     // Select tool (default) - handle layer selection and transforms
@@ -1075,6 +1219,19 @@ export class CompositionCanvasComponent implements AfterViewInit {
       return;
     }
 
+    // Eraser drawing
+    if (this.isErasing) {
+      this.eraserPoints.push({ x, y });
+      this.scheduleRender();
+      return;
+    }
+
+    // Crop selection
+    if (this.isCropping) {
+      this.updateCrop(x, y);
+      return;
+    }
+
     // Handle multi-selection resize
     if (this.isResizing && this.multiResizeLayers.length > 0) {
       this.updateMultiResize(x, y);
@@ -1137,6 +1294,16 @@ export class CompositionCanvasComponent implements AfterViewInit {
     // Finish brush stroke
     if (this.isBrushing) {
       this.finishBrushStroke();
+    }
+
+    // Finish eraser stroke
+    if (this.isErasing) {
+      this.finishEraserStroke();
+    }
+
+    // Finish crop
+    if (this.isCropping) {
+      this.finishCrop();
     }
 
     // Save undo command for drag (only if not resizing/rotating)
@@ -1285,6 +1452,8 @@ export class CompositionCanvasComponent implements AfterViewInit {
     this.isDrawingShape = false;
     this.isDrawingTextBox = false;
     this.isBrushing = false;
+    this.isErasing = false;
+    this.isCropping = false;
     this.resizeHandle = null;
     
     // Clear multi-selection state
@@ -1323,6 +1492,20 @@ export class CompositionCanvasComponent implements AfterViewInit {
       for (const layer of selectedLayers) {
         this.compositionService.deleteLayer(layer.id);
       }
+      return;
+    }
+
+    // Enter - Apply crop
+    if (event.key === 'Enter' && this.isCropping) {
+      event.preventDefault();
+      this.finishCrop();
+      return;
+    }
+
+    // Escape - Cancel crop
+    if (event.key === 'Escape' && this.isCropping) {
+      event.preventDefault();
+      this.cancelCrop();
       return;
     }
   }
@@ -1971,6 +2154,185 @@ export class CompositionCanvasComponent implements AfterViewInit {
   }
 
   /**
+   * ERASER TOOL
+   */
+
+  private startEraserStroke(x: number, y: number): void {
+    this.isErasing = true;
+    this.eraserPoints = [{ x, y }];
+  }
+
+  private finishEraserStroke(): void {
+    if (this.eraserPoints.length < 2) return;
+
+    const activeLayer = this.activeLayer();
+    if (!activeLayer || !activeLayer.image) {
+      this.eraserPoints = [];
+      return;
+    }
+
+    const options = this.toolService.toolOptions();
+
+    // Store old layer for undo
+    const oldLayer = { ...activeLayer };
+
+    // Create a temporary canvas with the layer
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = activeLayer.width;
+    tempCanvas.height = activeLayer.height;
+    const tempCtx = tempCanvas.getContext('2d')!;
+
+    // Draw current layer content
+    tempCtx.drawImage(activeLayer.image, 0, 0, activeLayer.width, activeLayer.height);
+
+    // Apply eraser stroke with destination-out composite
+    tempCtx.globalCompositeOperation = 'destination-out';
+    tempCtx.strokeStyle = 'rgba(0,0,0,1)';
+    tempCtx.lineWidth = options.eraserSize!;
+    tempCtx.lineCap = 'round';
+    tempCtx.lineJoin = 'round';
+
+    // Apply hardness via shadow blur
+    const softness = 100 - options.eraserHardness!;
+    if (softness > 0) {
+      tempCtx.shadowBlur = (softness / 100) * options.eraserSize! * 0.5;
+      tempCtx.shadowColor = 'rgba(0,0,0,1)';
+    }
+
+    // Draw eraser path (convert from canvas coordinates to layer coordinates)
+    tempCtx.beginPath();
+    const firstPoint = this.eraserPoints[0];
+    tempCtx.moveTo(firstPoint.x - activeLayer.x, firstPoint.y - activeLayer.y);
+    for (let i = 1; i < this.eraserPoints.length; i++) {
+      const point = this.eraserPoints[i];
+      tempCtx.lineTo(point.x - activeLayer.x, point.y - activeLayer.y);
+    }
+    tempCtx.stroke();
+
+    // Get updated image data
+    const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+    // Create new image with erased content
+    const img = new Image();
+    img.src = tempCanvas.toDataURL();
+    img.onload = () => {
+      // Delete old layer
+      this.compositionService.deleteLayer(activeLayer.id);
+      
+      // Add new layer with erased content
+      const newLayerId = this.compositionService.addLayer(img, imageData);
+      this.compositionService.updateLayer(newLayerId, {
+        x: activeLayer.x,
+        y: activeLayer.y,
+        width: activeLayer.width,
+        height: activeLayer.height,
+        rotation: activeLayer.rotation,
+        opacity: activeLayer.opacity,
+        visible: activeLayer.visible,
+        locked: activeLayer.locked,
+        ditherExempt: activeLayer.ditherExempt,
+        order: activeLayer.order,
+        name: activeLayer.name,
+        type: 'image'
+      });
+
+      // Get the new layer
+      const state = this.compositionService.compositionState();
+      const newLayer = state.layers.find((l: CompositionLayer) => l.id === newLayerId);
+      
+      if (newLayer) {
+        // Record undo command
+        const command = new EraserCommand(
+          this.compositionService,
+          oldLayer,
+          newLayer
+        );
+        this.historyService.record(command);
+      }
+
+      // Set as active layer
+      this.compositionService.setActiveLayer(newLayerId);
+      
+      this.scheduleRender();
+    };
+
+    this.eraserPoints = [];
+  }
+
+  /**
+   * CROP
+   */
+
+  private startCrop(x: number, y: number): void {
+    this.isCropping = true;
+    this.cropStartX = x;
+    this.cropStartY = y;
+    this.cropCurrentX = x;
+    this.cropCurrentY = y;
+  }
+
+  private updateCrop(x: number, y: number): void {
+    this.cropCurrentX = x;
+    this.cropCurrentY = y;
+    this.scheduleRender();
+  }
+
+  private finishCrop(): void {
+    const layer = this.activeLayer();
+    if (!layer) return;
+
+    const cropX = Math.min(this.cropStartX, this.cropCurrentX);
+    const cropY = Math.min(this.cropStartY, this.cropCurrentY);
+    const cropWidth = Math.abs(this.cropCurrentX - this.cropStartX);
+    const cropHeight = Math.abs(this.cropCurrentY - this.cropStartY);
+
+    if (cropWidth < 10 || cropHeight < 10) return; // Too small
+
+    // Calculate crop region relative to layer
+    const relativeX = Math.max(0, cropX - layer.x);
+    const relativeY = Math.max(0, cropY - layer.y);
+    const relativeWidth = Math.min(cropWidth, layer.width - relativeX);
+    const relativeHeight = Math.min(cropHeight, layer.height - relativeY);
+
+    // Create cropped ImageData
+    const croppedCanvas = document.createElement('canvas');
+    croppedCanvas.width = relativeWidth;
+    croppedCanvas.height = relativeHeight;
+    const croppedCtx = croppedCanvas.getContext('2d')!;
+
+    // Draw cropped portion
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = layer.imageData.width;
+    tempCanvas.height = layer.imageData.height;
+    const tempCtx = tempCanvas.getContext('2d')!;
+    tempCtx.putImageData(layer.imageData, 0, 0);
+
+    croppedCtx.drawImage(
+      tempCanvas,
+      relativeX, relativeY, relativeWidth, relativeHeight,
+      0, 0, relativeWidth, relativeHeight
+    );
+
+    const croppedImageData = croppedCtx.getImageData(0, 0, relativeWidth, relativeHeight);
+
+    // Update layer
+    this.compositionService.updateLayer(layer.id, {
+      imageData: croppedImageData,
+      width: relativeWidth,
+      height: relativeHeight,
+      x: cropX,
+      y: cropY
+    });
+
+    this.isCropping = false;
+  }
+
+  private cancelCrop(): void {
+    this.isCropping = false;
+    this.scheduleRender();
+  }
+
+  /**
    * ROTATE
    */
 
@@ -2449,5 +2811,46 @@ export class CompositionCanvasComponent implements AfterViewInit {
     const newZoom = Math.max(0.1, Math.min(3.0, this.canvasZoom() + delta));
     this.canvasZoom.set(newZoom);
     this.render();
+  }
+
+  /**
+   * TOUCH INTERACTION - Convert touch events to mouse events
+   */
+  
+  onTouchStart(event: TouchEvent): void {
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        button: 0,
+        buttons: 1
+      });
+      this.onMouseDown(mouseEvent);
+      event.preventDefault();
+    }
+  }
+
+  onTouchMove(event: TouchEvent): void {
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      const mouseEvent = new MouseEvent('mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        button: 0,
+        buttons: 1
+      });
+      this.onMouseMove(mouseEvent);
+      event.preventDefault();
+    }
+  }
+
+  onTouchEnd(event: TouchEvent): void {
+    const mouseEvent = new MouseEvent('mouseup', {
+      button: 0,
+      buttons: 0
+    });
+    this.onMouseUp(mouseEvent);
+    event.preventDefault();
   }
 }

@@ -1,5 +1,22 @@
 /* You can add global styles to this file, and also import other style files */
 
+/* ========================================
+   GLOBAL RESETS - Remove White Backgrounds
+   ======================================== */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--theme-background, #0a0a0a);
+}
+
 /* Theme System - CSS Variables */
 :root {
   /* Default theme colors (Retro Green) - will be overridden by ThemeService */
@@ -15,6 +32,141 @@
   --theme-success: #00ff00;
   --theme-warning: #ffaa00;
   --theme-danger: #ff6666;
-  --theme-shadow-color: rgba(0, 255, 0, 0.3);
+  --theme-shadow-color: rgba(0, 47, 255, 0.3);
   --theme-glow-color: rgba(0, 255, 0, 0.6);
+}
+
+/* ========================================
+   RETRO SCROLLBARS - Theme Sensitive
+   ======================================== */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-primary) var(--theme-surface);
+}
+
+/* Chromium, Safari, Edge */
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: var(--theme-background);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  /* Estilo Win98 cuadradito */
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-primary);
+  border: 2px solid var(--theme-background);
+  border-radius: 0; /* Cuadradito, nada de curvas */
+  
+  /* Efecto 3D retro con colores del tema */
+  box-shadow: 
+    inset 1px 1px 0 var(--theme-accent),
+    inset -1px -1px 0 var(--theme-shadow-color);
+  
+  /* Pattern dithering sutil */
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.1) 2px,
+      rgba(0, 0, 0, 0.1) 4px
+    );
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-accent);
+  box-shadow: 
+    inset 1px 1px 0 var(--theme-secondary),
+    inset -1px -1px 0 var(--theme-shadow-color),
+    0 0 8px var(--theme-glow-color);
+  
+  /* Glow retro al hover */
+  filter: brightness(1.2);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--theme-secondary);
+  box-shadow: 
+    inset -1px -1px 0 var(--theme-accent),
+    inset 1px 1px 0 var(--theme-shadow-color);
+}
+
+/* Scrollbar corners (donde se cruzan horizontal y vertical) */
+::-webkit-scrollbar-corner {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+}
+
+/* Botones de scrollbar (flechas arriba/abajo) - Solo Chromium */
+::-webkit-scrollbar-button {
+  width: 16px;
+  height: 16px;
+  background: var(--theme-primary);
+  border: 2px solid var(--theme-background);
+  border-radius: 0;
+  
+  box-shadow: 
+    inset 1px 1px 0 var(--theme-accent),
+    inset -1px -1px 0 var(--theme-shadow-color);
+}
+
+::-webkit-scrollbar-button:hover {
+  background: var(--theme-accent);
+  filter: brightness(1.2);
+}
+
+::-webkit-scrollbar-button:active {
+  box-shadow: 
+    inset -1px -1px 0 var(--theme-accent),
+    inset 1px 1px 0 var(--theme-shadow-color);
+}
+
+/* Flechas direccionales (usando pseudo-elementos) */
+::-webkit-scrollbar-button:vertical:decrement {
+  background-image: linear-gradient(
+    135deg,
+    transparent 40%,
+    var(--theme-surface) 40%,
+    var(--theme-surface) 60%,
+    transparent 60%
+  );
+}
+
+::-webkit-scrollbar-button:vertical:increment {
+  background-image: linear-gradient(
+    -135deg,
+    transparent 40%,
+    var(--theme-surface) 40%,
+    var(--theme-surface) 60%,
+    transparent 60%
+  );
+}
+
+::-webkit-scrollbar-button:horizontal:decrement {
+  background-image: linear-gradient(
+    45deg,
+    transparent 40%,
+    var(--theme-surface) 40%,
+    var(--theme-surface) 60%,
+    transparent 60%
+  );
+}
+
+::-webkit-scrollbar-button:horizontal:increment {
+  background-image: linear-gradient(
+    -45deg,
+    transparent 40%,
+    var(--theme-surface) 40%,
+    var(--theme-surface) 60%,
+    transparent 60%
+  );
 }

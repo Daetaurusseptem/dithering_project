@@ -21,12 +21,6 @@ Esta carpeta contiene los modelos de IA necesarios para el background removal of
 
 5. ⚠️ `tokenizer_config.json` (opcional, por si acaso)
 
-### Usar Bun (Recomendado)
-
-```bash
-bun run download:models
-```
-
 ### Instrucciones de Descarga
 
 #### Opción 1: Manual (Recomendado para verificar archivos)
@@ -36,22 +30,14 @@ bun run download:models
 3. Descarga cada archivo listado arriba
 4. Colócalos en `public/models/rmbg-1.4/`
 
-#### Opción 2: Usando Script (Automatizado)
+#### Opción 2: Script automatizado (Recomendado)
 
 ```bash
-# Con Bun (recomendado)
+# Usando Bun
 bun run download:models
 
 # O directamente
 bun scripts/download-models.js rmbg-1.4
-```
-
-#### Opción 3: Git LFS (Rápido pero requiere Git LFS instalado)
-
-```bash
-# Instalar Git LFS primero: https://git-lfs.github.com/
-cd public/models
-git clone https://huggingface.co/briaai/RMBG-1.4 rmbg-1.4
 ```
 
 ### Modelo Alternativo: ModNet (Más ligero, ~25MB)
@@ -77,6 +63,7 @@ Una vez descargados los modelos:
 
 ### Notas Técnicas
 
+- **Package Manager:** Esta app usa Bun (más rápido que npm/yarn)
 - **Vite:** Los archivos `.onnx` están configurados en `vite.config.ts` para ser incluidos en el build
 - **Angular:** La carpeta `public/` se copia automáticamente al build
 - **Electron:** Usar `env.localModelPath = './models/'` (ruta relativa)

@@ -5,13 +5,12 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "download:models": "bun scripts/download-models.js rmbg-1.4",
     "download:models:light": "bun scripts/download-models.js modnet",
     "prepare:offline": "bun run download:models && echo ✅ App lista para Electron/Ionic",
-    "preview": "bun run build:prod && bun --bun vite preview"
+    "generate:icons": "bun scripts/generate-icons.js"
   },
   "prettier": {
     "printWidth": 100,

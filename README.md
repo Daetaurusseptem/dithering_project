@@ -17,10 +17,12 @@ Built with [Angular CLI](https://github.com/angular/angular-cli) version 20.3.9.
 
 ### Development Server
 
+> **Note:** Este proyecto usa **Bun** como package manager (más rápido que npm/yarn).
+
 To start a local development server, run:
 
 ```bash
-npm start
+bun start
 # or
 ng serve
 ```
@@ -96,7 +98,7 @@ This app is ready to be packaged as:
 **Quick command to prepare for offline:**
 
 ```bash
-npm run prepare:offline
+bun run prepare:offline
 ```
 
 ## 🧠 AI Model Information
@@ -135,11 +137,9 @@ dithering-converter/
 # Development
 bun start                    # Start dev server
 bun run watch                # Build with watch mode
-bun run preview              # Preview production build
 
 # Building
-bun run build                # Development build
-bun run build:prod           # Production build
+bun run build                # Production build
 bun run electron:build       # Build Electron app
 bun run ionic:android        # Build Android app
 
@@ -147,9 +147,6 @@ bun run ionic:android        # Build Android app
 bun run download:models      # Download RMBG-1.4 (~40MB)
 bun run download:models:light # Download ModNet (~25MB)
 bun run prepare:offline      # Full offline preparation
-
-# Deploy
-bun run deploy:gh            # Deploy to GitHub Pages
 ```
 
 ## 🐛 Troubleshooting
@@ -169,23 +166,9 @@ If using Vite, add to `vite.config.ts`:
 assetsInclude: ['**/*.onnx', '**/*.bin']
 ```
 
-## 🚀 Deployment
-
-See [DEPLOY.md](./DEPLOY.md) for complete deployment guide covering:
-- 🌐 Web hosting (Vercel, Netlify, GitHub Pages, Firebase)
-- 🖥️ Desktop apps (Electron)
-- 📱 Mobile apps (Ionic/Capacitor)
-- 🤖 CI/CD automation
-
-**Quick deploy:**
-```bash
-bun run build:prod && bunx vercel --prod
-```
-
 ## 📝 Additional Resources
 
-- [Deployment Guide](./DEPLOY.md) - Complete deployment instructions
-- [Packaging Guide](./PACKAGING.md) - Electron/Ionic setup
 - [Angular CLI Documentation](https://angular.dev/tools/cli)
 - [Transformers.js Documentation](https://huggingface.co/docs/transformers.js)
-- [Bun Documentation](https://bun.sh/docs)
+- [Electron Packaging Guide](./PACKAGING.md#electron)
+- [Ionic/Capacitor Guide](./PACKAGING.md#ioniccapacitor)

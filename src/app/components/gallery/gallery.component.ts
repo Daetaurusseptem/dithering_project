@@ -298,7 +298,7 @@ import { GalleryItem, DitheringSettings } from '../../models/achievement.interfa
     }
     
     .gallery-item {
-      background: white;
+      background: var(--theme-surface);
       border: 2px solid #808080;
       box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
       overflow: hidden;
