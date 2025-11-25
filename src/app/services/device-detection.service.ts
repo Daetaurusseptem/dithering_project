@@ -22,6 +22,27 @@ export class DeviceDetectionService {
   private _screenWidth = signal(typeof window !== 'undefined' ? window.innerWidth : 1920);
   private _screenHeight = signal(typeof window !== 'undefined' ? window.innerHeight : 1080);
   private _touchEnabled = signal(this.detectTouch());
+  
+  // Performance flags
+  private _isLowEndDevice = signal(this.detectLowEndDevice());
+  
+  isLowEndDevice = this._isLowEndDevice.asReadonly();
+  
+  // Get max image size based on device
+  getMaxImageDimension(): number {
+    if (this.isMobile()) return this._isLowEndDevice() ? 800 : 1200;
+    if (this.isTablet()) return 1600;
+    return 2400;
+  }
+  
+  // Get quality settings based on device
+  shouldReduceAnimations(): boolean {
+    return this.isMobile() || this._isLowEndDevice();
+  }
+  
+  shouldUseWebWorkers(): boolean {
+    return typeof Worker !== 'undefined' && !this._isLowEndDevice();
+  }
 
   // Computed signals for device types
   isMobile = computed(() => this._screenWidth() <= this.MOBILE_MAX_WIDTH);
@@ -81,6 +102,29 @@ export class DeviceDetectionService {
       navigator.maxTouchPoints > 0 ||
       (navigator as any).msMaxTouchPoints > 0
     );
+  }
+  
+  private detectLowEndDevice(): boolean {
+    if (typeof window === 'undefined') return false;
+    
+    // Check memory (if available)
+    const memory = (navigator as any).deviceMemory;
+    if (memory && memory < 4) return true;
+    
+    // Check CPU cores
+    const cores = navigator.hardwareConcurrency || 1;
+    if (cores < 4) return true;
+    
+    // Check connection speed
+    const connection = (navigator as any).connection;
+    if (connection) {
+      const effectiveType = connection.effectiveType;
+      if (effectiveType === 'slow-2g' || effectiveType === '2g' || effectiveType === '3g') {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   /**

@@ -1,0 +1,251 @@
+/* Theme System - CSS Variables for all themes */
+
+/* Default Theme (Amiga Retro) */
+:root {
+  /* Core colors */
+  --background: #0a0a0a;
+  --window-background: #1a1a1a;
+  --text: #e8e4d8;
+  --text-secondary: #ccc9b8;
+  --border: #ff6600;
+  --shadow: rgba(0, 0, 0, 0.5);
+  
+  /* Primary colors */
+  --primary: #ff6600;
+  --primary-light: #ff8833;
+  --primary-dark: #cc5200;
+  
+  /* Accent colors */
+  --accent: #0055aa;
+  --accent-light: #3377cc;
+  --success: #00dd00;
+  --warning: #ffaa00;
+  --error: #dd0000;
+  
+  /* Beige/Plastic tones */
+  --amiga-beige: #e8e4d8;
+  --amiga-beige-light: #f5f2e8;
+  --amiga-beige-dark: #ccc9b8;
+  --amiga-plastic-shadow: #b8b4a8;
+}
+
+/* CRT Theme */
+[data-theme="crt"] {
+  --background: #001100;
+  --window-background: #002200;
+  --text: #00ff00;
+  --text-secondary: #00cc00;
+  --border: #00ff00;
+  --shadow: rgba(0, 255, 0, 0.3);
+  
+  --primary: #00ff00;
+  --primary-light: #33ff33;
+  --primary-dark: #00cc00;
+  
+  --accent: #00ffff;
+  --accent-light: #33ffff;
+}
+
+/* VHS Theme */
+[data-theme="vhs"] {
+  --background: #0d0d0d;
+  --window-background: #1a1a1a;
+  --text: #ffccff;
+  --text-secondary: #cc99cc;
+  --border: #ff00ff;
+  --shadow: rgba(255, 0, 255, 0.3);
+  
+  --primary: #ff00ff;
+  --primary-light: #ff33ff;
+  --primary-dark: #cc00cc;
+  
+  --accent: #00ffff;
+  --accent-light: #33ffff;
+}
+
+/* DOS Theme */
+[data-theme="dos"] {
+  --background: #000080;
+  --window-background: #0000aa;
+  --text: #ffffff;
+  --text-secondary: #aaaaaa;
+  --border: #ffffff;
+  --shadow: rgba(0, 0, 0, 0.5);
+  
+  --primary: #ffffff;
+  --primary-light: #ffffff;
+  --primary-dark: #cccccc;
+  
+  --accent: #ffff00;
+  --accent-light: #ffff33;
+}
+
+/* Mac Classic Theme */
+[data-theme="mac-classic"] {
+  --background: #ffffff;
+  --window-background: #f0f0f0;
+  --text: #000000;
+  --text-secondary: #666666;
+  --border: #000000;
+  --shadow: rgba(0, 0, 0, 0.3);
+  
+  --primary: #000000;
+  --primary-light: #333333;
+  --primary-dark: #000000;
+  
+  --accent: #0000ff;
+  --accent-light: #3333ff;
+}
+
+/* Game Boy Theme */
+[data-theme="gameboy"] {
+  --background: #9bbc0f;
+  --window-background: #8bac0f;
+  --text: #0f380f;
+  --text-secondary: #306230;
+  --border: #0f380f;
+  --shadow: rgba(15, 56, 15, 0.3);
+  
+  --primary: #0f380f;
+  --primary-light: #306230;
+  --primary-dark: #0f380f;
+  
+  --accent: #306230;
+  --accent-light: #8bac0f;
+}
+
+/* Commodore 64 Theme */
+[data-theme="c64"] {
+  --background: #40318d;
+  --window-background: #5639cc;
+  --text: #7869c4;
+  --text-secondary: #a39fe2;
+  --border: #7869c4;
+  --shadow: rgba(64, 49, 141, 0.5);
+  
+  --primary: #7869c4;
+  --primary-light: #a39fe2;
+  --primary-dark: #5639cc;
+  
+  --accent: #50459b;
+  --accent-light: #7869c4;
+}
+
+/* Windows 98 Theme */
+[data-theme="win98"] {
+  --background: #008080;
+  --window-background: #c0c0c0;
+  --text: #000000;
+  --text-secondary: #808080;
+  --border: #000000;
+  --shadow: rgba(0, 0, 0, 0.3);
+  
+  --primary: #0000ff;
+  --primary-light: #3333ff;
+  --primary-dark: #0000cc;
+  
+  --accent: #008080;
+  --accent-light: #00aaaa;
+}
+
+/* Atari ST Theme */
+[data-theme="atari"] {
+  --background: #444444;
+  --window-background: #777777;
+  --text: #ffffff;
+  --text-secondary: #cccccc;
+  --border: #ffffff;
+  --shadow: rgba(0, 0, 0, 0.5);
+  
+  --primary: #ffffff;
+  --primary-light: #ffffff;
+  --primary-dark: #cccccc;
+  
+  --accent: #ff0000;
+  --accent-light: #ff3333;
+}
+
+/* ZX Spectrum Theme */
+[data-theme="spectrum"] {
+  --background: #000000;
+  --window-background: #0000d7;
+  --text: #ffffff;
+  --text-secondary: #d7d7d7;
+  --border: #d70000;
+  --shadow: rgba(0, 0, 0, 0.5);
+  
+  --primary: #d70000;
+  --primary-light: #ff0000;
+  --primary-dark: #aa0000;
+  
+  --accent: #00d7d7;
+  --accent-light: #00ffff;
+}
+
+/* Apple II Theme */
+[data-theme="apple2"] {
+  --background: #000000;
+  --window-background: #222222;
+  --text: #00ff00;
+  --text-secondary: #00cc00;
+  --border: #00ff00;
+  --shadow: rgba(0, 255, 0, 0.3);
+  
+  --primary: #00ff00;
+  --primary-light: #33ff33;
+  --primary-dark: #00cc00;
+  
+  --accent: #ff00ff;
+  --accent-light: #ff33ff;
+}
+
+/* NES Theme */
+[data-theme="nes"] {
+  --background: #000000;
+  --window-background: #1a1a1a;
+  --text: #fcfcfc;
+  --text-secondary: #bcbcbc;
+  --border: #fcfcfc;
+  --shadow: rgba(0, 0, 0, 0.5);
+  
+  --primary: #f83800;
+  --primary-light: #ff5533;
+  --primary-dark: #cc2200;
+  
+  --accent: #00a800;
+  --accent-light: #00dd00;
+}
+
+/* SNES Theme */
+[data-theme="snes"] {
+  --background: #18184c;
+  --window-background: #2c2c6c;
+  --text: #e4e4f8;
+  --text-secondary: #a8a8cc;
+  --border: #e4e4f8;
+  --shadow: rgba(0, 0, 0, 0.5);
+  
+  --primary: #e4e4f8;
+  --primary-light: #ffffff;
+  --primary-dark: #b8b8cc;
+  
+  --accent: #fc0000;
+  --accent-light: #ff3333;
+}
+
+/* Genesis/Mega Drive Theme */
+[data-theme="genesis"] {
+  --background: #000000;
+  --window-background: #0a0a1a;
+  --text: #eeeeee;
+  --text-secondary: #999999;
+  --border: #0088ff;
+  --shadow: rgba(0, 0, 0, 0.5);
+  
+  --primary: #0088ff;
+  --primary-light: #33aaff;
+  --primary-dark: #0066cc;
+  
+  --accent: #ff0000;
+  --accent-light: #ff3333;
+}

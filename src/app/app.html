@@ -1,4 +1,6 @@
-﻿<div class="app-container" [class]="deviceService.getResponsiveClasses().join(' ')">
+﻿<div class="app-container" 
+     [class]="deviceService.getResponsiveClasses().join(' ')"
+     [class.reduce-animations]="deviceService.shouldReduceAnimations()">
   <!-- Desktop Header -->
   @if (deviceService.isDesktop()) {
     <header class="header">
@@ -10,10 +12,6 @@
             <p class="subtitle">{{ i18nService.t('app.subtitle') }}</p>
           </div>
         </div>
-        <!-- Test Achievement Button -->
-        <button class="btn-test-achievement" (click)="testAchievementNotification()" title="Test Achievement">
-          🏆 Test
-        </button>
       </div>
     </header>
   }
@@ -30,6 +28,7 @@
   
   <!-- Hidden file input (always present) -->
   <input #fileInput type="file" accept="image/*" (change)="onFileSelected($event)" style="display: none;">
+  <input #cameraInput type="file" accept="image/*" capture="environment" (change)="onFileSelected($event)" style="display: none;">
   
   <!-- MOBILE INTERFACE -->
   @if (deviceService.isMobile()) {
@@ -38,42 +37,63 @@
         <app-upload-mobile (fileSelected)="onMobileFileSelected($event)"></app-upload-mobile>
       }
       
-      @if (imageLoaded() && mobileActiveTab() === 'canvas') {
-        <app-canvas-mobile 
-          [imageData]="processedImageData"
-          [originalImageData]="originalImageData"
-          (download)="downloadImage()">
-        </app-canvas-mobile>
-        
-        <!-- Upload new image FAB -->
-        <button class="fab-upload" (click)="triggerFileInput()" title="Upload New Image"></button>
-        
-        <!-- Controls Bottom Sheet -->
-        @if (showMobileControls()) {
-          <div class="mobile-controls-overlay" (click)="showMobileControls.set(false)">
-            <div class="mobile-controls-sheet" (click)="$event.stopPropagation()">
-              <app-controls-mobile
-                [options]="{
-                  algorithm: selectedAlgorithm(),
-                  palette: selectedPalette(),
-                  scale: scale(),
-                  contrast: contrast(),
-                  midtones: midtones(),
-                  highlights: highlights(),
-                  blur: blur()
-                }"
-                [algorithms]="algorithms()"
-                [palettes]="palettes()"
-                (optionsChange)="onMobileControlsChange($event)"
-                (reset)="resetControls()"
-                (apply)="showMobileControls.set(false)">
-              </app-controls-mobile>
+      @if (mobileActiveTab() === 'canvas') {
+        @if (imageLoaded()) {
+          <app-canvas-mobile 
+            [imageData]="processedImageData"
+            [originalImageData]="originalImageData"
+            (download)="downloadImage()">
+          </app-canvas-mobile>
+          
+          <!-- Upload new image FAB -->
+          <button class="fab-upload" (click)="triggerFileInput()" title="Upload New Image"></button>
+          
+          <!-- Controls Bottom Sheet -->
+          @if (showMobileControls()) {
+            <div class="mobile-controls-overlay" (click)="showMobileControls.set(false)">
+              <div class="mobile-controls-sheet" (click)="$event.stopPropagation()">
+                <app-controls-mobile
+                  [options]="{
+                    algorithm: selectedAlgorithm(),
+                    palette: selectedPalette(),
+                    scale: scale(),
+                    contrast: contrast(),
+                    midtones: midtones(),
+                    highlights: highlights(),
+                    blur: blur()
+                  }"
+                  [algorithms]="algorithms()"
+                  [palettes]="palettes()"
+                  (optionsChange)="onMobileControlsChange($event)"
+                  (reset)="resetControls()"
+                  (apply)="showMobileControls.set(false)">
+                </app-controls-mobile>
+              </div>
+            </div>
+          }
+          
+          <!-- Floating controls button -->
+          <button class="fab-controls" (click)="showMobileControls.set(true)" title="Controls"></button>
+        } @else {
+          <!-- Empty State: No Image Loaded -->
+          <div class="canvas-empty-state">
+            <div class="empty-state-content">
+              <div class="empty-state-icon">📸</div>
+              <h2 class="empty-state-title">{{ i18nService.t('upload.title') }}</h2>
+              <p class="empty-state-text">{{ i18nService.t('upload.dragDrop') }}</p>
+              <div class="empty-state-buttons">
+                <button class="btn-upload-primary" (click)="triggerFileInput()">
+                  <span class="upload-icon">📁</span>
+                  {{ i18nService.t('button.upload') }}
+                </button>
+                <button class="btn-camera-primary" (click)="triggerCameraInput()">
+                  <span class="upload-icon">📷</span>
+                  Take Photo
+                </button>
+              </div>
             </div>
           </div>
         }
-        
-        <!-- Floating controls button -->
-        <button class="fab-controls" (click)="showMobileControls.set(true)" title="Controls"></button>
       }
       
       @if (mobileActiveTab() === 'composition') {
@@ -456,6 +476,28 @@
               </div>
             </div>
             
+            <!-- Legal & Info Section -->
+            <div class="settings-section-mobile">
+              <h3 class="section-title-mobile">📄 Legal & Info</h3>
+              <div class="legal-links-mobile">
+                <a routerLink="/privacy-policy" class="legal-link-mobile">
+                  <span class="link-icon-mobile">🔒</span>
+                  <span class="link-text-mobile">Privacy Policy</span>
+                  <span class="link-arrow-mobile">→</span>
+                </a>
+                <a routerLink="/terms-of-service" class="legal-link-mobile">
+                  <span class="link-icon-mobile">📋</span>
+                  <span class="link-text-mobile">Terms of Service</span>
+                  <span class="link-arrow-mobile">→</span>
+                </a>
+                <a routerLink="/algorithms" class="legal-link-mobile">
+                  <span class="link-icon-mobile">🔬</span>
+                  <span class="link-text-mobile">Algorithms</span>
+                  <span class="link-arrow-mobile">→</span>
+                </a>
+              </div>
+            </div>
+            
           </div>
         </div>
       }
@@ -477,16 +519,170 @@
 
     <div class="main-content">
       @if (!imageLoaded()) {
-        <div class="upload-section">
-          <div class="upload-area" (click)="triggerFileInput()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            <h2>{{ i18nService.t('upload.title') }}</h2>
-            <p>{{ i18nService.t('upload.dragDrop') }}</p>
-            <p class="file-info">{{ i18nService.t('upload.formats') }}</p>
+        <div class="welcome-container">
+          <!-- Hero Upload Section -->
+          <div class="upload-section-hero">
+            <div class="upload-hero-content">
+              <div class="upload-hero-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <h2 class="upload-hero-title">{{ i18nService.t('upload.title') }}</h2>
+              <p class="upload-hero-subtitle">{{ i18nService.t('upload.dragDrop') }}</p>
+              <div class="upload-hero-dropzone" 
+                   (click)="triggerFileInput()"
+                   [class.dragging]="isDragging">
+                <div class="dropzone-inner">
+                  <span class="dropzone-icon retro-emoji">📁</span>
+                  <span class="dropzone-text">Click to Browse</span>
+                  <span class="dropzone-or">or drag & drop</span>
+                </div>
+              </div>
+              
+              <!-- Camera Button -->
+              <button class="camera-button" (click)="takePicture(); $event.stopPropagation()" title="Take Picture">
+                <span class="retro-emoji camera-emoji">📷</span>
+                <span class="camera-text">Take Picture</span>
+              </button>
+              
+              <p class="upload-hero-formats">{{ i18nService.t('upload.formats') }}</p>
+            </div>
+          </div>
+
+          <!-- Tool Suites Section -->
+          <div class="tool-suites-section">
+            <div class="section-header">
+              <h3 class="section-title">
+                <span class="title-icon retro-emoji">🛠️</span>
+                Tool Suites
+              </h3>
+              <span class="section-badge">Coming Soon</span>
+            </div>
+            
+            <div class="tool-suites-grid">
+              <!-- Suite 1: Dithering Studio -->
+              <div class="tool-suite-card active">
+                <div class="suite-icon-wrapper">
+                  <span class="suite-icon retro-emoji">🎨</span>
+                  <span class="suite-status-dot active"></span>
+                </div>
+                <h4 class="suite-title">Dithering Studio</h4>
+                <p class="suite-description">Convert images with 13+ dithering algorithms</p>
+                <div class="suite-features">
+                  <span class="feature-tag active-tag">✓ Active</span>
+                  <span class="feature-tag">13 Algorithms</span>
+                  <span class="feature-tag">Retro Palettes</span>
+                </div>
+              </div>
+
+              <!-- Suite 2: GIF Animation -->
+              <div class="tool-suite-card active">
+                <div class="suite-icon-wrapper">
+                  <span class="suite-icon retro-emoji">🎬</span>
+                  <span class="suite-status-dot active"></span>
+                </div>
+                <h4 class="suite-title">GIF Animation</h4>
+                <p class="suite-description">Create animated GIFs with retro effects</p>
+                <div class="suite-features">
+                  <span class="feature-tag active-tag">✓ Active</span>
+                  <span class="feature-tag">VHS Effect</span>
+                  <span class="feature-tag">Scanlines</span>
+                </div>
+              </div>
+
+              <!-- Suite 3: Layer Composer -->
+              <div class="tool-suite-card active">
+                <div class="suite-icon-wrapper">
+                  <span class="suite-icon retro-emoji">🖼️</span>
+                  <span class="suite-status-dot active"></span>
+                </div>
+                <h4 class="suite-title">Layer Composer</h4>
+                <p class="suite-description">Multi-layer editing with blend modes</p>
+                <div class="suite-features">
+                  <span class="feature-tag active-tag">✓ Active</span>
+                  <span class="feature-tag">Blend Modes</span>
+                  <span class="feature-tag">Effects</span>
+                </div>
+              </div>
+
+              <!-- Suite 4: AI Background Removal -->
+              <div class="tool-suite-card active">
+                <div class="suite-icon-wrapper">
+                  <span class="suite-icon retro-emoji">🤖</span>
+                  <span class="suite-status-dot active"></span>
+                </div>
+                <h4 class="suite-title">AI Remover</h4>
+                <p class="suite-description">Remove backgrounds with AI (offline ready)</p>
+                <div class="suite-features">
+                  <span class="feature-tag active-tag">✓ Active</span>
+                  <span class="feature-tag">Offline</span>
+                  <span class="feature-tag">RMBG-1.4</span>
+                </div>
+              </div>
+
+              <!-- Suite 5: Pixel Art Scaler (Future) -->
+              <div class="tool-suite-card locked">
+                <div class="suite-icon-wrapper">
+                  <span class="suite-icon retro-emoji">🔍</span>
+                  <span class="suite-status-dot"></span>
+                </div>
+                <h4 class="suite-title">Pixel Upscaler</h4>
+                <p class="suite-description">Scale pixel art with smart algorithms</p>
+                <div class="suite-features">
+                  <span class="feature-tag locked-tag">🔒 Coming</span>
+                  <span class="feature-tag">xBR</span>
+                  <span class="feature-tag">HQx</span>
+                </div>
+              </div>
+
+              <!-- Suite 6: Color Quantizer (Future) -->
+              <div class="tool-suite-card locked">
+                <div class="suite-icon-wrapper">
+                  <span class="suite-icon retro-emoji">🎨</span>
+                  <span class="suite-status-dot"></span>
+                </div>
+                <h4 class="suite-title">Color Quantizer</h4>
+                <p class="suite-description">Reduce colors with advanced quantization</p>
+                <div class="suite-features">
+                  <span class="feature-tag locked-tag">🔒 Coming</span>
+                  <span class="feature-tag">Median Cut</span>
+                  <span class="feature-tag">K-means</span>
+                </div>
+              </div>
+
+              <!-- Suite 7: Sprite Sheet Maker (Future) -->
+              <div class="tool-suite-card locked">
+                <div class="suite-icon-wrapper">
+                  <span class="suite-icon retro-emoji">🎮</span>
+                  <span class="suite-status-dot"></span>
+                </div>
+                <h4 class="suite-title">Sprite Sheet</h4>
+                <p class="suite-description">Create and extract sprite sheets</p>
+                <div class="suite-features">
+                  <span class="feature-tag locked-tag">🔒 Coming</span>
+                  <span class="feature-tag">Auto Pack</span>
+                  <span class="feature-tag">JSON</span>
+                </div>
+              </div>
+
+              <!-- Suite 8: Retro Filters (Future) -->
+              <div class="tool-suite-card locked">
+                <div class="suite-icon-wrapper">
+                  <span class="suite-icon retro-emoji">📺</span>
+                  <span class="suite-status-dot"></span>
+                </div>
+                <h4 class="suite-title">Retro Filters</h4>
+                <p class="suite-description">Apply vintage CRT and analog effects</p>
+                <div class="suite-features">
+                  <span class="feature-tag locked-tag">🔒 Coming</span>
+                  <span class="feature-tag">CRT</span>
+                  <span class="feature-tag">Chromatic</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       }
@@ -1783,5 +1979,34 @@
   <app-settings 
     (closed)="showSettings.set(false)">
   </app-settings>
+}
+
+<!-- Legal Footer (Desktop Only) -->
+@if (deviceService.isDesktop()) {
+  <footer class="legal-footer">
+    <div class="footer-content">
+      <div class="footer-links">
+        <a routerLink="/algorithms" class="footer-link">
+          <span class="retro-emoji">🔬</span>
+          Algorithms
+        </a>
+        <span class="footer-separator">|</span>
+        <a routerLink="/privacy-policy" class="footer-link">
+          <span class="retro-emoji">🔒</span>
+          Privacy Policy
+        </a>
+        <span class="footer-separator">|</span>
+        <a routerLink="/terms-of-service" class="footer-link">
+          <span class="retro-emoji">📜</span>
+          Terms of Service
+        </a>
+      </div>
+      <div class="footer-info">
+        <span class="footer-text">© 2025 Dithering Converter</span>
+        <span class="footer-separator">•</span>
+        <span class="footer-text">Made with <span class="retro-emoji">❤️</span></span>
+      </div>
+    </div>
+  </footer>
 }
 

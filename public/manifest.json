@@ -6,6 +6,11 @@
   "display": "standalone",
   "background_color": "#11001c",
   "theme_color": "#ff00ff",
+  "permissions": [
+    "camera",
+    "storage"
+  ],
+  "orientation": "any",
   "icons": [
     {
       "src": "/icon-512.png",

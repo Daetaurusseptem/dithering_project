@@ -1,8 +1,13 @@
-# 🎨 Dithering Converter
+# 🎨 Dithering Converter - Retro Image Editor
 
-A powerful web application for image dithering with AI-powered background removal, multiple themes, and a retro-inspired UI.
+[![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-SITE-ID/deploy-status)](https://app.netlify.com/sites/YOUR-SITE/deploys)
 
-Built with [Angular CLI](https://github.com/angular/angular-cli) version 20.3.9.
+> Advanced creative error diffusion editor with AI-powered background removal, GIF animation studio, and multi-layer composition.
+
+🌐 **Live Demo:** [Coming Soon]  
+📂 **GitHub:** [Daetaurusseptem/dithering_project](https://github.com/Daetaurusseptem/dithering_project)
+
+Built with Angular 20 + Bun
 
 ## ✨ Features
 
@@ -165,6 +170,55 @@ If using Vite, add to `vite.config.ts`:
 ```typescript
 assetsInclude: ['**/*.onnx', '**/*.bin']
 ```
+
+---
+
+## 📦 Deploy to Netlify
+
+See [DEPLOY.md](./DEPLOY.md) for complete deployment guide including:
+- Netlify setup (CLI & Dashboard)
+- Google AdSense integration
+- CI/CD configuration
+- Revenue optimization tips
+
+**Quick deploy:**
+```bash
+git add .
+git commit -m "Ready for deployment"
+git push origin main
+# Then connect repo on netlify.com
+```
+
+---
+
+## 💰 Monetization
+
+This app is ready for Google AdSense:
+- ✅ Legal pages (Privacy Policy & Terms)
+- ✅ Ad service & components included
+- ✅ CSP headers configured
+- ⏳ Needs your AdSense approval
+
+Expected revenue: **$10-50/month** with 10k visits
+
+---
+
+## 👤 Author
+
+**Jaime Aburto**
+- GitHub: [@Daetaurusseptem](https://github.com/Daetaurusseptem)
+- Email: jaimeaburcalv@gmail.com
+- Location: México 🇲🇽
+
+---
+
+## 📞 Support
+
+- 🐛 **Bug Reports:** [Open an Issue](https://github.com/Daetaurusseptem/dithering_project/issues)
+- 💡 **Feature Requests:** [Discussions](https://github.com/Daetaurusseptem/dithering_project/discussions)
+- 📧 **Email:** jaimeaburcalv@gmail.com
+
+---
 
 ## 📝 Additional Resources
 

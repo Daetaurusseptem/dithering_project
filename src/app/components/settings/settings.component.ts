@@ -1,8 +1,10 @@
 import { Component, inject, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { I18nService, Language } from '../../services/i18n.service';
 import { ThemeService, ThemeId } from '../../services/theme.service';
+import { DeviceDetectionService } from '../../services/device-detection.service';
 
 @Component({
   selector: 'app-settings',
@@ -77,6 +79,7 @@ import { ThemeService, ThemeId } from '../../services/theme.service';
             <p>Advanced creative error diffusion editor</p>
             <p class="credits">Made with 💚 by the community</p>
           </div>
+          
         </div>
         
         <div class="settings-footer">
@@ -272,6 +275,53 @@ import { ThemeService, ThemeId } from '../../services/theme.service';
       font-style: italic;
     }
     
+    .legal-section {
+      background: var(--theme-background, #0f1f0f);
+      padding: 16px;
+      border-radius: 4px;
+      border: 1px solid var(--theme-border, #00ff00);
+    }
+    
+    .legal-links {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    
+    .legal-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--theme-surface, #1a2d1a);
+      border: 2px solid var(--theme-border, #00ff00);
+      border-radius: 4px;
+      color: var(--theme-text, #00ff00);
+      text-decoration: none;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .legal-link:hover {
+      background: var(--theme-primary, #00ff00);
+      color: var(--theme-background, #0f1f0f);
+      box-shadow: 0 0 15px var(--theme-glow-color, rgba(0, 255, 0, 0.6));
+      transform: translateX(4px);
+    }
+    
+    .legal-link:active {
+      transform: translateX(2px);
+    }
+    
+    .link-icon {
+      font-size: 16px;
+      min-width: 20px;
+      text-align: center;
+    }
+    
     .settings-footer {
       padding: 16px 20px;
       border-top: 2px solid var(--theme-border, #00ff00);
@@ -306,6 +356,7 @@ export class SettingsComponent {
   
   i18nService = inject(I18nService);
   themeService = inject(ThemeService);
+  deviceDetection = inject(DeviceDetectionService);
   
   availableThemes = this.themeService.getAvailableThemes();
   

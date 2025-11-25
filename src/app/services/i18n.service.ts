@@ -275,6 +275,13 @@ export class I18nService {
       ja: 'レトロなピクセルアートディザリングツール'
     },
     
+    // Gallery
+    'gallery.title': {
+      en: 'Gallery',
+      es: 'Galería',
+      ja: 'ギャラリー'
+    },
+    
     // Buttons & Actions
     'button.presets': {
       en: 'Presets',
@@ -430,6 +437,115 @@ export class I18nService {
       en: 'Level',
       es: 'Nivel',
       ja: 'レベル'
+    },
+    
+    // Algorithms Page
+    'algorithms.pageTitle': {
+      en: 'Algorithms',
+      es: 'Algoritmos',
+      ja: 'アルゴリズム'
+    },
+    'algorithms.pageSubtitle': {
+      en: 'Dithering techniques used in this application',
+      es: 'Técnicas de dithering usadas en esta aplicación',
+      ja: 'このアプリケーションで使用されるディザリング技術'
+    },
+    'algorithms.year': {
+      en: 'Year',
+      es: 'Año',
+      ja: '年'
+    },
+    'algorithms.origin': {
+      en: 'Origin',
+      es: 'Origen',
+      ja: '起源'
+    },
+    'algorithms.conservation': {
+      en: 'Error Conservation',
+      es: 'Conservación de error',
+      ja: 'エラー保存'
+    },
+    'algorithms.datelist': {
+      en: 'Datelist',
+      es: 'Datelist',
+      ja: 'Datelist'
+    },
+    'algorithms.velocity': {
+      en: 'Speed',
+      es: 'Velocidad',
+      ja: '速度'
+    },
+    'algorithms.characteristics': {
+      en: 'Characteristics',
+      es: 'Características',
+      ja: '特性'
+    },
+    'algorithms.artifacts': {
+      en: 'Artifacts',
+      es: 'Artefactos',
+      ja: 'アーティファクト'
+    },
+    'algorithms.bestFor': {
+      en: 'Best For',
+      es: 'Mejor Para',
+      ja: '最適な用途'
+    },
+    'algorithms.complexity': {
+      en: 'Complexity',
+      es: 'Complejidad',
+      ja: '複雑さ'
+    },
+    'algorithms.backToApp': {
+      en: 'Back to App',
+      es: 'Volver a la App',
+      ja: 'アプリに戻る'
+    },
+    'algorithms.yes': {
+      en: 'Yes',
+      es: 'Sí',
+      ja: 'はい'
+    },
+    'algorithms.no': {
+      en: 'No',
+      es: 'No',
+      ja: 'いいえ'
+    },
+    'algorithms.fast': {
+      en: 'Fast',
+      es: 'Rápida',
+      ja: '高速'
+    },
+    'algorithms.medium': {
+      en: 'Medium',
+      es: 'Media',
+      ja: '中速'
+    },
+    'algorithms.slow': {
+      en: 'Slow',
+      es: 'Lenta',
+      ja: '低速'
+    },
+    'algorithms.custom': {
+      en: 'Custom',
+      es: 'Personalizada',
+      ja: 'カスタム'
+    },
+    'algorithms.selectAlgorithm': {
+      en: 'Select an algorithm to see details',
+      es: 'Selecciona un algoritmo para ver detalles',
+      ja: '詳細を見るアルゴリズムを選択'
+    },
+    
+    // Algorithm Categories
+    'algorithms.category.errorDiffusion': {
+      en: 'Error Diffusion',
+      es: 'Difusión de Error',
+      ja: '誤差拡散'
+    },
+    'algorithms.category.ordered': {
+      en: 'Ordered Dithering',
+      es: 'Dithering Ordenado',
+      ja: '規則的ディザリング'
     }
   };
   

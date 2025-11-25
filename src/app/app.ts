@@ -1,6 +1,7 @@
 import { Component, signal, computed, effect, untracked, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { DitheringService, DitheringOptions } from './services/dithering.service';
 import { StorageService, ColorPalette, DitheringPreset } from './services/storage.service';
 import { SpriteStorageService } from './services/sprite-storage.service';
@@ -41,7 +42,8 @@ import { DitheringSettings } from './models/achievement.interface';
   selector: 'app-root',
   imports: [
     CommonModule, 
-    FormsModule, 
+    FormsModule,
+    RouterLink,
     CrtWaifuComponent, 
     SpriteUploaderComponent, 
     GifLoadingComponent,
@@ -70,6 +72,7 @@ export class App implements AfterViewInit {
   @ViewChild('originalCompareCanvas') originalCompareCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('particleCanvas') particleCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('cameraInput') cameraInput!: ElementRef<HTMLInputElement>;
   @ViewChild('gifStudioCanvas') gifStudioCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild(CompositionCanvasComponent) compositionCanvasComponent?: CompositionCanvasComponent;
 
@@ -106,7 +109,7 @@ export class App implements AfterViewInit {
   
   // Comparador before/after
   sliderPosition = signal(50); // Porcentaje 0-100
-  private isDragging = false;
+  isDragging = false;
   zoomLevel = signal(100); // Porcentaje de zoom
   viewMode = signal<'fit' | 'original'>('fit'); // Modo de vista del canvas
   private isPanningCanvas = false;
@@ -153,6 +156,7 @@ export class App implements AfterViewInit {
   private previewDebounceTimer: any = null;
   private lastPreviewUpdate = 0;
   private previewScale = 0.5; // Renderizar preview al 50% para mejor performance
+  private processImageDebounceTimer: any = null;
   
   // Imagen original
   originalImageData: ImageData | null = null;
@@ -256,6 +260,9 @@ export class App implements AfterViewInit {
     this.loadCustomPalettesAndPresets();
     this.loadSavedSprite();
     
+    // Log performance optimizations
+    this.logPerformanceOptimizations();
+    
     // Update navbar logo when theme changes
     effect(() => {
       const themeId = this.themeService.currentTheme();
@@ -300,6 +307,23 @@ export class App implements AfterViewInit {
 
   ngAfterViewInit() {
     // Inicializar canvas
+  }
+
+  /**
+   * Log performance optimizations being applied
+   */
+  private logPerformanceOptimizations(): void {
+    const maxDim = this.deviceService.getMaxImageDimension();
+    const isLowEnd = this.deviceService.isLowEndDevice();
+    const reduceAnim = this.deviceService.shouldReduceAnimations();
+    const useWorkers = this.deviceService.shouldUseWebWorkers();
+    
+    console.log('🚀 Performance Optimizations:');
+    console.log(`  - Max image dimension: ${maxDim}px`);
+    console.log(`  - Low-end device: ${isLowEnd}`);
+    console.log(`  - Reduce animations: ${reduceAnim}`);
+    console.log(`  - Use Web Workers: ${useWorkers}`);
+    console.log(`  - Image processing: Debounced (300ms)`);
   }
 
   /**
@@ -446,10 +470,32 @@ export class App implements AfterViewInit {
     const ctx = tempCanvas.getContext('2d');
     if (!ctx) return;
 
-    tempCanvas.width = img.width;
-    tempCanvas.height = img.height;
-    ctx.drawImage(img, 0, 0);
-    this.originalImageData = ctx.getImageData(0, 0, img.width, img.height);
+    // Get device-specific max dimension
+    const maxDimension = this.deviceService.getMaxImageDimension();
+    
+    // Calculate dimensions respecting aspect ratio
+    let width = img.width;
+    let height = img.height;
+    
+    // Scale down if image exceeds max dimension
+    if (width > maxDimension || height > maxDimension) {
+      const aspectRatio = width / height;
+      
+      if (width > height) {
+        width = maxDimension;
+        height = Math.round(maxDimension / aspectRatio);
+      } else {
+        height = maxDimension;
+        width = Math.round(maxDimension * aspectRatio);
+      }
+      
+      console.log(`📐 Image resized from ${img.width}x${img.height} to ${width}x${height} for device`);
+    }
+
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    ctx.drawImage(img, 0, 0, width, height);
+    this.originalImageData = ctx.getImageData(0, 0, width, height);
   }
 
   /**
@@ -459,6 +505,22 @@ export class App implements AfterViewInit {
     if (!this.originalImageData) return;
     
     // En mobile no necesitamos el canvas desktop
+    const isMobile = this.deviceService.isMobile();
+    if (!isMobile && !this.processedCanvas) return;
+
+    // Debounce image processing to avoid excessive reprocessing
+    clearTimeout(this.processImageDebounceTimer);
+    this.processImageDebounceTimer = setTimeout(() => {
+      this.processImageImmediate();
+    }, 300);
+  }
+
+  /**
+   * Procesa la imagen inmediatamente sin debounce
+   */
+  private processImageImmediate() {
+    if (!this.originalImageData) return;
+
     const isMobile = this.deviceService.isMobile();
     if (!isMobile && !this.processedCanvas) return;
 
@@ -1027,6 +1089,196 @@ export class App implements AfterViewInit {
   triggerFileInput() {
     if (this.fileInput) {
       this.fileInput.nativeElement.click();
+    }
+  }
+
+  /**
+   * Trigger camera input click
+   */
+  triggerCameraInput() {
+    if (this.cameraInput) {
+      this.cameraInput.nativeElement.click();
+    }
+  }
+
+  /**
+   * Handle drag & drop events
+   */
+  @HostListener('dragover', ['$event'])
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = true;
+  }
+
+  @HostListener('dragleave', ['$event'])
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
+  @HostListener('drop', ['$event'])
+  async onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Verificar que sea una imagen
+      if (file.type.startsWith('image/')) {
+        // If there's already an image loaded, ask for confirmation
+        if (this.imageLoaded()) {
+          const confirmed = await this.modalService.confirm(
+            'Loading a new image will reset all layers and effects. Continue?',
+            'Load New Image'
+          );
+          
+          if (!confirmed) {
+            return;
+          }
+          
+          // Reset all modes and states
+          this.resetAllModes();
+        }
+        
+        this.loadImage(file);
+      }
+    }
+  }
+
+  /**
+   * Take a picture using device camera
+   */
+  async takePicture() {
+    try {
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        await this.modalService.alert(
+          '📷 Camera access is not supported in this browser.\n\n' +
+          'Please use a modern browser like Chrome, Firefox, or Safari.',
+          'Camera Not Available'
+        );
+        return;
+      }
+
+      // Show info message
+      console.log('🎥 Requesting camera access...');
+
+      // Request camera access with options
+      const constraints = {
+        video: {
+          facingMode: 'environment', // Prefer back camera on mobile
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('✅ Camera access granted');
+
+      // Create video element to preview and capture
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.autoplay = true;
+      video.playsInline = true; // Important for iOS
+
+      // Wait for video to be ready
+      await new Promise((resolve, reject) => {
+        video.onloadedmetadata = () => {
+          video.play();
+          resolve(true);
+        };
+        video.onerror = () => reject(new Error('Video load failed'));
+        
+        // Timeout after 5 seconds
+        setTimeout(() => reject(new Error('Video load timeout')), 5000);
+      });
+
+      console.log('📹 Video ready, capturing frame...');
+
+      // Wait a bit for camera to stabilize
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Create canvas to capture frame
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        stream.getTracks().forEach(track => track.stop());
+        throw new Error('Could not get canvas context');
+      }
+
+      // Capture frame
+      ctx.drawImage(video, 0, 0);
+
+      // Stop camera stream immediately after capture
+      stream.getTracks().forEach(track => {
+        track.stop();
+        console.log('🛑 Camera stopped');
+      });
+
+      // Convert to blob and load
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          console.log('✨ Image captured successfully');
+
+          // If there's already an image loaded, ask for confirmation
+          if (this.imageLoaded()) {
+            const confirmed = await this.modalService.confirm(
+              'Loading a new image will reset all layers and effects. Continue?',
+              'Load New Image'
+            );
+            
+            if (!confirmed) {
+              return;
+            }
+            
+            // Reset all modes and states
+            this.resetAllModes();
+          }
+
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+          const file = new File([blob], `camera-${timestamp}.jpg`, { type: 'image/jpeg' });
+          this.loadImage(file);
+        }
+      }, 'image/jpeg', 0.95);
+
+    } catch (error: any) {
+      console.error('❌ Camera error:', error);
+      
+      // Provide specific error messages
+      let message = '📷 Could not access camera.\n\n';
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        message += '🔒 Permission denied.\n\n' +
+                  'Please allow camera access in your browser settings:\n\n' +
+                  '• Chrome: Click the camera icon in the address bar\n' +
+                  '• Firefox: Click the camera icon in the address bar\n' +
+                  '• Safari: Settings → Safari → Camera → Allow';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        message += '📹 No camera found.\n\n' +
+                  'Please make sure your device has a camera connected.';
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        message += '⚠️ Camera is already in use.\n\n' +
+                  'Please close other apps using the camera and try again.';
+      } else if (error.name === 'OverconstrainedError') {
+        message += '⚙️ Camera constraints not supported.\n\n' +
+                  'Your camera may not support the requested settings.';
+      } else if (error.name === 'SecurityError') {
+        message += '🔐 Security error.\n\n' +
+                  'Camera access requires HTTPS or localhost.\n' +
+                  'Please use a secure connection.';
+      } else {
+        message += '❌ An unexpected error occurred:\n\n' + error.message;
+      }
+
+      await this.modalService.alert(message, 'Camera Error');
     }
   }
 
