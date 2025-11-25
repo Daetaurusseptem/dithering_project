@@ -4886,3 +4886,300 @@
   color: var(--theme-text);
   opacity: 0.8;
 }
+
+/* ==========================================
+   SETTINGS MOBILE - RETRO MINIMAL
+   ========================================== */
+
+.settings-mobile-wrapper {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 64px;
+  background: var(--theme-background);
+  overflow-y: auto;
+}
+
+.settings-content-mobile {
+  padding: 20px 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.settings-section-mobile {
+  margin-bottom: 32px;
+  border-bottom: 1px solid rgba(var(--theme-border-rgb, 60, 60, 80), 0.2);
+  padding-bottom: 24px;
+}
+
+.settings-section-mobile:last-child {
+  border-bottom: none;
+}
+
+.section-title-mobile {
+  margin: 0 0 20px 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--theme-text);
+  opacity: 0.5;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Theme Cards - More retro */
+.settings-cards-mobile {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.theme-card-mobile {
+  background: var(--theme-surface);
+  border: 1px solid rgba(var(--theme-border-rgb, 60, 60, 80), 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.theme-card-mobile:active {
+  transform: scale(0.97);
+}
+
+.theme-card-mobile.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid var(--theme-primary);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.theme-preview {
+  height: 60px;
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+  pointer-events: none;
+}
+
+.theme-info {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--theme-accent);
+}
+
+.theme-name {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--theme-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.theme-check {
+  color: var(--theme-primary);
+  font-size: 1rem;
+  font-weight: bold;
+  filter: drop-shadow(0 0 4px var(--theme-primary));
+}
+
+/* Options Buttons - Retro minimal */
+.settings-options-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.option-btn-mobile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--theme-surface);
+  border: 1px solid rgba(var(--theme-border-rgb, 60, 60, 80), 0.3);
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 52px;
+  position: relative;
+}
+
+.option-btn-mobile::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.option-btn-mobile:active {
+  transform: translateX(2px);
+}
+
+.option-btn-mobile.active::before {
+  background: var(--theme-primary);
+  box-shadow: 0 0 8px var(--theme-primary);
+}
+
+.option-btn-mobile.active {
+  background: rgba(var(--theme-primary-rgb, 100, 200, 255), 0.05);
+  border-color: rgba(var(--theme-primary-rgb, 100, 200, 255), 0.3);
+}
+
+.option-icon {
+  font-size: 1.3rem;
+  filter: grayscale(0.3);
+}
+
+.option-text {
+  flex: 1;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--theme-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.option-check {
+  color: var(--theme-primary);
+  font-size: 1rem;
+  font-weight: bold;
+  filter: drop-shadow(0 0 4px var(--theme-primary));
+}
+
+/* Storage Info - Retro terminal style */
+.storage-info-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.storage-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--theme-surface);
+  border: 1px solid rgba(var(--theme-border-rgb, 60, 60, 80), 0.3);
+  border-radius: 0;
+  font-family: 'Courier New', monospace;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--theme-text);
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--theme-primary);
+  text-shadow: 0 0 8px var(--theme-primary);
+  font-family: 'Courier New', monospace;
+}
+
+.btn-danger-mobile {
+  width: 100%;
+  padding: 14px;
+  background: var(--theme-surface);
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  border-radius: 0;
+  color: rgba(255, 100, 100, 0.8);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-danger-mobile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 100, 100, 0.1);
+  transition: left 0.3s ease;
+}
+
+.btn-danger-mobile:active:not(:disabled)::before {
+  left: 0;
+}
+
+.btn-danger-mobile:active:not(:disabled) {
+  border-color: rgba(255, 100, 100, 0.6);
+}
+
+.btn-danger-mobile:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+/* About Info - Terminal aesthetic */
+.about-info-mobile {
+  text-align: center;
+  padding: 20px 8px;
+  font-family: 'Courier New', monospace;
+}
+
+.app-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--theme-primary);
+  margin: 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px var(--theme-primary);
+}
+
+.app-version {
+  font-size: 0.7rem;
+  color: var(--theme-text);
+  opacity: 0.4;
+  margin: 8px 0;
+  letter-spacing: 2px;
+}
+
+.app-description {
+  font-size: 0.75rem;
+  color: var(--theme-text);
+  opacity: 0.5;
+  margin: 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}

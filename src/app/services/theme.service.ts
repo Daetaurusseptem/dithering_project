@@ -164,8 +164,12 @@ export class ThemeService {
     }
   }
   
-  getAvailableThemes(): { id: ThemeId; name: string }[] {
-    return Object.values(this.themes).map(t => ({ id: t.id, name: t.name }));
+  getAvailableThemes(): { id: ThemeId; name: string; previewColor: string }[] {
+    return Object.values(this.themes).map(t => ({ 
+      id: t.id, 
+      name: t.name,
+      previewColor: t.colors.primary 
+    }));
   }
   
   getCurrentColors(): ThemeColors {

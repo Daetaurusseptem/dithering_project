@@ -105,11 +105,11 @@ export const DEFAULT_EFFECT_OPTIONS: Record<EffectType, EffectOptions> = {
     particleCustomSprite: ''
   },
   'flames': {
-    flameHeight: 0.7,
-    flameSpread: 0.5,
+    flameHeight: 60,
+    flameSpread: 50,
     flameIntensity: 0.7,
     flameColor: 'red',
-    flameTurbulence: 0.5,
+    flameTurbulence: 1,
     flameAlgorithm: 'realistic'
   }
 };

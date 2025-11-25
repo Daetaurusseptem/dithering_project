@@ -149,6 +149,132 @@ export class I18nService {
       ja: 'ぼかし'
     },
     
+    // Mobile specific
+    'mobile.uploadPlaceholder': {
+      en: 'Upload an image to start',
+      es: 'Sube una imagen para comenzar',
+      ja: '画像をアップロードして開始'
+    },
+    'mobile.gifPlaceholder': {
+      en: 'Create GIF layers to preview',
+      es: 'Crea capas GIF para previsualizar',
+      ja: 'GIFレイヤーを作成してプレビュー'
+    },
+    'mobile.effectsTitle': {
+      en: 'Effects',
+      es: 'Efectos',
+      ja: 'エフェクト'
+    },
+    'mobile.noEffects': {
+      en: 'No effects added',
+      es: 'Sin efectos agregados',
+      ja: 'エフェクトなし'
+    },
+    'mobile.addEffect': {
+      en: '+ Add Effect',
+      es: '+ Agregar Efecto',
+      ja: '+ エフェクト追加'
+    },
+    'mobile.intensity': {
+      en: 'Intensity',
+      es: 'Intensidad',
+      ja: '強度'
+    },
+    'mobile.amount': {
+      en: 'Amount',
+      es: 'Cantidad',
+      ja: '量'
+    },
+    'mobile.speed': {
+      en: 'Speed',
+      es: 'Velocidad',
+      ja: '速度'
+    },
+    'mobile.size': {
+      en: 'Size',
+      es: 'Tamaño',
+      ja: 'サイズ'
+    },
+    
+    // Gallery mobile
+    'gallery.searchPlaceholder': {
+      en: '🔍 Search gallery...',
+      es: '🔍 Buscar en galería...',
+      ja: '🔍 ギャラリーを検索...'
+    },
+    'gallery.empty': {
+      en: 'No saved images',
+      es: 'Sin imágenes guardadas',
+      ja: '保存された画像なし'
+    },
+    'gallery.emptyHint': {
+      en: 'Save your work to see it here',
+      es: 'Guarda tu trabajo para verlo aquí',
+      ja: 'ここに表示するには作業を保存'
+    },
+    'gallery.loadToCanvas': {
+      en: 'Load to Canvas',
+      es: 'Cargar en Lienzo',
+      ja: 'キャンバスに読込'
+    },
+    'gallery.delete': {
+      en: 'Delete',
+      es: 'Eliminar',
+      ja: '削除'
+    },
+    'gallery.today': {
+      en: 'Today',
+      es: 'Hoy',
+      ja: '今日'
+    },
+    'gallery.yesterday': {
+      en: 'Yesterday',
+      es: 'Ayer',
+      ja: '昨日'
+    },
+    'gallery.daysAgo': {
+      en: 'days ago',
+      es: 'hace días',
+      ja: '日前'
+    },
+    
+    // Settings mobile
+    'settings.theme': {
+      en: '🎨 Theme',
+      es: '🎨 Tema',
+      ja: '🎨 テーマ'
+    },
+    'settings.language': {
+      en: '🌐 Language',
+      es: '🌐 Idioma',
+      ja: '🌐 言語'
+    },
+    'settings.storage': {
+      en: '💾 Storage',
+      es: '💾 Almacenamiento',
+      ja: '💾 ストレージ'
+    },
+    'settings.about': {
+      en: 'ℹ️ About',
+      es: 'ℹ️ Acerca de',
+      ja: 'ℹ️ について'
+    },
+    'settings.galleryItems': {
+      en: 'Gallery Items',
+      es: 'Elementos de Galería',
+      ja: 'ギャラリー項目'
+    },
+    'settings.clearGallery': {
+      en: '🗑️ Clear Gallery',
+      es: '🗑️ Limpiar Galería',
+      ja: '🗑️ ギャラリー削除'
+    },
+    'settings.appDescription': {
+      en: 'Retro pixel art dithering tool',
+      es: 'Herramienta de dithering pixel art retro',
+      ja: 'レトロなピクセルアートディザリングツール'
+    },
+    
     // Buttons & Actions
     'button.presets': {
       en: 'Presets',
@@ -275,23 +401,6 @@ export class I18nService {
       en: 'Outer Glow',
       es: 'Resplandor Exterior',
       ja: '外側の光彩'
-    },
-    
-    // Gallery
-    'gallery.title': {
-      en: 'My Gallery',
-      es: 'Mi Galería',
-      ja: 'マイギャラリー'
-    },
-    'gallery.search': {
-      en: 'Search designs...',
-      es: 'Buscar diseños...',
-      ja: 'デザインを検索...'
-    },
-    'gallery.empty': {
-      en: 'No designs yet',
-      es: 'Aún no hay diseños',
-      ja: 'デザインがありません'
     },
     
     // Context Menu

@@ -64,6 +64,7 @@ import { DitheringSettings } from './models/achievement.interface';
   styleUrl: './app.css'
 })
 export class App implements AfterViewInit {
+  // Services are automatically injected via inject()
   // Canvas references
   @ViewChild('processedCanvas') processedCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('originalCompareCanvas') originalCompareCanvas?: ElementRef<HTMLCanvasElement>;
@@ -1664,10 +1665,18 @@ export class App implements AfterViewInit {
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays === 0) return this.i18nService.t('gallery.today');
+    if (diffDays === 1) return this.i18nService.t('gallery.yesterday');
+    if (diffDays < 7) return `${diffDays} ${this.i18nService.t('gallery.daysAgo')}`;
     return date.toLocaleDateString();
+  }
+
+  // Settings Mobile Methods
+  clearGalleryMobile(): void {
+    const count = this.galleryService.gallery().length;
+    if (confirm(`Delete all ${count} items from gallery? This cannot be undone.`)) {
+      this.galleryService.clearGallery();
+    }
   }
 
   gifPreviewUrl = computed(() => {

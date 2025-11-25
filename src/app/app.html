@@ -152,7 +152,7 @@
             } @else {
               <div class="gif-placeholder-mobile">
                 <span class="placeholder-icon">🎬</span>
-                <p>Upload an image to start</p>
+                <p>{{ i18nService.t('mobile.uploadPlaceholder') }}</p>
               </div>
             }
           </div>
@@ -170,7 +170,7 @@
         <div class="gif-studio-mobile-panel" [class.collapsed]="gifPanelCollapsed()">
           <button class="panel-toggle" (click)="toggleGifPanel()">
             <span class="toggle-icon">{{ gifPanelCollapsed() ? '▲' : '▼' }}</span>
-            <span class="toggle-text">Effects ({{ effectLayers().length }})</span>
+            <span class="toggle-text">{{ i18nService.t('mobile.effectsTitle') }} ({{ effectLayers().length }})</span>
           </button>
           
           <div class="mobile-panel-content">
@@ -198,14 +198,14 @@
 
               @if (effectLayers().length === 0) {
                 <div class="empty-layers-mobile">
-                  <p>No effects added</p>
+                  <p>{{ i18nService.t('mobile.noEffects') }}</p>
                 </div>
               }
             </div>
 
             <!-- Add Effect Dropdown (Compact) -->
             <select class="select-add-effect-mobile" (change)="addEffectFromSelect($event)" [value]="''">
-              <option value="" disabled selected>+ Add Effect</option>
+              <option value="" disabled selected>{{ i18nService.t('mobile.addEffect') }}</option>
               @for (effectType of availableEffects; track effectType) {
                 <option [value]="effectType">{{ effectNames[effectType] }}</option>
               }
@@ -311,7 +311,7 @@
           <div class="gallery-search-bar">
             <input type="text" 
                    class="search-input-mobile" 
-                   placeholder="🔍 Search gallery..."
+                   [placeholder]="i18nService.t('gallery.searchPlaceholder')"
                    [(ngModel)]="gallerySearchQuery"
                    (input)="onGallerySearch()">
           </div>
@@ -321,8 +321,8 @@
             @if (galleryService.gallery().length === 0) {
               <div class="gallery-empty-mobile">
                 <span class="empty-icon">🖼️</span>
-                <p>No saved images</p>
-                <p class="empty-hint">Save your work to see it here</p>
+                <p>{{ i18nService.t('gallery.empty') }}</p>
+                <p class="empty-hint">{{ i18nService.t('gallery.emptyHint') }}</p>
               </div>
             } @else {
               @for (item of filteredGalleryItems(); track item.id) {
@@ -348,11 +348,11 @@
               <div class="gallery-modal-actions">
                 <button class="modal-action-btn" (click)="loadGalleryItemToCanvas(selectedGalleryItem()!)">
                   <span class="action-icon">📤</span>
-                  <span>Load to Canvas</span>
+                  <span>{{ i18nService.t('gallery.loadToCanvas') }}</span>
                 </button>
                 <button class="modal-action-btn modal-action-danger" (click)="deleteGalleryItemMobile(selectedGalleryItem()!)">
                   <span class="action-icon">🗑️</span>
-                  <span>Delete</span>
+                  <span>{{ i18nService.t('gallery.delete') }}</span>
                 </button>
               </div>
               <div class="gallery-modal-info">
@@ -372,9 +372,91 @@
       }
       
       @if (mobileActiveTab() === 'settings') {
-        <div style="padding: 2rem; text-align: center; color: var(--theme-text);">
-          <h2>Settings</h2>
-          <p>Mobile Settings coming soon...</p>
+        <!-- Settings Mobile View -->
+        <div class="settings-mobile-wrapper">
+          <div class="settings-content-mobile">
+            
+            <!-- Theme Section -->
+            <div class="settings-section-mobile">
+              <h3 class="section-title-mobile">{{ i18nService.t('settings.theme') }}</h3>
+              <div class="settings-cards-mobile">
+                @for (theme of themeService.getAvailableThemes(); track theme.id) {
+                  <div class="theme-card-mobile" 
+                       [class.active]="themeService.currentTheme() === theme.id"
+                       (click)="themeService.setTheme(theme.id)">
+                    <div class="theme-preview" [style.background]="theme.previewColor"></div>
+                    <div class="theme-info">
+                      <span class="theme-name">{{ theme.name }}</span>
+                      @if (themeService.currentTheme() === theme.id) {
+                        <span class="theme-check">✓</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+            
+            <!-- Language Section -->
+            <div class="settings-section-mobile">
+              <h3 class="section-title-mobile">{{ i18nService.t('settings.language') }}</h3>
+              <div class="settings-options-mobile">
+                <button class="option-btn-mobile" 
+                        [class.active]="i18nService.currentLanguage() === 'en'"
+                        (click)="i18nService.setLanguage('en')">
+                  <span class="option-icon">🇺🇸</span>
+                  <span class="option-text">English</span>
+                  @if (i18nService.currentLanguage() === 'en') {
+                    <span class="option-check">✓</span>
+                  }
+                </button>
+                <button class="option-btn-mobile" 
+                        [class.active]="i18nService.currentLanguage() === 'es'"
+                        (click)="i18nService.setLanguage('es')">
+                  <span class="option-icon">🇪🇸</span>
+                  <span class="option-text">Español</span>
+                  @if (i18nService.currentLanguage() === 'es') {
+                    <span class="option-check">✓</span>
+                  }
+                </button>
+                <button class="option-btn-mobile" 
+                        [class.active]="i18nService.currentLanguage() === 'ja'"
+                        (click)="i18nService.setLanguage('ja')">
+                  <span class="option-icon">🇯🇵</span>
+                  <span class="option-text">日本語</span>
+                  @if (i18nService.currentLanguage() === 'ja') {
+                    <span class="option-check">✓</span>
+                  }
+                </button>
+              </div>
+            </div>
+            
+            <!-- Storage Section -->
+            <div class="settings-section-mobile">
+              <h3 class="section-title-mobile">{{ i18nService.t('settings.storage') }}</h3>
+              <div class="storage-info-mobile">
+                <div class="storage-stat">
+                  <span class="stat-label">{{ i18nService.t('settings.galleryItems') }}</span>
+                  <span class="stat-value">{{ galleryService.gallery().length }}</span>
+                </div>
+                <button class="btn-danger-mobile" 
+                        [disabled]="galleryService.gallery().length === 0"
+                        (click)="clearGalleryMobile()">
+                  {{ i18nService.t('settings.clearGallery') }}
+                </button>
+              </div>
+            </div>
+            
+            <!-- About Section -->
+            <div class="settings-section-mobile">
+              <h3 class="section-title-mobile">{{ i18nService.t('settings.about') }}</h3>
+              <div class="about-info-mobile">
+                <p class="app-name">Ditheroid</p>
+                <p class="app-version">v1.0.0</p>
+                <p class="app-description">{{ i18nService.t('settings.appDescription') }}</p>
+              </div>
+            </div>
+            
+          </div>
         </div>
       }
       
