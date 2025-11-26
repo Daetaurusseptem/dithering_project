@@ -602,8 +602,9 @@ export class CompositionCanvasComponent implements AfterViewInit {
       ctx.setLineDash([10, 5]);
       ctx.strokeRect(cropX, cropY, cropWidth, cropHeight);
 
-      // Draw corner handles
-      const handleSize = 12 / this.canvasZoom();
+      // Draw corner handles - larger on mobile
+      const isMobile = 'ontouchstart' in window;
+      const handleSize = (isMobile ? 24 : 12) / this.canvasZoom();
       ctx.fillStyle = '#00ff00';
       ctx.fillRect(cropX - handleSize / 2, cropY - handleSize / 2, handleSize, handleSize);
       ctx.fillRect(cropX + cropWidth - handleSize / 2, cropY - handleSize / 2, handleSize, handleSize);
@@ -675,12 +676,16 @@ export class CompositionCanvasComponent implements AfterViewInit {
         strokeCtx.drawImage(tempCanvas, offsetX, offsetY);
       }
 
-      // Draw original image on top
-      strokeCtx.globalCompositeOperation = 'source-atop';
+      // Fill the expanded silhouette with stroke color
+      strokeCtx.globalCompositeOperation = 'source-in';
       strokeCtx.fillStyle = stroke.color;
       strokeCtx.fillRect(0, 0, strokeCanvas.width, strokeCanvas.height);
 
-      // Now composite the original image
+      // Draw original image on top (this removes the stroke from the interior)
+      strokeCtx.globalCompositeOperation = 'destination-out';
+      strokeCtx.drawImage(tempCanvas, 0, 0);
+
+      // Draw the original image back
       strokeCtx.globalCompositeOperation = 'destination-over';
       strokeCtx.drawImage(tempCanvas, 0, 0);
 
@@ -866,8 +871,10 @@ export class CompositionCanvasComponent implements AfterViewInit {
     ctx.setLineDash([5, 5]);
     ctx.strokeRect(x, y, width, height);
 
-    // Draw resize handles - scale inversely with zoom
-    const handleSize = 12 / this.canvasZoom();
+    // Draw resize handles - larger on mobile for better touch targets
+    const isMobile = 'ontouchstart' in window;
+    const baseHandleSize = isMobile ? 24 : 12;
+    const handleSize = baseHandleSize / this.canvasZoom();
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#00ff00';
     ctx.lineWidth = 2 / this.canvasZoom();
@@ -901,14 +908,15 @@ export class CompositionCanvasComponent implements AfterViewInit {
       );
     }
 
-    // Draw rotation handle
-    const rotateHandleDistance = 30 / this.canvasZoom();
+    // Draw rotation handle - larger distance on mobile
+    const rotateHandleDistance = (isMobile ? 50 : 30) / this.canvasZoom();
     const rotateHandleY = y - rotateHandleDistance;
     ctx.beginPath();
     ctx.moveTo(centerX, y);
     ctx.lineTo(centerX, rotateHandleY);
     ctx.stroke();
 
+    // Rotation handle circle
     ctx.beginPath();
     ctx.arc(centerX, rotateHandleY, handleSize / 2, 0, Math.PI * 2);
     ctx.fill();
@@ -2814,24 +2822,82 @@ export class CompositionCanvasComponent implements AfterViewInit {
   }
 
   /**
-   * TOUCH INTERACTION - Convert touch events to mouse events
+   * TOUCH INTERACTION - Enhanced mobile gestures
    */
   
+  private touchStartDistance = 0;
+  private initialZoom = 1;
+  private touchStartTime = 0;
+  private lastTapTime = 0;
+  private tapTimeout: any = null;
+
   onTouchStart(event: TouchEvent): void {
+    this.touchStartTime = Date.now();
+    
+    // Two-finger pinch-to-zoom
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      const touch1 = event.touches[0];
+      const touch2 = event.touches[1];
+      this.touchStartDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      this.initialZoom = this.canvasZoom();
+      return;
+    }
+    
+    // Single finger - check for double tap
     if (event.touches.length === 1) {
       const touch = event.touches[0];
-      const mouseEvent = new MouseEvent('mousedown', {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-        button: 0,
-        buttons: 1
-      });
-      this.onMouseDown(mouseEvent);
+      const currentTime = Date.now();
+      const tapGap = currentTime - this.lastTapTime;
+      
+      // Double tap detected (within 300ms)
+      if (tapGap < 300 && tapGap > 0) {
+        clearTimeout(this.tapTimeout);
+        this.handleDoubleTap(touch);
+        this.lastTapTime = 0;
+        event.preventDefault();
+        return;
+      }
+      
+      // Single tap - wait to see if double tap
+      this.lastTapTime = currentTime;
+      this.tapTimeout = setTimeout(() => {
+        // Convert to mouse event after delay (if not double tap)
+        const mouseEvent = new MouseEvent('mousedown', {
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+          button: 0,
+          buttons: 1
+        });
+        this.onMouseDown(mouseEvent);
+      }, 100);
+      
       event.preventDefault();
     }
   }
 
   onTouchMove(event: TouchEvent): void {
+    // Two-finger pinch-to-zoom
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      const touch1 = event.touches[0];
+      const touch2 = event.touches[1];
+      const currentDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      
+      // Calculate zoom scale
+      const scale = currentDistance / this.touchStartDistance;
+      const newZoom = Math.max(0.1, Math.min(5, this.initialZoom * scale));
+      this.canvasZoom.set(newZoom);
+      return;
+    }
+    
+    // Single finger
     if (event.touches.length === 1) {
       const touch = event.touches[0];
       const mouseEvent = new MouseEvent('mousemove', {
@@ -2846,11 +2912,69 @@ export class CompositionCanvasComponent implements AfterViewInit {
   }
 
   onTouchEnd(event: TouchEvent): void {
-    const mouseEvent = new MouseEvent('mouseup', {
-      button: 0,
-      buttons: 0
-    });
-    this.onMouseUp(mouseEvent);
+    const touchDuration = Date.now() - this.touchStartTime;
+    
+    // Reset pinch state
+    if (this.touchStartDistance > 0) {
+      this.touchStartDistance = 0;
+      this.initialZoom = 1;
+    }
+    
+    // Only trigger mouse up if it was a drag (>100ms)
+    if (touchDuration > 100) {
+      const mouseEvent = new MouseEvent('mouseup', {
+        button: 0,
+        buttons: 0
+      });
+      this.onMouseUp(mouseEvent);
+    }
+    
     event.preventDefault();
+  }
+  
+  /**
+   * Handle double tap - select layer or zoom
+   */
+  private handleDoubleTap(touch: Touch): void {
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const canvasX = (touch.clientX - rect.left) / this.canvasZoom();
+    const canvasY = (touch.clientY - rect.top) / this.canvasZoom();
+    
+    // Try to select a layer - iterate through layers to find hit
+    const layers = this.compositionService.compositionState().layers;
+    let hitLayer: CompositionLayer | null = null;
+    
+    // Check layers in reverse order (top to bottom)
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const layer = layers[i];
+      if (layer.visible && !layer.locked) {
+        // Simple bounding box hit test
+        if (canvasX >= layer.x && canvasX <= layer.x + layer.width &&
+            canvasY >= layer.y && canvasY <= layer.y + layer.height) {
+          hitLayer = layer;
+          break;
+        }
+      }
+    }
+    
+    if (hitLayer) {
+      // Select the layer
+      this.compositionService.selectLayer(hitLayer.id);
+      
+      // Provide haptic feedback if available
+      if ('vibrate' in navigator) {
+        navigator.vibrate(10);
+      }
+    } else {
+      // No layer - toggle zoom between 100% and fit
+      if (Math.abs(this.canvasZoom() - 1) < 0.1) {
+        this.resetZoom();
+      } else {
+        this.canvasZoom.set(1);
+      }
+    }
   }
 }

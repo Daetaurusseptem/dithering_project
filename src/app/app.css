@@ -4614,41 +4614,42 @@
   height: 100% !important;
 }
 
-/* Nivel 1: Top Bar Compacto - Profesional */
+/* Nivel 1: Top Bar Compacto - Mobile Optimized */
 .composition-top-bar {
   position: fixed;
-  top: 64px;
+  top: 68px;
   right: 8px;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   z-index: 10;
   background: var(--theme-surface);
-  backdrop-filter: blur(12px);
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid var(--theme-border);
+  backdrop-filter: blur(16px);
+  padding: 10px;
+  border-radius: 12px;
+  border: 2px solid var(--theme-border);
   box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .top-btn {
-  width: 44px;
-  height: 44px;
+  width: 52px; /* Larger for better touch */
+  height: 52px;
   background: var(--theme-accent);
-  border: 1px solid var(--theme-border);
-  border-radius: 8px;
+  border: 2px solid var(--theme-border);
+  border-radius: 10px;
   color: var(--theme-text);
-  font-size: 1.4rem;
+  font-size: 1.6rem; /* Larger icons */
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 3px 6px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   position: relative;
+  -webkit-tap-highlight-color: transparent; /* Remove blue highlight on mobile */
 }
 
 .top-btn::after {
@@ -4666,11 +4667,22 @@
 }
 
 .top-btn:not(:disabled):active {
-  transform: translateY(1px);
+  transform: translateY(2px) scale(0.95);
   background: var(--theme-primary);
   box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Touch feedback animation */
+@keyframes touchFeedback {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.top-btn.touched {
+  animation: touchFeedback 0.2s ease;
 }
 
 .top-divider {
@@ -4681,23 +4693,23 @@
   align-self: center;
 }
 
-/* Nivel 2: Toolbar Flotante (Colapsable) */
+/* Nivel 2: Toolbar Flotante (Colapsable) - Mobile Optimized */
 .composition-tools-strip {
   position: fixed;
   left: 8px;
-  top: 60px;
-  bottom: 80px;
-  width: 64px;
+  top: 120px;
+  bottom: 90px;
+  width: 72px; /* Slightly wider for better touch targets */
   background: var(--theme-surface);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--theme-border);
-  border-radius: 8px;
+  backdrop-filter: blur(12px);
+  border: 2px solid var(--theme-border);
+  border-radius: 12px;
   z-index: 10;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
 .composition-tools-strip::-webkit-scrollbar {
