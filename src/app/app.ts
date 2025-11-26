@@ -1,6 +1,7 @@
 import { Component, signal, computed, effect, untracked, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { DitheringService, DitheringOptions } from './services/dithering.service';
 import { StorageService, ColorPalette, DitheringPreset } from './services/storage.service';
@@ -148,6 +149,10 @@ export class App implements AfterViewInit {
   
   // Preview animation para GIF Studio
   private previewFrames: string[] = [];
+  
+  // Ko-fi Modal (Mobile)
+  showKofiModal = signal(false);
+  kofiIframeUrl!: SafeResourceUrl;
   private currentPreviewFrame = 0;
   private previewInterval: any = null;
   private gifMobileAnimationInterval: any = null;
@@ -245,6 +250,7 @@ export class App implements AfterViewInit {
     private gifService: GifService,
     private dialogueService: DialogueService,
     private modalService: ModalService,
+    private sanitizer: DomSanitizer,
     public waifuPositionService: WaifuPositionService,
     public achievementService: AchievementService,
     public galleryService: GalleryService,
@@ -259,6 +265,11 @@ export class App implements AfterViewInit {
     this.palettes.set(this.ditheringService.getAvailablePalettes());
     this.loadCustomPalettesAndPresets();
     this.loadSavedSprite();
+    
+    // Initialize Ko-fi iframe URL
+    this.kofiIframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+      'https://ko-fi.com/daede/?hidefeed=true&widget=true&embed=true&preview=true'
+    );
     
     // Log performance optimizations
     this.logPerformanceOptimizations();
@@ -1577,6 +1588,13 @@ export class App implements AfterViewInit {
    * Update Ko-fi widget colors based on current theme
    */
   updateKofiWidget() {
+    // Only show floating widget on desktop (mobile uses modal button instead)
+    const isDesktop = window.innerWidth > 768;
+    
+    if (!isDesktop) {
+      return;
+    }
+    
     const themeId = this.themeService.currentTheme();
     const theme = this.themeService.getThemeData(themeId);
     

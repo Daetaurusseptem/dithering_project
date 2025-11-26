@@ -33,11 +33,13 @@
   <!-- Ko-fi Widget Initialization -->
   <script>
     // Initial widget setup - will be updated by Angular when theme changes
+    // Only show floating widget on desktop (mobile uses modal button instead)
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
-        // Widget will be configured by Angular's updateKofiWidget() method
-        // This just ensures the script is ready
-        if (typeof kofiWidgetOverlay !== 'undefined') {
+        // Check if desktop (width > 768px)
+        const isDesktop = window.innerWidth > 768;
+        
+        if (isDesktop && typeof kofiWidgetOverlay !== 'undefined') {
           // Initial draw with default colors, Angular will update it
           kofiWidgetOverlay.draw('daede', {
             'type': 'floating-chat',

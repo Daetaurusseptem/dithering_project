@@ -4589,6 +4589,174 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
+/* ===== MOBILE KO-FI SUPPORT BUTTON ===== */
+.mobile-support-btn {
+  position: fixed;
+  bottom: 80px; /* Above bottom nav (64px) + padding */
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--theme-primary);
+  color: var(--theme-background);
+  border: 2px solid var(--theme-border);
+  border-radius: 24px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  z-index: 999;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 var(--theme-highlight);
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-support-btn:active {
+  transform: translateY(2px);
+  box-shadow: 
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 var(--theme-highlight);
+}
+
+.kofi-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1);
+  opacity: 0.95;
+}
+
+.support-text {
+  font-size: 0.85rem;
+}
+
+/* Ko-fi Modal */
+.kofi-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.kofi-modal-content {
+  background: var(--theme-surface);
+  border: 2px solid var(--theme-border);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 420px;
+  height: 85vh;
+  max-height: 700px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 var(--theme-highlight);
+  animation: modalSlideUp 0.3s ease;
+}
+
+@keyframes modalSlideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.kofi-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--theme-border);
+  background: var(--theme-background);
+  flex-shrink: 0;
+}
+
+.kofi-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--theme-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kofi-modal-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) saturate(100%);
+  opacity: 0.9;
+}
+
+.kofi-modal-close {
+  background: transparent;
+  border: 2px solid var(--theme-border);
+  color: var(--theme-text);
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.kofi-modal-close:active {
+  transform: scale(0.95);
+  background: var(--theme-border);
+}
+
+.kofi-modal-body {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kofi-iframe {
+  width: 100%;
+  min-height: 600px;
+  height: 100%;
+  border: none;
+  display: block;
+  background: #f5f5f5;
+  opacity: 0.98;
+}
+
 /* ===== MOBILE COMPOSITION: VIEWPORT SANDWICH ARCHITECTURE ===== */
 
 /* Nivel 0: Canvas Workspace (Fullscreen Background) */
@@ -4620,58 +4788,63 @@
   top: 68px;
   right: 8px;
   display: flex;
-  gap: 10px;
+  gap: 6px;
   z-index: 10;
-  background: var(--theme-surface);
-  backdrop-filter: blur(16px);
-  padding: 10px;
-  border-radius: 12px;
-  border: 2px solid var(--theme-border);
+  background: var(--theme-background);
+  backdrop-filter: blur(12px);
+  padding: 8px;
+  border-radius: 8px;
+  border: 2px solid var(--theme-primary);
   box-shadow: 
-    0 6px 16px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    0 4px 12px rgba(0, 0, 0, 0.6),
+    0 0 0 1px var(--theme-border),
+    inset 0 1px 0 var(--theme-highlight);
 }
 
 .top-btn {
-  width: 52px; /* Larger for better touch */
-  height: 52px;
-  background: var(--theme-accent);
+  width: 48px;
+  height: 48px;
+  background: var(--theme-surface);
   border: 2px solid var(--theme-border);
-  border-radius: 10px;
-  color: var(--theme-text);
-  font-size: 1.6rem; /* Larger icons */
+  border-radius: 6px;
+  color: var(--theme-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease;
   box-shadow: 
-    0 3px 6px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 var(--theme-highlight);
   position: relative;
-  -webkit-tap-highlight-color: transparent; /* Remove blue highlight on mobile */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .top-btn::after {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
   pointer-events: none;
 }
 
 .top-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
+  color: var(--theme-text-secondary);
 }
 
 .top-btn:not(:disabled):active {
-  transform: translateY(2px) scale(0.95);
+  transform: translateY(1px) scale(0.97);
   background: var(--theme-primary);
+  color: var(--theme-background);
+  border-color: var(--theme-primary);
   box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 0 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Touch feedback animation */
@@ -4686,11 +4859,12 @@
 }
 
 .top-divider {
-  width: 1px;
-  height: 36px;
-  background: var(--theme-border);
-  margin: 0 4px;
+  width: 2px;
+  height: 32px;
+  background: linear-gradient(180deg, transparent 0%, var(--theme-primary) 50%, transparent 100%);
+  margin: 0 2px;
   align-self: center;
+  opacity: 0.5;
 }
 
 /* Nivel 2: Toolbar Flotante (Colapsable) - Mobile Optimized */
@@ -4902,17 +5076,19 @@
 /* Download Button (Floating) */
 .gif-download-btn {
   position: fixed;
-  bottom: 90px;
+  top: 16px;
   right: 16px;
   width: 56px;
   height: 56px;
   background: var(--theme-primary);
-  border: none;
+  border: 2px solid var(--theme-border);
   border-radius: 50%;
   color: white;
   font-size: 1.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 var(--theme-highlight);
   transition: all 0.2s ease;
   z-index: 60;
   display: flex;

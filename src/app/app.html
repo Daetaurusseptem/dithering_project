@@ -117,8 +117,8 @@
           <button class="top-btn" [disabled]="!historyService.canUndo()" (click)="historyService.undo()" title="Undo">↶</button>
           <button class="top-btn" [disabled]="!historyService.canRedo()" (click)="historyService.redo()" title="Redo">↷</button>
           <div class="top-divider"></div>
-          <button class="top-btn" (click)="showCompositionLayers.set(true)" title="Layers">📚</button>
-          <button class="top-btn" (click)="showLayerProps.set(true)" title="Properties">⚙️</button>
+          <button class="top-btn" (click)="showCompositionLayers.set(true)" title="Layers">⧉</button>
+          <button class="top-btn" (click)="showLayerProps.set(true)" title="Properties">◧</button>
         </div>
         
         <!-- Nivel 3: Layers Panel (Bottom Sheet) -->
@@ -502,6 +502,15 @@
         </div>
       }
       
+      <!-- Ko-fi Support Button (Mobile Only) -->
+      <button 
+        class="mobile-support-btn"
+        (click)="showKofiModal.set(true)"
+        title="Support this project">
+        <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-icon">
+        <span class="support-text">Support</span>
+      </button>
+
       <app-navigation-mobile 
         [activeTab]="mobileActiveTab()"
         (tabChange)="mobileActiveTab.set($event)">
@@ -1979,6 +1988,30 @@
   <app-settings 
     (closed)="showSettings.set(false)">
   </app-settings>
+}
+
+<!-- Ko-fi Modal (Mobile Only) -->
+@if (deviceService.isMobile() && showKofiModal()) {
+  <div class="kofi-modal-overlay" (click)="showKofiModal.set(false)">
+    <div class="kofi-modal-content" (click)="$event.stopPropagation()">
+      <div class="kofi-modal-header">
+        <h2 class="kofi-modal-title">
+          <img src="https://storage.ko-fi.com/cdn/cup-border.png" alt="Ko-fi" class="kofi-modal-icon">
+          Support this Project
+        </h2>
+        <button class="kofi-modal-close" (click)="showKofiModal.set(false)">✕</button>
+      </div>
+      <div class="kofi-modal-body">
+        <iframe 
+          [src]="kofiIframeUrl" 
+          class="kofi-iframe"
+          title="Ko-fi Donation"
+          frameborder="0"
+          allowfullscreen>
+        </iframe>
+      </div>
+    </div>
+  </div>
 }
 
 <!-- Legal Footer (Desktop Only) -->
