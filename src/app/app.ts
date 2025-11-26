@@ -267,6 +267,7 @@ export class App implements AfterViewInit {
     effect(() => {
       const themeId = this.themeService.currentTheme();
       this.updateNavbarLogo();
+      this.updateKofiWidget();
     });
     
     // Initialize composition when entering composition tab in mobile
@@ -307,6 +308,11 @@ export class App implements AfterViewInit {
 
   ngAfterViewInit() {
     // Inicializar canvas
+    
+    // Update Ko-fi widget with current theme after a delay
+    setTimeout(() => {
+      this.updateKofiWidget();
+    }, 1500);
   }
 
   /**
@@ -1565,6 +1571,24 @@ export class App implements AfterViewInit {
     const encoded = encodeURIComponent(svg).replace(/'/g, '%27').replace(/"/g, '%22');
     const dataUri = `data:image/svg+xml,${encoded}`;
     this.navbarLogoUrl.set(dataUri);
+  }
+
+  /**
+   * Update Ko-fi widget colors based on current theme
+   */
+  updateKofiWidget() {
+    const themeId = this.themeService.currentTheme();
+    const theme = this.themeService.getThemeData(themeId);
+    
+    // Check if Ko-fi widget is loaded
+    if (typeof (window as any).kofiWidgetOverlay !== 'undefined') {
+      (window as any).kofiWidgetOverlay.draw('daede', {
+        'type': 'floating-chat',
+        'floating-chat.donateButton.text': 'Support me',
+        'floating-chat.donateButton.background-color': theme.colors.primary,
+        'floating-chat.donateButton.text-color': theme.colors.background
+      });
+    }
   }
 
   /**
