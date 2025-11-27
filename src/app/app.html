@@ -314,6 +314,514 @@
                                    min="0" max="20" step="1">
                           </div>
                         }
+                        @case ('flames') {
+                          <!-- Algorithm -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Algorithm</label>
+                            </div>
+                            <select class="select-input" 
+                                    [value]="layer.options.flameAlgorithm" 
+                                    (change)="updateLayerOptionMobile(layer.id, 'flameAlgorithm', $event)">
+                              <option value="classic">Classic</option>
+                              <option value="realistic">Realistic</option>
+                              <option value="plasma">Plasma</option>
+                              <option value="dragon">Dragon</option>
+                              <option value="wispy">Wispy</option>
+                              <option value="inferno">Inferno</option>
+                            </select>
+                          </div>
+                          
+                          <!-- Height -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Height</label>
+                              <span class="control-value">{{ layer.options.flameHeight }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameHeight" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameHeight', $event)" 
+                                   min="10" max="60" step="5">
+                          </div>
+                          
+                          <!-- Flame Intensity -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Flame Intensity</label>
+                              <span class="control-value">{{ (layer.options.flameIntensity! * 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameIntensity" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameIntensity', $event)" 
+                                   min="0" max="1" step="0.1">
+                          </div>
+                          
+                          <!-- Turbulence -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Turbulence</label>
+                              <span class="control-value">{{ layer.options.flameTurbulence }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameTurbulence" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameTurbulence', $event)" 
+                                   min="0.5" max="2" step="0.5">
+                          </div>
+                          
+                          <!-- Color Mode -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Color Mode</label>
+                            </div>
+                            <select class="select-input" 
+                                    [value]="layer.options.flameColor" 
+                                    (change)="updateLayerOptionMobile(layer.id, 'flameColor', $event)">
+                              <option value="red">🔴 Red</option>
+                              <option value="blue">🔵 Blue</option>
+                              <option value="green">🟢 Green</option>
+                              <option value="purple">🟣 Purple</option>
+                              <option value="rainbow">🌈 Rainbow</option>
+                              <option value="white">⚪ White</option>
+                              <option value="custom">🎨 Custom</option>
+                              <option value="gradient">🌈 Gradient</option>
+                            </select>
+                          </div>
+                          
+                          <!-- Custom Color 1 -->
+                          @if (layer.options.flameColor === 'custom' || layer.options.flameColor === 'gradient') {
+                            <div class="control-group-mobile">
+                              <div class="control-label-row">
+                                <label>{{ layer.options.flameColor === 'gradient' ? 'Color 1' : 'Custom Color' }}</label>
+                              </div>
+                              <div class="color-picker-group">
+                                <input type="color" 
+                                       [value]="rgbToHex(layer.options.flameCustomColorR || 255, layer.options.flameCustomColorG || 100, layer.options.flameCustomColorB || 0)"
+                                       (input)="updateFlameColor(layer.id, $event, false)"
+                                       class="color-picker">
+                                <span class="color-value">{{ rgbToHex(layer.options.flameCustomColorR || 255, layer.options.flameCustomColorG || 100, layer.options.flameCustomColorB || 0) }}</span>
+                              </div>
+                            </div>
+                          }
+                          
+                          <!-- Custom Color 2 (Gradient) -->
+                          @if (layer.options.flameColor === 'gradient') {
+                            <div class="control-group-mobile">
+                              <div class="control-label-row">
+                                <label>Color 2</label>
+                              </div>
+                              <div class="color-picker-group">
+                                <input type="color" 
+                                       [value]="rgbToHex(layer.options.flameGradientColorR || 255, layer.options.flameGradientColorG || 255, layer.options.flameGradientColorB || 0)"
+                                       (input)="updateFlameColor(layer.id, $event, true)"
+                                       class="color-picker">
+                                <span class="color-value">{{ rgbToHex(layer.options.flameGradientColorR || 255, layer.options.flameGradientColorG || 255, layer.options.flameGradientColorB || 0) }}</span>
+                              </div>
+                            </div>
+                          }
+                          
+                          <!-- Direction -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Direction</label>
+                            </div>
+                            <select class="select-input" 
+                                    [value]="layer.options.flameDirection" 
+                                    (change)="updateLayerOptionMobile(layer.id, 'flameDirection', $event)">
+                              <option value="up">⬆️ Up</option>
+                              <option value="down">⬇️ Down</option>
+                              <option value="left">⬅️ Left</option>
+                              <option value="right">➡️ Right</option>
+                            </select>
+                          </div>
+                          
+                          <!-- Spawn Area -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Spawn Area</label>
+                            </div>
+                            <select class="select-input" 
+                                    [value]="layer.options.flameSpawnArea" 
+                                    (change)="updateLayerOptionMobile(layer.id, 'flameSpawnArea', $event)">
+                              <option value="full">🌐 Full</option>
+                              <option value="bottom">⬇️ Bottom</option>
+                              <option value="top">⬆️ Top</option>
+                              <option value="left">⬅️ Left</option>
+                              <option value="right">➡️ Right</option>
+                              <option value="center">🎯 Center</option>
+                              <option value="first-half">◧ First Half</option>
+                              <option value="second-half">◨ Second Half</option>
+                              <option value="edges">⬜ Edges</option>
+                              <option value="corners">◻️ Corners</option>
+                            </select>
+                          </div>
+                          
+                          <!-- Spawn Start -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Spawn Start</label>
+                              <span class="control-value">{{ layer.options.flameSpawnStart || 0 }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameSpawnStart" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameSpawnStart', $event)" 
+                                   min="0" max="100" step="5">
+                          </div>
+                          
+                          <!-- Spawn End -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Spawn End</label>
+                              <span class="control-value">{{ layer.options.flameSpawnEnd || 100 }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameSpawnEnd" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameSpawnEnd', $event)" 
+                                   min="0" max="100" step="5">
+                          </div>
+                          
+                          <!-- Speed -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Speed</label>
+                              <span class="control-value">{{ layer.options.flameSpeed?.toFixed(1) || '1.0' }}x</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameSpeed" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameSpeed', $event)" 
+                                   min="0" max="5" step="0.1">
+                          </div>
+                          
+                          <!-- Brightness -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Brightness</label>
+                              <span class="control-value">{{ (layer.options.flameBrightness! * 100 || 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameBrightness" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameBrightness', $event)" 
+                                   min="0" max="2" step="0.1">
+                          </div>
+                          
+                          <!-- Distortion -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Distortion</label>
+                              <span class="control-value">{{ layer.options.flameDistortion?.toFixed(1) || '0.3' }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameDistortion" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameDistortion', $event)" 
+                                   min="0" max="2" step="0.1">
+                          </div>
+                          
+                          <!-- Base Heat -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Base Heat</label>
+                              <span class="control-value">{{ (layer.options.flameBaseHeat! * 100 || 10).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameBaseHeat" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameBaseHeat', $event)" 
+                                   min="0" max="1" step="0.05">
+                          </div>
+                          
+                          <!-- Opacity -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Opacity</label>
+                              <span class="control-value">{{ (layer.options.flameOpacity! * 100 || 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.flameOpacity" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'flameOpacity', $event)" 
+                                   min="0" max="1" step="0.05">
+                          </div>
+                          
+                          <!-- Dithering Toggle -->
+                          <div class="control-group-mobile">
+                            <label class="control-label checkbox-label">
+                              <input type="checkbox" 
+                                     [checked]="layer.options.flameDitherEnabled" 
+                                     (change)="updateLayerOptionMobile(layer.id, 'flameDitherEnabled', $event)">
+                              <span>Enable Dithering</span>
+                            </label>
+                          </div>
+                          
+                          <!-- Dithering Controls -->
+                          @if (layer.options.flameDitherEnabled) {
+                            <!-- Dither Algorithm -->
+                            <div class="control-group-mobile">
+                              <div class="control-label-row">
+                                <label>Dither Algorithm</label>
+                              </div>
+                              <select class="select-input" 
+                                      [value]="layer.options.flameDitherAlgorithm" 
+                                      (change)="updateLayerOptionMobile(layer.id, 'flameDitherAlgorithm', $event)">
+                                <option value="floyd-steinberg">Floyd-Steinberg</option>
+                                <option value="bayer-2x2">Bayer 2x2</option>
+                                <option value="bayer-4x4">Bayer 4x4</option>
+                                <option value="bayer-8x8">Bayer 8x8</option>
+                                <option value="atkinson">Atkinson</option>
+                                <option value="ordered">Ordered</option>
+                              </select>
+                            </div>
+                            
+                            <!-- Color Palette -->
+                            <div class="control-group-mobile">
+                              <div class="control-label-row">
+                                <label>Color Palette</label>
+                              </div>
+                              <select class="select-input" 
+                                      [value]="layer.options.flameDitherPalette" 
+                                      (change)="updateLayerOptionMobile(layer.id, 'flameDitherPalette', $event)">
+                                <option value="gameboy">Game Boy</option>
+                                <option value="c64">Commodore 64</option>
+                                <option value="cga">CGA</option>
+                                <option value="ega">EGA</option>
+                                <option value="grayscale">Grayscale</option>
+                                <option value="custom">Custom</option>
+                              </select>
+                            </div>
+                            
+                            <!-- Color Count (if custom) -->
+                            @if (layer.options.flameDitherPalette === 'custom') {
+                              <div class="control-group-mobile">
+                                <div class="control-label-row">
+                                  <label>Color Count</label>
+                                  <span class="control-value">{{ layer.options.flameDitherColorCount || 16 }}</span>
+                                </div>
+                                <input type="range" 
+                                       [value]="layer.options.flameDitherColorCount" 
+                                       (input)="updateLayerOptionMobile(layer.id, 'flameDitherColorCount', $event)" 
+                                       min="2" max="256" step="1">
+                              </div>
+                            }
+                            
+                            <!-- Dither Intensity -->
+                            <div class="control-group-mobile">
+                              <div class="control-label-row">
+                                <label>Dither Intensity</label>
+                                <span class="control-value">{{ (layer.options.flameDitherIntensity! * 100 || 100).toFixed(0) }}%</span>
+                              </div>
+                              <input type="range" 
+                                     [value]="layer.options.flameDitherIntensity" 
+                                     (input)="updateLayerOptionMobile(layer.id, 'flameDitherIntensity', $event)" 
+                                     min="0" max="1" step="0.05">
+                            </div>
+                          }
+                        }
+                        @case ('particles') {
+                          <!-- Particle Type -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Type</label>
+                            </div>
+                            <select class="select-input" 
+                                    [value]="layer.options.particleType" 
+                                    (change)="updateLayerOptionMobile(layer.id, 'particleType', $event)">
+                              <option value="snow">❄️ Snow</option>
+                              <option value="rain">🌧️ Rain</option>
+                              <option value="sparkles">✨ Sparkles</option>
+                              <option value="fireflies">🪲 Fireflies</option>
+                              <option value="bubbles">🫧 Bubbles</option>
+                              <option value="leaves">🍂 Leaves</option>
+                              <option value="embers">🔥 Embers</option>
+                              <option value="stars">⭐ Stars</option>
+                              <option value="confetti">🎊 Confetti</option>
+                              <option value="dust">💨 Dust</option>
+                              <option value="custom">🎨 Custom</option>
+                            </select>
+                          </div>
+                          
+                          <!-- Density -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Density</label>
+                              <span class="control-value">{{ ((layer.options.particleDensity! || 0.5) * 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.particleDensity" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'particleDensity', $event)" 
+                                   min="0" max="1" step="0.1">
+                          </div>
+                          
+                          <!-- Size -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Size</label>
+                              <span class="control-value">{{ (layer.options.particleSize! || 2).toFixed(1) }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.particleSize" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'particleSize', $event)" 
+                                   min="0.5" max="10" step="0.5">
+                          </div>
+                          
+                          <!-- Speed -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Speed</label>
+                              <span class="control-value">{{ (layer.options.particleSpeed! || 1).toFixed(1) }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.particleSpeed" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'particleSpeed', $event)" 
+                                   min="0.1" max="5" step="0.1">
+                          </div>
+                          
+                          <!-- Spawn Area -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Spawn Area</label>
+                            </div>
+                            <select class="select-input" 
+                                    [value]="layer.options.particleSpawnArea" 
+                                    (change)="updateLayerOptionMobile(layer.id, 'particleSpawnArea', $event)">
+                              <option value="full">🌐 Full</option>
+                              <option value="top">⬆️ Top</option>
+                              <option value="bottom">⬇️ Bottom</option>
+                              <option value="left">⬅️ Left</option>
+                              <option value="right">➡️ Right</option>
+                              <option value="edges">⬜ Edges</option>
+                              <option value="center">🎯 Center</option>
+                            </select>
+                          </div>
+                          
+                          <!-- Opacity -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Opacity</label>
+                              <span class="control-value">{{ ((layer.options.particleOpacity! || 0.8) * 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.particleOpacity" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'particleOpacity', $event)" 
+                                   min="0" max="1" step="0.05">
+                          </div>
+                          
+                          <!-- Glow -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Glow</label>
+                              <span class="control-value">{{ (layer.options.particleGlow! || 0.5).toFixed(1) }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.particleGlow" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'particleGlow', $event)" 
+                                   min="0" max="2" step="0.1">
+                          </div>
+                          
+                          <!-- Gravity -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Gravity</label>
+                              <span class="control-value">{{ (layer.options.particleGravity! || 0.5).toFixed(1) }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.particleGravity" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'particleGravity', $event)" 
+                                   min="-2" max="2" step="0.1">
+                          </div>
+                          
+                          <!-- Wind -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Wind</label>
+                              <span class="control-value">{{ (layer.options.particleWind! || 0).toFixed(1) }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.particleWind" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'particleWind', $event)" 
+                                   min="-2" max="2" step="0.1">
+                          </div>
+                          
+                          <!-- Turbulence -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Turbulence</label>
+                              <span class="control-value">{{ (layer.options.particleTurbulence! || 0.5).toFixed(1) }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.particleTurbulence" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'particleTurbulence', $event)" 
+                                   min="0" max="2" step="0.1">
+                          </div>
+                          
+                          <!-- Blend Mode -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>Blend Mode</label>
+                            </div>
+                            <select class="select-input" 
+                                    [value]="layer.options.particleBlendMode" 
+                                    (change)="updateLayerOptionMobile(layer.id, 'particleBlendMode', $event)">
+                              <option value="normal">Normal</option>
+                              <option value="additive">Additive (Glow)</option>
+                              <option value="multiply">Multiply</option>
+                              <option value="screen">Screen</option>
+                            </select>
+                          </div>
+                          
+                          <!-- Enable Dithering -->
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>
+                                <input type="checkbox" 
+                                       [checked]="layer.options.particleDitherEnabled" 
+                                       (change)="updateLayerOptionMobile(layer.id, 'particleDitherEnabled', $event)"
+                                       style="margin-right: 8px;">
+                                Enable Dithering
+                              </label>
+                            </div>
+                          </div>
+                          
+                          @if (layer.options.particleDitherEnabled) {
+                            <!-- Dither Algorithm -->
+                            <div class="control-group-mobile">
+                              <div class="control-label-row">
+                                <label>Dither Algorithm</label>
+                              </div>
+                              <select class="select-input" 
+                                      [value]="layer.options.particleDitherAlgorithm" 
+                                      (change)="updateLayerOptionMobile(layer.id, 'particleDitherAlgorithm', $event)">
+                                <option value="bayer-2x2">Bayer 2x2</option>
+                                <option value="bayer-4x4">Bayer 4x4</option>
+                                <option value="bayer-8x8">Bayer 8x8</option>
+                                <option value="ordered">Ordered</option>
+                              </select>
+                            </div>
+                            
+                            <!-- Dither Palette -->
+                            <div class="control-group-mobile">
+                              <div class="control-label-row">
+                                <label>Dither Palette</label>
+                              </div>
+                              <select class="select-input" 
+                                      [value]="layer.options.particleDitherPalette" 
+                                      (change)="updateLayerOptionMobile(layer.id, 'particleDitherPalette', $event)">
+                                <option value="monochrome">Monochrome</option>
+                                <option value="gameboy">Game Boy</option>
+                                <option value="cga">CGA</option>
+                                <option value="commodore64">Commodore 64</option>
+                                <option value="apple2">Apple II</option>
+                              </select>
+                            </div>
+                            
+                            <!-- Dither Intensity -->
+                            <div class="control-group-mobile">
+                              <div class="control-label-row">
+                                <label>Dither Intensity</label>
+                                <span class="control-value">{{ ((layer.options.particleDitherIntensity! || 1) * 100).toFixed(0) }}%</span>
+                              </div>
+                              <input type="range" 
+                                     [value]="layer.options.particleDitherIntensity" 
+                                     (input)="updateLayerOptionMobile(layer.id, 'particleDitherIntensity', $event)" 
+                                     min="0" max="1" step="0.1">
+                            </div>
+                          }
+                        }
                       }
                     </div>
                   </div>
@@ -1198,85 +1706,291 @@
                         </div>
                       }
 
-                      <!-- Particles Options -->
+                      <!-- Particles Options - WebGL Accelerated -->
                       @if (layer.type === 'particles') {
+                        <!-- Particle Type -->
                         <div class="control-group">
                           <label class="control-label">
-                            <span>Count</span>
-                            <span class="control-value">{{ layer.options.particleCount }}</span>
-                          </label>
-                          <input type="range" min="10" max="200" step="10" class="slider" 
-                                 [ngModel]="layer.options.particleCount" 
-                                 (ngModelChange)="updateLayerOption(layer.id, 'particleCount', $event)">
-                        </div>
-                        <div class="control-group">
-                          <label class="control-label">
-                            <span>Size</span>
-                            <span class="control-value">{{ layer.options.particleSize }}</span>
-                          </label>
-                          <input type="range" min="1" max="10" step="1" class="slider" 
-                                 [ngModel]="layer.options.particleSize" 
-                                 (ngModelChange)="updateLayerOption(layer.id, 'particleSize', $event)">
-                        </div>
-                        <div class="control-group">
-                          <label class="control-label">
-                            <span>Speed</span>
-                            <span class="control-value">{{ layer.options.particleSpeed }}</span>
-                          </label>
-                          <input type="range" min="0.5" max="3" step="0.5" class="slider" 
-                                 [ngModel]="layer.options.particleSpeed" 
-                                 (ngModelChange)="updateLayerOption(layer.id, 'particleSpeed', $event)">
-                        </div>
-                        <div class="control-group">
-                          <label class="control-label">
-                            <span>Color</span>
+                            <span>Type</span>
                           </label>
                           <select class="select-input" 
-                                  [ngModel]="layer.options.particleColor" 
-                                  (ngModelChange)="updateLayerOption(layer.id, 'particleColor', $event)">
-                            <option value="white"> White</option>
-                            <option value="rainbow"> Rainbow</option>
-                            <option value="warm"> Warm</option>
-                            <option value="cool"> Cool</option>
-                          </select>
-                        </div>
-                        <div class="control-group">
-                          <label class="control-label">
-                            <span>Shape</span>
-                          </label>
-                          <select class="select-input" 
-                                  [ngModel]="layer.options.particleShape" 
-                                  (ngModelChange)="updateLayerOption(layer.id, 'particleShape', $event)">
-                            <option value="circle"> Circle</option>
-                            <option value="star"> Star</option>
-                            <option value="square"> Square</option>
-                            <option value="sparkle"> Sparkle</option>
-                            <option value="custom"> Custom</option>
-                          </select>
-                        </div>
-                        <div class="control-group">
-                          <label class="control-label">
-                            <span>Emission Mode</span>
-                          </label>
-                          <select class="select-input" 
-                                  [ngModel]="layer.options.particleEmissionMode" 
-                                  (ngModelChange)="updateLayerOption(layer.id, 'particleEmissionMode', $event)">
-                            <option value="float"> Float (Everywhere)</option>
-                            <option value="burst"> Burst (Explosion)</option>
-                            <option value="fountain"> Fountain (From Bottom)</option>
-                            <option value="spiral"> Spiral</option>
-                            <option value="edges"> Edges (From Borders)</option>
-                            <option value="rain"> Rain (From Top)</option>
-                            <option value="center"> Center (Pulse)</option>
+                                  [ngModel]="layer.options.particleType" 
+                                  (ngModelChange)="updateLayerOption(layer.id, 'particleType', $event)">
+                            <option value="snow">❄️ Snow</option>
+                            <option value="rain">🌧️ Rain</option>
+                            <option value="sparkles">✨ Sparkles</option>
+                            <option value="fireflies">🪲 Fireflies</option>
+                            <option value="bubbles">🫧 Bubbles</option>
+                            <option value="leaves">🍂 Leaves</option>
+                            <option value="embers">🔥 Embers</option>
+                            <option value="stars">⭐ Stars</option>
+                            <option value="confetti">🎊 Confetti</option>
+                            <option value="dust">💨 Dust</option>
+                            <option value="custom">🎨 Custom Sprite</option>
                           </select>
                         </div>
                         
-                        <!-- Custom Particle Editor Button -->
-                        @if (layer.options.particleShape === 'custom') {
+                        <!-- Custom Sprite Button -->
+                        @if (layer.options.particleType === 'custom') {
                           <div class="control-group">
-                            <button class="btn-secondary" (click)="openParticleEditor(layer.id)" style="width: 100%;">
-                               Draw Custom Particle
+                            <button class="btn-secondary" (click)="editParticleSprite(layer.id)" style="width: 100%;">
+                              {{ layer.options.particleCustomSprite ? '✏️ Edit Custom Sprite' : '🎨 Create Custom Sprite' }}
                             </button>
+                          </div>
+                        }
+                        
+                        <!-- Density -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Density</span>
+                            <span class="control-value">{{ (layer.options.particleDensity! * 100).toFixed(0) }}%</span>
+                          </label>
+                          <input type="range" min="0" max="1" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.particleDensity" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleDensity', $event)">
+                        </div>
+                        
+                        <!-- Size -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Size</span>
+                            <span class="control-value">{{ layer.options.particleSize?.toFixed(1) }}</span>
+                          </label>
+                          <input type="range" min="0.5" max="10" step="0.5" class="slider" 
+                                 [ngModel]="layer.options.particleSize" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleSize', $event)">
+                        </div>
+                        
+                        <!-- Speed -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Speed</span>
+                            <span class="control-value">{{ layer.options.particleSpeed?.toFixed(1) }}x</span>
+                          </label>
+                          <input type="range" min="0.1" max="5" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.particleSpeed" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleSpeed', $event)">
+                        </div>
+                        
+                        <!-- Opacity -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Opacity</span>
+                            <span class="control-value">{{ (layer.options.particleOpacity! * 100).toFixed(0) }}%</span>
+                          </label>
+                          <input type="range" min="0" max="1" step="0.05" class="slider" 
+                                 [ngModel]="layer.options.particleOpacity" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleOpacity', $event)">
+                        </div>
+                        
+                        <!-- Glow -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Glow</span>
+                            <span class="control-value">{{ layer.options.particleGlow?.toFixed(1) }}</span>
+                          </label>
+                          <input type="range" min="0" max="2" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.particleGlow" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleGlow', $event)">
+                        </div>
+                        
+                        <!-- Custom Color Toggle -->
+                        <div class="control-group">
+                          <label class="control-label checkbox-label">
+                            <input type="checkbox" 
+                                   [ngModel]="layer.options.particleUseCustomColor" 
+                                   (ngModelChange)="updateLayerOption(layer.id, 'particleUseCustomColor', $event)">
+                            <span>Use Custom Color</span>
+                          </label>
+                        </div>
+                        
+                        @if (layer.options.particleUseCustomColor) {
+                          <div class="control-group">
+                            <label class="control-label">
+                              <span>Custom Color</span>
+                            </label>
+                            <div class="color-picker-group">
+                              <input type="color" 
+                                     [value]="rgbToHex(layer.options.particleCustomColorR || 255, layer.options.particleCustomColorG || 255, layer.options.particleCustomColorB || 255)"
+                                     (input)="updateParticleColor(layer.id, $event)"
+                                     class="color-picker">
+                              <span class="color-value">{{ rgbToHex(layer.options.particleCustomColorR || 255, layer.options.particleCustomColorG || 255, layer.options.particleCustomColorB || 255) }}</span>
+                            </div>
+                          </div>
+                          
+                          <div class="control-group">
+                            <label class="control-label">
+                              <span>Color Variation</span>
+                              <span class="control-value">{{ (layer.options.particleColorVariation! * 100).toFixed(0) }}%</span>
+                            </label>
+                            <input type="range" min="0" max="1" step="0.05" class="slider" 
+                                   [ngModel]="layer.options.particleColorVariation" 
+                                   (ngModelChange)="updateLayerOption(layer.id, 'particleColorVariation', $event)">
+                          </div>
+                        }
+                        
+                        <!-- Physics Controls -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Gravity</span>
+                            <span class="control-value">{{ layer.options.particleGravity?.toFixed(1) }}</span>
+                          </label>
+                          <input type="range" min="-2" max="2" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.particleGravity" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleGravity', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Wind</span>
+                            <span class="control-value">{{ layer.options.particleWind?.toFixed(1) }}</span>
+                          </label>
+                          <input type="range" min="-2" max="2" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.particleWind" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleWind', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Turbulence</span>
+                            <span class="control-value">{{ layer.options.particleTurbulence?.toFixed(1) }}</span>
+                          </label>
+                          <input type="range" min="0" max="2" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.particleTurbulence" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleTurbulence', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Rotation Speed</span>
+                            <span class="control-value">{{ layer.options.particleRotation?.toFixed(1) }}x</span>
+                          </label>
+                          <input type="range" min="0" max="5" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.particleRotation" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleRotation', $event)">
+                        </div>
+                        
+                        <!-- Behavior Controls -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Fade In</span>
+                            <span class="control-value">{{ (layer.options.particleFadeIn! * 100).toFixed(0) }}%</span>
+                          </label>
+                          <input type="range" min="0" max="1" step="0.05" class="slider" 
+                                 [ngModel]="layer.options.particleFadeIn" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleFadeIn', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Fade Out</span>
+                            <span class="control-value">{{ (layer.options.particleFadeOut! * 100).toFixed(0) }}%</span>
+                          </label>
+                          <input type="range" min="0" max="1" step="0.05" class="slider" 
+                                 [ngModel]="layer.options.particleFadeOut" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleFadeOut', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Twinkle</span>
+                            <span class="control-value">{{ layer.options.particleTwinkle?.toFixed(1) }}</span>
+                          </label>
+                          <input type="range" min="0" max="2" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.particleTwinkle" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleTwinkle', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Depth (3D)</span>
+                            <span class="control-value">{{ (layer.options.particleDepth! * 100).toFixed(0) }}%</span>
+                          </label>
+                          <input type="range" min="0" max="1" step="0.05" class="slider" 
+                                 [ngModel]="layer.options.particleDepth" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'particleDepth', $event)">
+                        </div>
+                        
+                        <!-- Spawn Area -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Spawn Area</span>
+                          </label>
+                          <select class="select-input" 
+                                  [ngModel]="layer.options.particleSpawnArea" 
+                                  (ngModelChange)="updateLayerOption(layer.id, 'particleSpawnArea', $event)">
+                            <option value="full">🌐 Full</option>
+                            <option value="top">⬆️ Top</option>
+                            <option value="bottom">⬇️ Bottom</option>
+                            <option value="left">⬅️ Left</option>
+                            <option value="right">➡️ Right</option>
+                            <option value="edges">⬜ Edges</option>
+                            <option value="center">🎯 Center</option>
+                          </select>
+                        </div>
+                        
+                        <!-- Blend Mode -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Blend Mode</span>
+                          </label>
+                          <select class="select-input" 
+                                  [ngModel]="layer.options.particleBlendMode" 
+                                  (ngModelChange)="updateLayerOption(layer.id, 'particleBlendMode', $event)">
+                            <option value="normal">Normal</option>
+                            <option value="additive">Additive (Glow)</option>
+                            <option value="multiply">Multiply (Darken)</option>
+                            <option value="screen">Screen (Brighten)</option>
+                          </select>
+                        </div>
+                        
+                        <!-- Dithering -->
+                        <div class="control-group">
+                          <label class="control-label checkbox-label">
+                            <input type="checkbox" 
+                                   [ngModel]="layer.options.particleDitherEnabled" 
+                                   (ngModelChange)="updateLayerOption(layer.id, 'particleDitherEnabled', $event)">
+                            <span>Enable Dithering (GPU Retro)</span>
+                          </label>
+                        </div>
+                        
+                        @if (layer.options.particleDitherEnabled) {
+                          <div class="control-group">
+                            <label class="control-label">
+                              <span>Dither Algorithm</span>
+                            </label>
+                            <select class="select-input" 
+                                    [ngModel]="layer.options.particleDitherAlgorithm" 
+                                    (ngModelChange)="updateLayerOption(layer.id, 'particleDitherAlgorithm', $event)">
+                              <option value="bayer-2x2">Bayer 2x2</option>
+                              <option value="bayer-4x4">Bayer 4x4</option>
+                              <option value="bayer-8x8">Bayer 8x8</option>
+                              <option value="ordered">Ordered</option>
+                            </select>
+                          </div>
+                          
+                          <div class="control-group">
+                            <label class="control-label">
+                              <span>Color Palette</span>
+                            </label>
+                            <select class="select-input" 
+                                    [ngModel]="layer.options.particleDitherPalette" 
+                                    (ngModelChange)="updateLayerOption(layer.id, 'particleDitherPalette', $event)">
+                              <option value="monochrome">Monochrome</option>
+                              <option value="gameboy">Game Boy</option>
+                              <option value="cga">CGA</option>
+                              <option value="commodore64">Commodore 64</option>
+                              <option value="apple2">Apple II</option>
+                            </select>
+                          </div>
+                          
+                          <div class="control-group">
+                            <label class="control-label slider-label">
+                              <span>Dither Intensity: {{ (layer.options.particleDitherIntensity ?? 1.0) | number:'1.1-1' }}</span>
+                              <input type="range" class="slider" min="0" max="1" step="0.1" 
+                                     [ngModel]="layer.options.particleDitherIntensity" 
+                                     (ngModelChange)="updateLayerOption(layer.id, 'particleDitherIntensity', $event)">
+                            </label>
                           </div>
                         }
                       }
@@ -1327,18 +2041,222 @@
                         </div>
                         <div class="control-group">
                           <label class="control-label">
-                            <span>Color</span>
+                            <span>Color Mode</span>
                           </label>
                           <select class="select-input" 
                                   [ngModel]="layer.options.flameColor" 
                                   (ngModelChange)="updateLayerOption(layer.id, 'flameColor', $event)">
-                            <option value="red"> Red</option>
-                            <option value="blue"> Blue</option>
-                            <option value="green"> Green</option>
-                            <option value="purple"> Purple</option>
-                            <option value="rainbow"> Rainbow</option>
+                            <option value="red">🔴 Red Preset</option>
+                            <option value="blue">🔵 Blue Preset</option>
+                            <option value="green">🟢 Green Preset</option>
+                            <option value="purple">🟣 Purple Preset</option>
+                            <option value="rainbow">🌈 Rainbow</option>
+                            <option value="white">⚪ White</option>
+                            <option value="custom">🎨 Custom Color</option>
+                            <option value="gradient">🌈 Gradient (2 Colors)</option>
                           </select>
                         </div>
+                        
+                        @if (layer.options.flameColor === 'custom' || layer.options.flameColor === 'gradient') {
+                          <div class="control-group">
+                            <label class="control-label">
+                              <span>{{ layer.options.flameColor === 'gradient' ? 'Color 1' : 'Custom Color' }}</span>
+                            </label>
+                            <div class="color-picker-group">
+                              <input type="color" 
+                                     [value]="rgbToHex(layer.options.flameCustomColorR || 255, layer.options.flameCustomColorG || 100, layer.options.flameCustomColorB || 0)"
+                                     (input)="updateFlameColor(layer.id, $event, false)"
+                                     class="color-picker">
+                              <span class="color-value">{{ rgbToHex(layer.options.flameCustomColorR || 255, layer.options.flameCustomColorG || 100, layer.options.flameCustomColorB || 0) }}</span>
+                            </div>
+                          </div>
+                        }
+                        
+                        @if (layer.options.flameColor === 'gradient') {
+                          <div class="control-group">
+                            <label class="control-label">
+                              <span>Color 2 (Gradient)</span>
+                            </label>
+                            <div class="color-picker-group">
+                              <input type="color" 
+                                     [value]="rgbToHex(layer.options.flameGradientColorR || 255, layer.options.flameGradientColorG || 255, layer.options.flameGradientColorB || 0)"
+                                     (input)="updateFlameColor(layer.id, $event, true)"
+                                     class="color-picker">
+                              <span class="color-value">{{ rgbToHex(layer.options.flameGradientColorR || 255, layer.options.flameGradientColorG || 255, layer.options.flameGradientColorB || 0) }}</span>
+                            </div>
+                          </div>
+                        }
+                        
+                        <!-- Advanced Flame Controls -->
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Direction</span>
+                          </label>
+                          <select class="select-input" 
+                                  [ngModel]="layer.options.flameDirection" 
+                                  (ngModelChange)="updateLayerOption(layer.id, 'flameDirection', $event)">
+                            <option value="up">⬆️ Up</option>
+                            <option value="down">⬇️ Down</option>
+                            <option value="left">⬅️ Left</option>
+                            <option value="right">➡️ Right</option>
+                          </select>
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Spawn Area</span>
+                          </label>
+                          <select class="select-input" 
+                                  [ngModel]="layer.options.flameSpawnArea" 
+                                  (ngModelChange)="updateLayerOption(layer.id, 'flameSpawnArea', $event)">
+                            <option value="full">🌐 Full</option>
+                            <option value="bottom">⬇️ Bottom</option>
+                            <option value="top">⬆️ Top</option>
+                            <option value="left">⬅️ Left</option>
+                            <option value="right">➡️ Right</option>
+                            <option value="center">🎯 Center</option>
+                            <option value="first-half">◧ First Half</option>
+                            <option value="second-half">◨ Second Half</option>
+                            <option value="edges">⬜ Edges</option>
+                            <option value="corners">◻️ Corners</option>
+                          </select>
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Spawn Start</span>
+                            <span class="control-value">{{ layer.options.flameSpawnStart || 0 }}%</span>
+                          </label>
+                          <input type="range" min="0" max="100" step="5" class="slider" 
+                                 [ngModel]="layer.options.flameSpawnStart" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'flameSpawnStart', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Spawn End</span>
+                            <span class="control-value">{{ layer.options.flameSpawnEnd || 100 }}%</span>
+                          </label>
+                          <input type="range" min="0" max="100" step="5" class="slider" 
+                                 [ngModel]="layer.options.flameSpawnEnd" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'flameSpawnEnd', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Speed</span>
+                            <span class="control-value">{{ layer.options.flameSpeed?.toFixed(1) || '1.0' }}x</span>
+                          </label>
+                          <input type="range" min="0" max="5" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.flameSpeed" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'flameSpeed', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Brightness</span>
+                            <span class="control-value">{{ (layer.options.flameBrightness! * 100 || 100).toFixed(0) }}%</span>
+                          </label>
+                          <input type="range" min="0" max="2" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.flameBrightness" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'flameBrightness', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Distortion</span>
+                            <span class="control-value">{{ layer.options.flameDistortion?.toFixed(1) || '0.3' }}</span>
+                          </label>
+                          <input type="range" min="0" max="2" step="0.1" class="slider" 
+                                 [ngModel]="layer.options.flameDistortion" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'flameDistortion', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Base Heat</span>
+                            <span class="control-value">{{ (layer.options.flameBaseHeat! * 100 || 10).toFixed(0) }}%</span>
+                          </label>
+                          <input type="range" min="0" max="1" step="0.05" class="slider" 
+                                 [ngModel]="layer.options.flameBaseHeat" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'flameBaseHeat', $event)">
+                        </div>
+                        
+                        <div class="control-group">
+                          <label class="control-label">
+                            <span>Opacity</span>
+                            <span class="control-value">{{ (layer.options.flameOpacity! * 100 || 100).toFixed(0) }}%</span>
+                          </label>
+                          <input type="range" min="0" max="1" step="0.05" class="slider" 
+                                 [ngModel]="layer.options.flameOpacity" 
+                                 (ngModelChange)="updateLayerOption(layer.id, 'flameOpacity', $event)">
+                        </div>
+
+                        <!-- Dithering Controls -->
+                        <div class="control-group">
+                          <label class="control-label checkbox-label">
+                            <input type="checkbox" 
+                                   [ngModel]="layer.options.flameDitherEnabled" 
+                                   (ngModelChange)="updateLayerOption(layer.id, 'flameDitherEnabled', $event)">
+                            <span>Enable Dithering</span>
+                          </label>
+                        </div>
+
+                        @if (layer.options.flameDitherEnabled) {
+                          <div class="control-group">
+                            <label class="control-label">
+                              <span>Dither Algorithm</span>
+                            </label>
+                            <select class="select-control" 
+                                    [ngModel]="layer.options.flameDitherAlgorithm" 
+                                    (ngModelChange)="updateLayerOption(layer.id, 'flameDitherAlgorithm', $event)">
+                              <option value="floyd-steinberg">Floyd-Steinberg</option>
+                              <option value="bayer-2x2">Bayer 2x2</option>
+                              <option value="bayer-4x4">Bayer 4x4</option>
+                              <option value="bayer-8x8">Bayer 8x8</option>
+                              <option value="atkinson">Atkinson</option>
+                              <option value="ordered">Ordered</option>
+                            </select>
+                          </div>
+
+                          <div class="control-group">
+                            <label class="control-label">
+                              <span>Color Palette</span>
+                            </label>
+                            <select class="select-control" 
+                                    [ngModel]="layer.options.flameDitherPalette" 
+                                    (ngModelChange)="updateLayerOption(layer.id, 'flameDitherPalette', $event)">
+                              <option value="gameboy">Game Boy</option>
+                              <option value="c64">Commodore 64</option>
+                              <option value="cga">CGA</option>
+                              <option value="ega">EGA</option>
+                              <option value="grayscale">Grayscale</option>
+                              <option value="custom">Custom</option>
+                            </select>
+                          </div>
+
+                          @if (layer.options.flameDitherPalette === 'custom') {
+                            <div class="control-group">
+                              <label class="control-label">
+                                <span>Color Count</span>
+                                <span class="control-value">{{ layer.options.flameDitherColorCount || 16 }}</span>
+                              </label>
+                              <input type="range" min="2" max="256" step="1" class="slider" 
+                                     [ngModel]="layer.options.flameDitherColorCount" 
+                                     (ngModelChange)="updateLayerOption(layer.id, 'flameDitherColorCount', $event)">
+                            </div>
+                          }
+
+                          <div class="control-group">
+                            <label class="control-label">
+                              <span>Dither Intensity</span>
+                              <span class="control-value">{{ (layer.options.flameDitherIntensity! * 100 || 100).toFixed(0) }}%</span>
+                            </label>
+                            <input type="range" min="0" max="1" step="0.05" class="slider" 
+                                   [ngModel]="layer.options.flameDitherIntensity" 
+                                   (ngModelChange)="updateLayerOption(layer.id, 'flameDitherIntensity', $event)">
+                          </div>
+                        }
                       }
 
                       <!-- Layer Order Controls -->
@@ -1478,29 +2396,81 @@
                             <!-- Particles Advanced -->
                             @if (layer.type === 'particles') {
                               <app-vintage-knob
-                                [label]="'Count'"
-                                [value]="layer.options.particleCount!"
-                                [min]="10"
-                                [max]="200"
-                                [step]="10"
-                                (valueChange)="updateLayerOption(layer.id, 'particleCount', $event)">
+                                [label]="'Density'"
+                                [value]="layer.options.particleDensity!"
+                                [min]="0"
+                                [max]="1"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'particleDensity', $event)">
                               </app-vintage-knob>
                               <app-vintage-knob
                                 [label]="'Size'"
                                 [value]="layer.options.particleSize!"
-                                [min]="1"
+                                [min]="0.5"
                                 [max]="10"
-                                [step]="1"
+                                [step]="0.5"
                                 (valueChange)="updateLayerOption(layer.id, 'particleSize', $event)">
                               </app-vintage-knob>
                               <app-vintage-knob
                                 [label]="'Speed'"
                                 [value]="layer.options.particleSpeed!"
-                                [min]="0.5"
-                                [max]="3"
-                                [step]="0.5"
+                                [min]="0.1"
+                                [max]="5"
+                                [step]="0.1"
                                 (valueChange)="updateLayerOption(layer.id, 'particleSpeed', $event)">
                               </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Gravity'"
+                                [value]="layer.options.particleGravity!"
+                                [min]="-2"
+                                [max]="2"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'particleGravity', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Wind'"
+                                [value]="layer.options.particleWind!"
+                                [min]="-2"
+                                [max]="2"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'particleWind', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Turbulence'"
+                                [value]="layer.options.particleTurbulence!"
+                                [min]="0"
+                                [max]="2"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'particleTurbulence', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Glow'"
+                                [value]="layer.options.particleGlow!"
+                                [min]="0"
+                                [max]="2"
+                                [step]="0.1"
+                                (valueChange)="updateLayerOption(layer.id, 'particleGlow', $event)">
+                              </app-vintage-knob>
+                              <app-vintage-knob
+                                [label]="'Opacity'"
+                                [value]="layer.options.particleOpacity!"
+                                [min]="0"
+                                [max]="1"
+                                [step]="0.05"
+                                (valueChange)="updateLayerOption(layer.id, 'particleOpacity', $event)">
+                              </app-vintage-knob>
+                              
+                              <!-- Dithering Controls -->
+                              @if (layer.options.particleDitherEnabled) {
+                                <app-vintage-knob
+                                  [label]="'Dither'"
+                                  [value]="layer.options.particleDitherIntensity!"
+                                  [min]="0"
+                                  [max]="1"
+                                  [step]="0.1"
+                                  (valueChange)="updateLayerOption(layer.id, 'particleDitherIntensity', $event)">
+                                </app-vintage-knob>
+                              }
                             }
 
                             <!-- Flames Advanced -->
