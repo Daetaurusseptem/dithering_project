@@ -119,13 +119,13 @@ export class AiBackgroundRemovalService {
     const canvas = document.createElement('canvas');
     canvas.width = newWidth;
     canvas.height = newHeight;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     
     // Draw original image
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = width;
     tempCanvas.height = height;
-    const tempCtx = tempCanvas.getContext('2d')!;
+    const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true })!;
     tempCtx.putImageData(imageData, 0, 0);
     
     // Smooth downscaling

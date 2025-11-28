@@ -43,9 +43,16 @@ export interface EffectOptions {
   rgbSplitDirection?: 'horizontal' | 'vertical' | 'diagonal';
   rgbSplitAmount?: number;
   
-  // Motion Sense options
-  motionDirection?: 'horizontal' | 'vertical' | 'radial' | 'zoom';
+  // Motion Sense options - EXPANDED with WebGL
+  motionDirection?: 'horizontal' | 'vertical' | 'radial' | 'zoom' | 'spin' | 'wave' | 'spiral';
   motionSpeed?: number;
+  motionBlurSamples?: number;        // 4-16 motion blur quality
+  motionBlurSpread?: number;         // 0.1-2.0 blur spread distance
+  motionChromaticAberration?: number; // 0-0.02 RGB separation
+  motionVignette?: number;           // 0-1 vignette intensity
+  motionDistortion?: number;         // -0.5 to 0.5 lens distortion
+  motionTrails?: number;             // 0-0.9 motion trail persistence
+  motionEdgeGlow?: number;           // 0-2 glow on motion edges
   
   // Particles options - EXPANDED for WebGL rendering
   particleType?: 'snow' | 'rain' | 'sparkles' | 'fireflies' | 'bubbles' | 'leaves' | 'embers' | 'stars' | 'confetti' | 'dust' | 'custom';
@@ -168,7 +175,14 @@ export const DEFAULT_EFFECT_OPTIONS: Record<EffectType, EffectOptions> = {
   },
   'motion-sense': {
     motionDirection: 'horizontal',
-    motionSpeed: 1
+    motionSpeed: 1,
+    motionBlurSamples: 8,
+    motionBlurSpread: 1.0,
+    motionChromaticAberration: 0,
+    motionVignette: 0,
+    motionDistortion: 0,
+    motionTrails: 0,
+    motionEdgeGlow: 0
   },
   'particles': {
     particleType: 'snow',

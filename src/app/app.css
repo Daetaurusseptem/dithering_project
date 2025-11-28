@@ -4199,8 +4199,6 @@
 
 .composition-canvas-area {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   background: transparent;
   min-width: 0;
   border-right: 1px solid var(--theme-border, rgba(0, 255, 0, 0.2));

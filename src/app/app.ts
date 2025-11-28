@@ -38,6 +38,7 @@ import { ThemeService } from './services/theme.service';
 import { DeviceDetectionService } from './services/device-detection.service';
 import { WebGLFlameService } from './services/webgl-flame.service';
 import { WebGLParticlesService } from './services/webgl-particles.service';
+import { WebGLMotionService } from './services/webgl-motion.service';
 import { EffectLayer, EffectType, DEFAULT_EFFECT_OPTIONS, EFFECT_NAMES } from './models/effect-layer.interface';
 import { DitheringSettings } from './models/achievement.interface';
 
@@ -255,6 +256,7 @@ export class App implements AfterViewInit {
     private sanitizer: DomSanitizer,
     private webglFlameService: WebGLFlameService,
     private webglParticlesService: WebGLParticlesService,
+    private webglMotionService: WebGLMotionService,
     public waifuPositionService: WaifuPositionService,
     public achievementService: AchievementService,
     public galleryService: GalleryService,
@@ -488,7 +490,7 @@ export class App implements AfterViewInit {
   private extractImageData(img: HTMLImageElement) {
     // Crear un canvas temporal solo para extraer los datos
     const tempCanvas = document.createElement('canvas');
-    const ctx = tempCanvas.getContext('2d');
+    const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     // Get device-specific max dimension
@@ -636,7 +638,7 @@ export class App implements AfterViewInit {
         const canvas = this.processedCanvas.nativeElement;
         canvas.width = this.processedImageData.width;
         canvas.height = this.processedImageData.height;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         
         if (ctx) {
           ctx.putImageData(this.processedImageData, 0, 0);
@@ -688,7 +690,7 @@ export class App implements AfterViewInit {
       const canvas = this.originalCompareCanvas.nativeElement;
       canvas.width = this.originalImage!.width;
       canvas.height = this.originalImage!.height;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -2503,7 +2505,7 @@ export class App implements AfterViewInit {
       const canvas = document.createElement('canvas');
       canvas.width = baseImageData.width;
       canvas.height = baseImageData.height;
-      const ctx = canvas.getContext('2d')!;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
       
       // Empezar con la imagen base
       ctx.putImageData(baseImageData, 0, 0);
@@ -2551,7 +2553,7 @@ export class App implements AfterViewInit {
     const canvas = document.createElement('canvas');
     canvas.width = imageData.width;
     canvas.height = imageData.height;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     ctx.putImageData(imageData, 0, 0);
     
     // SEAMLESS LOOP: Normalizar phase de 0 a 1 (sin incluir 1 para evitar duplicación)
@@ -2588,7 +2590,7 @@ export class App implements AfterViewInit {
     return ctx.getImageData(0, 0, canvas.width, canvas.height);
   }
 
-  // Individual layer effect implementations
+  // Individual layer effect implementations  
   private applyScanlineLayer(ctx: CanvasRenderingContext2D, imageData: ImageData, layer: EffectLayer, frameIndex: number) {
     const data = ctx.getImageData(0, 0, imageData.width, imageData.height);
     const thickness = layer.options.scanlineThickness || 2;
@@ -2752,9 +2754,35 @@ export class App implements AfterViewInit {
   private applyMotionSenseLayer(ctx: CanvasRenderingContext2D, imageData: ImageData, layer: EffectLayer, phase: number) {
     const direction = layer.options.motionDirection || 'horizontal';
     const speed = layer.options.motionSpeed || 1;
-    const intensity = layer.intensity * speed;
+    const intensity = layer.intensity;
     
-    // Crear un canvas temporal con la imagen original
+    // Try WebGL first for massive performance boost and advanced features
+    const webglAvailable = this.webglMotionService.isAvailable();
+    
+    if (webglAvailable) {
+      const result = this.webglMotionService.renderMotion(imageData, {
+        direction: direction,
+        speed: speed,
+        intensity: intensity,
+        phase: phase,
+        blurSamples: layer.options.motionBlurSamples || 8,
+        blurSpread: layer.options.motionBlurSpread || 1.0,
+        chromaticAberration: layer.options.motionChromaticAberration || 0,
+        vignette: layer.options.motionVignette || 0,
+        distortion: layer.options.motionDistortion || 0,
+        trails: layer.options.motionTrails || 0,
+        edgeGlow: layer.options.motionEdgeGlow || 0
+      });
+      
+      if (result) {
+        ctx.putImageData(result, 0, 0);
+        return;
+      }
+    }
+    
+    // CPU fallback - simple motion blur
+    console.log('🖥️ CPU motion sense fallback');
+    
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = imageData.width;
     tempCanvas.height = imageData.height;
@@ -2767,24 +2795,29 @@ export class App implements AfterViewInit {
     
     switch (direction) {
       case 'horizontal':
-        offsetX = Math.sin(phase) * intensity * 10;
+        offsetX = Math.sin(phase) * intensity * speed * 10;
         break;
       case 'vertical':
-        offsetY = Math.sin(phase) * intensity * 10;
+        offsetY = Math.sin(phase) * intensity * speed * 10;
         break;
       case 'radial':
-        offsetX = Math.sin(phase) * intensity * 8;
-        offsetY = Math.cos(phase) * intensity * 8;
+        offsetX = Math.sin(phase) * intensity * speed * 8;
+        offsetY = Math.cos(phase) * intensity * speed * 8;
         break;
       case 'zoom':
-        scale = 1 + Math.sin(phase) * intensity * 0.1;
+        scale = 1 + Math.sin(phase) * intensity * speed * 0.1;
+        break;
+      case 'spin':
+      case 'wave':
+      case 'spiral':
+        // These modes require WebGL
+        offsetX = Math.sin(phase) * intensity * speed * 10;
         break;
     }
     
-    // Crear efecto de motion blur con múltiples capas
+    // Simple motion blur with 5 layers
     const layers = 5;
     
-    // Dibujar la capa principal primero (sin transparencia)
     ctx.save();
     ctx.translate(imageData.width / 2, imageData.height / 2);
     ctx.scale(scale, scale);
@@ -2792,7 +2825,6 @@ export class App implements AfterViewInit {
     ctx.drawImage(tempCanvas, 0, 0);
     ctx.restore();
     
-    // Agregar capas de blur con transparencia para el efecto de movimiento
     ctx.globalAlpha = 0.3;
     for (let i = 1; i < layers; i++) {
       const t = i / layers;

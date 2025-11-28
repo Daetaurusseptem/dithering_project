@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { WebGLDitheringService } from './webgl-dithering.service';
 
 export interface DitheringOptions {
   algorithm: string;
@@ -15,6 +16,7 @@ export interface DitheringOptions {
   providedIn: 'root'
 })
 export class DitheringService {
+  private webglDitheringService = inject(WebGLDitheringService);
   
   // Paletas de color predefinidas (retro shading)
   private colorPalettes: { [key: string]: number[][] } = {
@@ -53,6 +55,17 @@ export class DitheringService {
     imageData: ImageData,
     options: DitheringOptions
   ): ImageData {
+    // Try WebGL first for performance
+    if (this.webglDitheringService.isAvailable()) {
+      const webglResult = this.webglDitheringService.applyDithering(imageData, options);
+      if (webglResult) {
+        console.log('⚡ WebGL dithering used for', options.algorithm);
+        return webglResult;
+      }
+    }
+    
+    // CPU fallback
+    console.log('🖥️ CPU dithering used for', options.algorithm);
     const processed = new ImageData(
       new Uint8ClampedArray(imageData.data),
       imageData.width,

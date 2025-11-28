@@ -23,7 +23,7 @@ export class CompositionService {
     selectedLayerIds: [], // Multiple selection
     canvasWidth: 800,
     canvasHeight: 600,
-    backgroundColor: '#000000'
+    backgroundColor: 'transparent'
   });
   
   // Dithering options for preview
@@ -537,11 +537,13 @@ export class CompositionService {
     const canvas = document.createElement('canvas');
     canvas.width = state.canvasWidth;
     canvas.height = state.canvasHeight;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     
-    // Fill background
-    ctx.fillStyle = state.backgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Fill background (only if not transparent)
+    if (state.backgroundColor !== 'transparent') {
+      ctx.fillStyle = state.backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     
     // Sort layers by order
     const sortedLayers = [...state.layers].sort((a, b) => a.order - b.order);
@@ -632,8 +634,11 @@ export class CompositionService {
     ditherableCanvas.height = state.canvasHeight;
     const ditherableCtx = ditherableCanvas.getContext('2d')!;
     
-    ditherableCtx.fillStyle = state.backgroundColor;
-    ditherableCtx.fillRect(0, 0, ditherableCanvas.width, ditherableCanvas.height);
+    // Fill background (only if not transparent)
+    if (state.backgroundColor !== 'transparent') {
+      ditherableCtx.fillStyle = state.backgroundColor;
+      ditherableCtx.fillRect(0, 0, ditherableCanvas.width, ditherableCanvas.height);
+    }
     
     await this.renderLayersToContext(ditherableCtx, ditherableLayers);
     

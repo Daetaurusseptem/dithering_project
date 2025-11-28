@@ -419,8 +419,12 @@ export class CompositionCanvasComponent implements AfterViewInit {
 
     // Clear canvas - Limpieza completa para evitar "fantasmas"
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = state.backgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Only fill background if not transparent
+    if (state.backgroundColor !== 'transparent') {
+      ctx.fillStyle = state.backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     // Sort layers by order
     const sortedLayers = [...state.layers].sort((a, b) => a.order - b.order);
