@@ -186,20 +186,20 @@ export class WebGLFlameService {
       
       varying vec2 vUv;
       
-      // Perlin noise implementation
-      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-      vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-      vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+      // Perlin noise implementation with highp precision for mobile
+      highp vec3 mod289(highp vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      highp vec2 mod289(highp vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      highp vec3 permute(highp vec3 x) { return mod289(((x*34.0)+1.0)*x); }
 
-      float snoise(vec2 v) {
-        const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
-        vec2 i  = floor(v + dot(v, C.yy));
-        vec2 x0 = v - i + dot(i, C.xx);
-        vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-        vec4 x12 = x0.xyxy + C.xxzz;
+      highp float snoise(highp vec2 v) {
+        const highp vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+        highp vec2 i  = floor(v + dot(v, C.yy));
+        highp vec2 x0 = v - i + dot(i, C.xx);
+        highp vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+        highp vec4 x12 = x0.xyxy + C.xxzz;
         x12.xy -= i1;
         i = mod289(i);
-        vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+        highp vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
         vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
         m = m*m; m = m*m;
         vec3 x = 2.0 * fract(p * C.www) - 1.0;
@@ -269,17 +269,33 @@ export class WebGLFlameService {
           transformedUV = vec2(1.0 - transformedUV.y, transformedUV.x);
         }
         
-        // Multi-octave noise with configurable scale and octaves
-        float noise = 0.0;
-        float amplitude = 1.0;
-        float frequency = uNoiseScale;
+        // Multi-octave noise unrolled for mobile GPU compatibility
+        highp float noise = 0.0;
+        highp float amplitude = 1.0;
+        highp float frequency = uNoiseScale;
         
-        for (int i = 0; i < 4; i++) {
-          if (i >= uNoiseOctaves) break;
-          
-          noise += snoise(transformedUV * frequency * 8.0 + vec2(0.0, uTime * (2.0 + float(i)))) * amplitude;
+        // Octave 1
+        noise += snoise(transformedUV * frequency * 8.0 + vec2(0.0, uTime * 2.0)) * amplitude;
+        
+        // Octave 2 (conditional)
+        if (uNoiseOctaves >= 2) {
           amplitude *= 0.5;
           frequency *= 2.0;
+          noise += snoise(transformedUV * frequency * 8.0 + vec2(0.0, uTime * 3.0)) * amplitude;
+        }
+        
+        // Octave 3 (conditional)
+        if (uNoiseOctaves >= 3) {
+          amplitude *= 0.5;
+          frequency *= 2.0;
+          noise += snoise(transformedUV * frequency * 8.0 + vec2(0.0, uTime * 4.0)) * amplitude;
+        }
+        
+        // Octave 4 (conditional)
+        if (uNoiseOctaves >= 4) {
+          amplitude *= 0.5;
+          frequency *= 2.0;
+          noise += snoise(transformedUV * frequency * 8.0 + vec2(0.0, uTime * 5.0)) * amplitude;
         }
         
         noise *= uTurbulence;
@@ -301,86 +317,78 @@ export class WebGLFlameService {
         float spreadMask = smoothstep(0.5 - uSpread * 0.005, 0.5 + uSpread * 0.005, abs(distortedUV.x - 0.5));
         heat *= (1.0 - spreadMask);
         
-        // Apply spawn area mask
-        float spawnMask = 1.0;
+        // Apply spawn area mask (optimized for mobile)
+        highp float spawnMask = 1.0;
+        highp float fadeInNorm = uSpawnFadeIn * 0.01;
+        highp float fadeOutNorm = uSpawnFadeOut * 0.01;
         
         if (uSpawnArea == 1) { // bottom
-          float range = uSpawnEnd * 0.01;
-          spawnMask = smoothstep(range + uSpawnFadeOut * 0.01, range, transformedUV.y);
+          highp float range = uSpawnEnd * 0.01;
+          spawnMask = smoothstep(range + fadeOutNorm, range, transformedUV.y);
         }
         else if (uSpawnArea == 2) { // top
-          float range = 1.0 - uSpawnEnd * 0.01;
-          spawnMask = smoothstep(range - uSpawnFadeOut * 0.01, range, 1.0 - transformedUV.y);
+          highp float range = 1.0 - uSpawnEnd * 0.01;
+          spawnMask = smoothstep(range - fadeOutNorm, range, 1.0 - transformedUV.y);
         }
         else if (uSpawnArea == 3) { // left
-          float range = uSpawnEnd * 0.01;
-          spawnMask = smoothstep(range + uSpawnFadeOut * 0.01, range, transformedUV.x);
+          highp float range = uSpawnEnd * 0.01;
+          spawnMask = smoothstep(range + fadeOutNorm, range, transformedUV.x);
         }
         else if (uSpawnArea == 4) { // right
-          float range = 1.0 - uSpawnEnd * 0.01;
-          spawnMask = smoothstep(range - uSpawnFadeOut * 0.01, range, 1.0 - transformedUV.x);
+          highp float range = 1.0 - uSpawnEnd * 0.01;
+          spawnMask = smoothstep(range - fadeOutNorm, range, 1.0 - transformedUV.x);
         }
         else if (uSpawnArea == 5) { // center (circular)
-          float dist = distance(transformedUV, vec2(0.5));
-          float radius = 0.3;
-          spawnMask = 1.0 - smoothstep(radius - uSpawnFadeOut * 0.01, radius + uSpawnFadeOut * 0.01, dist);
+          highp float dist = distance(transformedUV, vec2(0.5));
+          highp float radius = 0.3;
+          spawnMask = 1.0 - smoothstep(radius - fadeOutNorm, radius + fadeOutNorm, dist);
         }
         else if (uSpawnArea == 6) { // first-half
-          if (uDirection == 0 || uDirection == 1) { // up/down - vertical split
-            spawnMask = smoothstep(0.5 + uSpawnFadeOut * 0.01, 0.5 - uSpawnFadeIn * 0.01, transformedUV.y);
-          } else { // left/right - horizontal split
-            spawnMask = smoothstep(0.5 + uSpawnFadeOut * 0.01, 0.5 - uSpawnFadeIn * 0.01, transformedUV.x);
+          if (uDirection == 0 || uDirection == 1) {
+            spawnMask = smoothstep(0.5 + fadeOutNorm, 0.5 - fadeInNorm, transformedUV.y);
+          } else {
+            spawnMask = smoothstep(0.5 + fadeOutNorm, 0.5 - fadeInNorm, transformedUV.x);
           }
         }
         else if (uSpawnArea == 7) { // second-half
-          if (uDirection == 0 || uDirection == 1) { // up/down - vertical split
-            spawnMask = smoothstep(0.5 - uSpawnFadeOut * 0.01, 0.5 + uSpawnFadeIn * 0.01, transformedUV.y);
-          } else { // left/right - horizontal split
-            spawnMask = smoothstep(0.5 - uSpawnFadeOut * 0.01, 0.5 + uSpawnFadeIn * 0.01, transformedUV.x);
+          if (uDirection == 0 || uDirection == 1) {
+            spawnMask = smoothstep(0.5 - fadeOutNorm, 0.5 + fadeInNorm, transformedUV.y);
+          } else {
+            spawnMask = smoothstep(0.5 - fadeOutNorm, 0.5 + fadeInNorm, transformedUV.x);
           }
         }
         else if (uSpawnArea == 8) { // edges (border)
-          float distFromCenterX = abs(transformedUV.x - 0.5);
-          float distFromCenterY = abs(transformedUV.y - 0.5);
-          float distFromCenter = max(distFromCenterX, distFromCenterY);
-          float edgeThreshold = 0.4;
-          spawnMask = smoothstep(edgeThreshold - uSpawnFadeIn * 0.01, edgeThreshold + uSpawnFadeOut * 0.01, distFromCenter);
+          highp float distFromCenter = max(abs(transformedUV.x - 0.5), abs(transformedUV.y - 0.5));
+          highp float edgeThreshold = 0.4;
+          spawnMask = smoothstep(edgeThreshold - fadeInNorm, edgeThreshold + fadeOutNorm, distFromCenter);
         }
         else if (uSpawnArea == 9) { // corners
-          float distX = abs(transformedUV.x - 0.5);
-          float distY = abs(transformedUV.y - 0.5);
-          float cornerDist = max(distX, distY);
-          float cornerThreshold = 0.3;
-          spawnMask = smoothstep(cornerThreshold, cornerThreshold + uSpawnFadeIn * 0.01, cornerDist);
+          highp float cornerDist = max(abs(transformedUV.x - 0.5), abs(transformedUV.y - 0.5));
+          highp float cornerThreshold = 0.3;
+          spawnMask = smoothstep(cornerThreshold, cornerThreshold + fadeInNorm, cornerDist);
         }
         
-        // Apply spawn start/end range
-        // For all directions, we map the spawn range so that:
-        // 0% = bottom of image, 100% = top of image (or equivalent for horizontal)
+        // Apply spawn start/end range (optimized)
         if (uSpawnStart > 0.0 || uSpawnEnd < 100.0) {
-          float spawnRange;
+          highp float spawnRange;
           
-          if (uDirection == 0) { // up - use vertical position (inverted: 0=bottom, 1=top)
+          if (uDirection == 0) {
             spawnRange = 1.0 - transformedUV.y;
-          } else if (uDirection == 1) { // down - use vertical position (normal: 0=top, 1=bottom)
+          } else if (uDirection == 1) {
             spawnRange = transformedUV.y;
-          } else if (uDirection == 2) { // left - use horizontal position (inverted: 0=right, 1=left)
+          } else if (uDirection == 2) {
             spawnRange = 1.0 - transformedUV.x;
-          } else { // right - use horizontal position (normal: 0=left, 1=right)
+          } else {
             spawnRange = transformedUV.x;
           }
           
-          // spawnRange now goes from 0 (start edge) to 1 (end edge)
-          // Map spawn percentages: start=0% means from edge, end=100% means to opposite edge
-          float startNorm = uSpawnStart * 0.01;
-          float endNorm = uSpawnEnd * 0.01;
-          float fadeInNorm = uSpawnFadeIn * 0.01;
-          float fadeOutNorm = uSpawnFadeOut * 0.01;
+          highp float startNorm = uSpawnStart * 0.01;
+          highp float endNorm = uSpawnEnd * 0.01;
+          highp float fadeIn = uSpawnFadeIn * 0.01;
+          highp float fadeOut = uSpawnFadeOut * 0.01;
           
-          // Fade in from start
-          float startFade = smoothstep(startNorm - fadeInNorm, startNorm, spawnRange);
-          // Fade out at end
-          float endFade = 1.0 - smoothstep(endNorm, endNorm + fadeOutNorm, spawnRange);
+          highp float startFade = smoothstep(startNorm - fadeIn, startNorm, spawnRange);
+          highp float endFade = 1.0 - smoothstep(endNorm, endNorm + fadeOut, spawnRange);
           
           spawnMask *= startFade * endFade;
         }
@@ -536,6 +544,9 @@ export class WebGLFlameService {
       // Read pixels
       const pixels = new Uint8Array(width * height * 4);
       this.gl.readPixels(0, 0, width, height, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);
+      
+      // Flush commands to prevent frame corruption on mobile
+      this.gl.flush();
 
       return new ImageData(new Uint8ClampedArray(pixels), width, height);
     } catch (e) {

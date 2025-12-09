@@ -18,9 +18,15 @@ export type EffectType =
   | 'flames';
 
 export interface EffectOptions {
-  // Scanline options
+  // Scanline options (CRT Effect)
   scanlineThickness?: number;
   scanlineSpacing?: number;
+  scanlineCurvature?: number;          // 0-0.15 CRT screen curvature
+  scanlineVignette?: number;           // 0-1 edge darkening
+  scanlineChromaticAberration?: number; // 0-5 RGB color separation
+  scanlinePhosphorGlow?: number;       // 0-1 green phosphor glow
+  scanlineBrightness?: number;         // 0.5-1.5 brightness adjustment
+  scanlineContrast?: number;           // 0.5-2.0 contrast adjustment
   
   // VHS options
   vhsDistortion?: number;
@@ -150,7 +156,13 @@ export interface EffectOptions {
 export const DEFAULT_EFFECT_OPTIONS: Record<EffectType, EffectOptions> = {
   'scanline': {
     scanlineThickness: 2,
-    scanlineSpacing: 4
+    scanlineSpacing: 4,
+    scanlineCurvature: 0.08,
+    scanlineVignette: 0.5,
+    scanlineChromaticAberration: 2,
+    scanlinePhosphorGlow: 0.3,
+    scanlineBrightness: 1.0,
+    scanlineContrast: 1.1
   },
   'vhs': {
     vhsDistortion: 5,

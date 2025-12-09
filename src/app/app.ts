@@ -39,6 +39,7 @@ import { DeviceDetectionService } from './services/device-detection.service';
 import { WebGLFlameService } from './services/webgl-flame.service';
 import { WebGLParticlesService } from './services/webgl-particles.service';
 import { WebGLMotionService } from './services/webgl-motion.service';
+import { WebGLCRTService } from './services/webgl-crt.service';
 import { EffectLayer, EffectType, DEFAULT_EFFECT_OPTIONS, EFFECT_NAMES } from './models/effect-layer.interface';
 import { DitheringSettings } from './models/achievement.interface';
 
@@ -141,8 +142,8 @@ export class App implements AfterViewInit {
   
   // Legacy GIF Options (mantener para compatibilidad)
   gifEffectType = signal<'scanline' | 'vhs' | 'noise' | 'phosphor' | 'rgb-split' | 'motion-sense'>('scanline');
-  gifFrameCount = signal(20);
-  gifFps = signal(15);
+  gifFrameCount = signal(30); // Increased from 20 for smoother loops
+  gifFps = signal(12); // Decreased from 15 for longer duration (2.5s vs 1.3s)
   gifIntensity = signal(0.5);
   gifAddPulse = signal(false);
   gifAddGlitch = signal(false);
@@ -257,6 +258,7 @@ export class App implements AfterViewInit {
     private webglFlameService: WebGLFlameService,
     private webglParticlesService: WebGLParticlesService,
     private webglMotionService: WebGLMotionService,
+    private webglCRTService: WebGLCRTService,
     public waifuPositionService: WaifuPositionService,
     public achievementService: AchievementService,
     public galleryService: GalleryService,
@@ -641,6 +643,8 @@ export class App implements AfterViewInit {
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         
         if (ctx) {
+          // Deshabilitar suavizado para mantener píxeles nítidos
+          ctx.imageSmoothingEnabled = false;
           ctx.putImageData(this.processedImageData, 0, 0);
         }
       }
@@ -693,6 +697,8 @@ export class App implements AfterViewInit {
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       
       if (ctx) {
+        // Deshabilitar suavizado para mantener píxeles nítidos
+        ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(this.originalImage!, 0, 0);
         console.log('✅ Original image drawn to comparison canvas');
@@ -2562,7 +2568,7 @@ export class App implements AfterViewInit {
     
     switch (layer.type) {
       case 'scanline':
-        this.applyScanlineLayer(ctx, imageData, layer, frameIndex);
+        this.applyScanlineLayer(ctx, imageData, layer, phase);
         break;
       case 'vhs':
         this.applyVHSLayer(ctx, imageData, layer, phase);
@@ -2591,11 +2597,32 @@ export class App implements AfterViewInit {
   }
 
   // Individual layer effect implementations  
-  private applyScanlineLayer(ctx: CanvasRenderingContext2D, imageData: ImageData, layer: EffectLayer, frameIndex: number) {
+  private applyScanlineLayer(ctx: CanvasRenderingContext2D, imageData: ImageData, layer: EffectLayer, phase: number) {
+    // Try WebGL first for full CRT effect
+    const result = this.webglCRTService.applyCRTEffect(imageData, {
+      intensity: layer.intensity,
+      scanlineThickness: layer.options.scanlineThickness || 2,
+      scanlineSpacing: layer.options.scanlineSpacing || 4,
+      curvature: layer.options.scanlineCurvature ?? 0.08,
+      vignette: layer.options.scanlineVignette ?? 0.5,
+      chromaticAberration: layer.options.scanlineChromaticAberration ?? 2,
+      phosphorGlow: layer.options.scanlinePhosphorGlow ?? 0.3,
+      brightness: layer.options.scanlineBrightness ?? 1.0,
+      contrast: layer.options.scanlineContrast ?? 1.1
+    }, phase);
+
+    if (result) {
+      console.log('⚡ CRT effect applied using WebGL');
+      ctx.putImageData(result, 0, 0);
+      return;
+    }
+
+    // Fallback to CPU implementation (simple scanlines only)
+    console.log('⚠️ CRT falling back to CPU (basic scanlines)');
     const data = ctx.getImageData(0, 0, imageData.width, imageData.height);
     const thickness = layer.options.scanlineThickness || 2;
     const spacing = layer.options.scanlineSpacing || 4;
-    const offset = frameIndex % spacing;
+    const offset = Math.floor(phase * spacing) % spacing;
     
     for (let y = offset; y < imageData.height; y += spacing) {
       for (let t = 0; t < thickness && y + t < imageData.height; t++) {

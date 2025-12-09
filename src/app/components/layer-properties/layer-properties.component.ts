@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CompositionService } from '../../services/composition.service';
 import { ModalService } from '../../services/modal.service';
-import { HistoryService, DeleteLayerCommand, BatchUpdateLayersCommand } from '../../services/history.service';
+import { HistoryService, DeleteLayerCommand, BatchUpdateLayersCommand, UpdateLayerCommand } from '../../services/history.service';
+import { CompositionToolService } from '../../services/composition-tool.service';
 import { StorageService } from '../../services/storage.service';
 import { DitheringService } from '../../services/dithering.service';
 import { AiBackgroundRemovalService } from '../../services/ai-background-removal.service';
@@ -1162,6 +1163,7 @@ import { CompositionLayer, BlendMode } from '../../models/composition-layer.inte
 export class LayerPropertiesComponent {
   private compositionService = inject(CompositionService);
   private modalService = inject(ModalService);
+  private toolService = inject(CompositionToolService);
   private historyService = inject(HistoryService);
   private storageService = inject(StorageService);
   private ditheringService = inject(DitheringService);
@@ -1304,14 +1306,35 @@ export class LayerPropertiesComponent {
       const newX = centerX - croppedData.width / 2;
       const newY = centerY - croppedData.height / 2;
       
-      // Update layer with cropped result
-      this.compositionService.updateLayer(layer.id, {
+      // Save undoable state
+      const oldImageData = layer.imageData;
+      const oldClone = new ImageData(new Uint8ClampedArray(oldImageData.data), oldImageData.width, oldImageData.height);
+
+      const oldProps: any = {
+        imageData: oldClone,
+        width: layer.width,
+        height: layer.height,
+        x: layer.x,
+        y: layer.y
+      };
+
+      const newProps: any = {
         imageData: croppedData,
         width: croppedData.width,
         height: croppedData.height,
         x: newX,
         y: newY
-      });
+      };
+
+      // Apply update
+      this.compositionService.updateLayer(layer.id, newProps);
+
+      // Record undo command
+      const cmd = new UpdateLayerCommand(this.compositionService, layer.id, oldProps, newProps, `Auto-crop "${layer.name}"`);
+      this.historyService.record(cmd);
+
+      // Switch to select/move tool
+      this.toolService.setTool('select');
       
       console.log('✅ AI background removal complete with auto-crop');
     } catch (error) {
@@ -1385,14 +1408,31 @@ export class LayerPropertiesComponent {
     const newX = centerX - croppedData.width / 2;
     const newY = centerY - croppedData.height / 2;
     
-    // Update layer
-    this.compositionService.updateLayer(layer.id, {
+    // Save undoable state
+    const oldImage = layer.imageData;
+    const oldImageClone = new ImageData(new Uint8ClampedArray(oldImage.data), oldImage.width, oldImage.height);
+
+    const oldP: any = {
+      imageData: oldImageClone,
+      width: layer.width,
+      height: layer.height,
+      x: layer.x,
+      y: layer.y
+    };
+
+    const newP: any = {
       imageData: croppedData,
       width: croppedData.width,
       height: croppedData.height,
       x: newX,
       y: newY
-    });
+    };
+
+    this.compositionService.updateLayer(layer.id, newP);
+
+    // Record undo and switch to select tool
+    this.historyService.record(new UpdateLayerCommand(this.compositionService, layer.id, oldP, newP, `Crop "${layer.name}"`));
+    this.toolService.setTool('select');
     
     console.log(`✂️ Cropped layer from ${layer.width}x${layer.height} to ${croppedData.width}x${croppedData.height}`);
   }

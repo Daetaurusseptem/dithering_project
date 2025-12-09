@@ -4,7 +4,7 @@ import { CompositionService } from '../../services/composition.service';
 import { DitheringService } from '../../services/dithering.service';
 import { CompositionToolService } from '../../services/composition-tool.service';
 import { ModalService } from '../../services/modal.service';
-import { HistoryService, MoveLayerCommand, TransformLayerCommand, AddLayerCommand, BatchUpdateLayersCommand, EraserCommand } from '../../services/history.service';
+import { HistoryService, MoveLayerCommand, TransformLayerCommand, AddLayerCommand, BatchUpdateLayersCommand, EraserCommand, UpdateLayerCommand } from '../../services/history.service';
 import { CompositionLayer } from '../../models/composition-layer.interface';
 import { TextEditorComponent } from '../text-editor/text-editor.component';
 
@@ -45,6 +45,13 @@ interface TransformHandle {
         <button class="zoom-btn" (click)="zoomIn()" title="Zoom In">+</button>
         <button class="zoom-btn zoom-reset" (click)="resetZoom()" title="Reset Zoom">⊙</button>
       </div>
+
+      @if (lastActionMessage()) {
+        <div class="quick-action-toast">
+          <div class="quick-action-text">{{ lastActionMessage() }}</div>
+          <button class="quick-action-btn" (click)="onLastActionClick()">{{ lastActionLabel() }}</button>
+        </div>
+      }
       
       @if (activeLayer()) {
         <div class="canvas-overlay">
@@ -228,6 +235,38 @@ interface TransformHandle {
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
       backdrop-filter: blur(8px);
     }
+
+    /* Quick action toast (bottom-right) */
+    .quick-action-toast {
+      position: absolute;
+      bottom: 64px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: rgba(10, 10, 10, 0.9);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 255, 128, 0.12);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      z-index: 20;
+      color: #cfeee3;
+      font-weight: 600;
+      font-size: 13px;
+      backdrop-filter: blur(6px);
+    }
+
+    .quick-action-text { opacity: 0.95; }
+    .quick-action-btn { 
+      background: rgba(0,0,0,0.25);
+      color: #00ff7f;
+      border: 1px solid rgba(0,255,127,0.15);
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      min-width: 64px;
+      text-align: center;
+    }
     
     .zoom-btn {
       background: rgba(255, 255, 255, 0.05);
@@ -296,6 +335,44 @@ export class CompositionCanvasComponent implements AfterViewInit {
   canvasZoom = signal(1.0);
   panMode = computed(() => this.toolService.activeTool() === 'hand');
   panOffset = signal({ x: 0, y: 0 });
+
+  // Temporary action notification (e.g. "Crop applied — Revert")
+  lastActionMessage = signal<string | null>(null);
+  private lastActionTimer: any = null;
+
+  lastActionLabel = signal<string | null>(null);
+  private lastActionCallback: (() => void) | null = null;
+
+  showLastAction(text: string, label?: string, callback?: () => void, duration: number = 4000): void {
+    this.lastActionMessage.set(text);
+    this.lastActionLabel.set(label || 'Undo');
+    this.lastActionCallback = callback || null;
+
+    if (this.lastActionTimer) {
+      clearTimeout(this.lastActionTimer);
+    }
+
+    this.lastActionTimer = setTimeout(() => {
+      this.clearLastAction();
+    }, duration);
+  }
+
+  clearLastAction(): void {
+    this.lastActionMessage.set(null);
+    this.lastActionLabel.set(null);
+    this.lastActionCallback = null;
+    if (this.lastActionTimer) {
+      clearTimeout(this.lastActionTimer);
+      this.lastActionTimer = null;
+    }
+  }
+
+  onLastActionClick(): void {
+    if (this.lastActionCallback) {
+      try { this.lastActionCallback(); } catch (e) { console.error(e); }
+    }
+    this.clearLastAction();
+  }
 
   // Text Editor State
   editingTextLayer = signal<CompositionLayer | null>(null);
@@ -2327,16 +2404,43 @@ export class CompositionCanvasComponent implements AfterViewInit {
 
     const croppedImageData = croppedCtx.getImageData(0, 0, relativeWidth, relativeHeight);
 
-    // Update layer
-    this.compositionService.updateLayer(layer.id, {
+    // Save old state for undo
+    const oldImageData = layer.imageData;
+    // Clone old image data to avoid referencing the same buffer
+    const oldImageDataClone = new ImageData(new Uint8ClampedArray(oldImageData.data), oldImageData.width, oldImageData.height);
+
+    const oldProps: any = {
+      imageData: oldImageDataClone,
+      width: layer.width,
+      height: layer.height,
+      x: layer.x,
+      y: layer.y
+    };
+
+    const newProps: any = {
       imageData: croppedImageData,
       width: relativeWidth,
       height: relativeHeight,
       x: cropX,
       y: cropY
-    });
+    };
+
+    // Apply update
+    this.compositionService.updateLayer(layer.id, newProps);
+
+    // Record undo command so crop can be reverted
+    const command = new UpdateLayerCommand(this.compositionService, layer.id, oldProps, newProps, `Crop "${layer.name}"`);
+    this.historyService.record(command);
+
+    // Switch to selection/move tool after cropping
+    this.toolService.setTool('select');
 
     this.isCropping = false;
+
+    // Show quick undo action overlay
+    this.showLastAction(`Crop applied — ${layer.name}`, 'Revert', () => {
+      if (this.historyService.canUndo()) this.historyService.undo();
+    });
   }
 
   private cancelCrop(): void {

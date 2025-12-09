@@ -259,7 +259,7 @@
                         @case ('scanline') {
                           <div class="control-group-mobile">
                             <div class="control-label-row">
-                              <label>Thickness</label>
+                              <label>⚡ Thickness</label>
                               <span class="control-value">{{ layer.options.scanlineThickness || 2 }}</span>
                             </div>
                             <input type="range" 
@@ -269,13 +269,73 @@
                           </div>
                           <div class="control-group-mobile">
                             <div class="control-label-row">
-                              <label>Spacing</label>
+                              <label>📏 Spacing</label>
                               <span class="control-value">{{ layer.options.scanlineSpacing || 4 }}</span>
                             </div>
                             <input type="range" 
                                    [value]="layer.options.scanlineSpacing || 4" 
                                    (input)="updateLayerOptionMobile(layer.id, 'scanlineSpacing', $event)" 
                                    min="2" max="20" step="1">
+                          </div>
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>📺 Curvature</label>
+                              <span class="control-value">{{ ((layer.options.scanlineCurvature ?? 0.08) * 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="(layer.options.scanlineCurvature ?? 0.08) * 100" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'scanlineCurvature', $event, 0.01)" 
+                                   min="0" max="15" step="1">
+                          </div>
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>🌑 Vignette</label>
+                              <span class="control-value">{{ ((layer.options.scanlineVignette ?? 0.5) * 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="(layer.options.scanlineVignette ?? 0.5) * 100" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'scanlineVignette', $event, 0.01)" 
+                                   min="0" max="100" step="5">
+                          </div>
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>🌈 Chromatic</label>
+                              <span class="control-value">{{ (layer.options.scanlineChromaticAberration ?? 2).toFixed(1) }}</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="layer.options.scanlineChromaticAberration ?? 2" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'scanlineChromaticAberration', $event)" 
+                                   min="0" max="5" step="0.5">
+                          </div>
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>💚 Phosphor</label>
+                              <span class="control-value">{{ ((layer.options.scanlinePhosphorGlow ?? 0.3) * 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="(layer.options.scanlinePhosphorGlow ?? 0.3) * 100" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'scanlinePhosphorGlow', $event, 0.01)" 
+                                   min="0" max="100" step="5">
+                          </div>
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>☀️ Brightness</label>
+                              <span class="control-value">{{ ((layer.options.scanlineBrightness ?? 1.0) * 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="(layer.options.scanlineBrightness ?? 1.0) * 100" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'scanlineBrightness', $event, 0.01)" 
+                                   min="50" max="150" step="5">
+                          </div>
+                          <div class="control-group-mobile">
+                            <div class="control-label-row">
+                              <label>🎨 Contrast</label>
+                              <span class="control-value">{{ ((layer.options.scanlineContrast ?? 1.1) * 100).toFixed(0) }}%</span>
+                            </div>
+                            <input type="range" 
+                                   [value]="(layer.options.scanlineContrast ?? 1.1) * 100" 
+                                   (input)="updateLayerOptionMobile(layer.id, 'scanlineContrast', $event, 0.01)" 
+                                   min="50" max="200" step="5">
                           </div>
                         }
                         @case ('vhs') {
@@ -2639,7 +2699,10 @@
               }
             </div>
             
-            <div class="comparison-viewer" [class.fit-mode]="viewMode() === 'fit'" [class.original-mode]="viewMode() === 'original'">
+            <div class="comparison-viewer" 
+                 [class.fit-mode]="viewMode() === 'fit'" 
+                 [class.original-mode]="viewMode() === 'original'"
+                 [class.zoomed-out]="zoomLevel() < 100">
               <!-- Indicador de carga para preview -->
               @if (isGeneratingPreview) {
                 <div class="preview-loading-overlay">
@@ -2668,12 +2731,16 @@
                 <div class="comparison-container">
                   <!-- Imagen Original (fondo) -->
                   <div class="comparison-layer original-layer">
-                    <canvas #originalCompareCanvas [style.transform]="'scale(' + (zoomLevel() / 100) + ')'"></canvas>
+                    <canvas #originalCompareCanvas 
+                            [style.transform]="'scale(' + (zoomLevel() / 100) + ')'"
+                            [style.image-rendering]="'pixelated'"></canvas>
                   </div>
                   
                   <!-- Imagen Dithered (revelable) -->
                   <div class="comparison-layer dithered-layer" [style.clip-path]="getClipPath()">
-                    <canvas #processedCanvas [style.transform]="'scale(' + (zoomLevel() / 100) + ')'"></canvas>
+                    <canvas #processedCanvas 
+                            [style.transform]="'scale(' + (zoomLevel() / 100) + ')'"
+                            [style.image-rendering]="'pixelated'"></canvas>
                   </div>
                   
                   <!-- Slider de divisi�n -->

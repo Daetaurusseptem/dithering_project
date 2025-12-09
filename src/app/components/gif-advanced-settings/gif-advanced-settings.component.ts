@@ -8,6 +8,17 @@ export interface GifAdvancedSettings {
   loopCount: number;
 }
 
+export type GifQualityPreset = 'fast' | 'balanced' | 'smooth' | 'custom';
+
+export interface GifQualityPresetConfig {
+  name: string;
+  description: string;
+  frameCount: number;
+  frameDelay: number;
+  duration: number;
+  emoji: string;
+}
+
 @Component({
   selector: 'app-gif-advanced-settings',
   standalone: true,
@@ -21,6 +32,25 @@ export interface GifAdvancedSettings {
         </div>
 
         <div class="modal-body">
+          <!-- Quality Preset Selector -->
+          <div class="preset-selector">
+            <label class="preset-label">🎯 Quality Preset</label>
+            <div class="preset-buttons">
+              <button *ngFor="let preset of getPresetKeys()"
+                      class="preset-btn"
+                      [class.active]="selectedPreset === preset"
+                      (click)="applyPreset(preset)"
+                      [title]="qualityPresets[preset].description">
+                <span class="preset-emoji">{{ qualityPresets[preset].emoji }}</span>
+                <span class="preset-name">{{ qualityPresets[preset].name }}</span>
+                <span class="preset-info">{{ qualityPresets[preset].duration }}s</span>
+              </button>
+            </div>
+            <div class="preset-description">{{ qualityPresets[selectedPreset].description }}</div>
+          </div>
+
+          <div class="divider"></div>
+
           <!-- Frame Count -->
           <div class="control-group">
             <label class="control-label">
@@ -29,6 +59,7 @@ export interface GifAdvancedSettings {
             </label>
             <input type="range" min="5" max="60" step="5" class="slider" 
                    [(ngModel)]="localSettings.frameCount"
+                   (ngModelChange)="onManualChange()"
                    title="Number of frames in the animation">
             <div class="slider-values">
               <span>5</span>
@@ -45,6 +76,7 @@ export interface GifAdvancedSettings {
             </label>
             <input type="range" min="20" max="500" step="10" class="slider" 
                    [(ngModel)]="localSettings.frameDelay"
+                   (ngModelChange)="onManualChange()"
                    title="Duration of each frame in milliseconds">
             <div class="slider-values">
               <span>20ms</span>
@@ -183,6 +215,86 @@ export interface GifAdvancedSettings {
       padding: 24px 20px;
       overflow-y: auto;
       flex: 1;
+    }
+
+    /* Preset Selector */
+    .preset-selector {
+      margin-bottom: 20px;
+    }
+
+    .preset-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #00ff41;
+      margin-bottom: 12px;
+    }
+
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .preset-btn {
+      background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+      border: 2px solid #444;
+      border-radius: 6px;
+      padding: 10px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #aaa;
+      font-size: 11px;
+    }
+
+    .preset-btn:hover {
+      border-color: #00ff41;
+      background: linear-gradient(145deg, #333, #222);
+      transform: translateY(-2px);
+    }
+
+    .preset-btn.active {
+      border-color: #00ff41;
+      background: linear-gradient(145deg, #00ff41, #00cc33);
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0, 255, 65, 0.4);
+    }
+
+    .preset-emoji {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .preset-name {
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .preset-info {
+      font-size: 10px;
+      opacity: 0.8;
+      line-height: 1;
+    }
+
+    .preset-description {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      font-style: italic;
+      min-height: 18px;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #00ff41, transparent);
+      margin: 20px 0;
+      opacity: 0.3;
     }
 
     .control-group {
@@ -378,14 +490,89 @@ export class GifAdvancedSettingsComponent implements OnInit {
   cancel = output<void>();
 
   localSettings: GifAdvancedSettings = {
-    frameCount: 20,
-    frameDelay: 100,
+    frameCount: 30,
+    frameDelay: 83,
     loopCount: 0
+  };
+
+  selectedPreset: GifQualityPreset = 'balanced';
+
+  readonly qualityPresets: Record<GifQualityPreset, GifQualityPresetConfig> = {
+    fast: {
+      name: 'Fast',
+      description: 'Quick generation, smaller file',
+      frameCount: 15,
+      frameDelay: 50, // 20 FPS
+      duration: 0.75,
+      emoji: '⚡'
+    },
+    balanced: {
+      name: 'Balanced',
+      description: 'Good loops, reasonable size',
+      frameCount: 30,
+      frameDelay: 83, // 12 FPS
+      duration: 2.5,
+      emoji: '⚖️'
+    },
+    smooth: {
+      name: 'Smooth',
+      description: 'Best quality, larger file',
+      frameCount: 60,
+      frameDelay: 67, // 15 FPS
+      duration: 4.0,
+      emoji: '✨'
+    },
+    custom: {
+      name: 'Custom',
+      description: 'Manual settings',
+      frameCount: 30,
+      frameDelay: 83,
+      duration: 2.5,
+      emoji: '⚙️'
+    }
   };
 
   ngOnInit() {
     // Initialize local copy of settings
     this.localSettings = { ...this.settings() };
+    
+    // Detect which preset matches current settings
+    this.detectPreset();
+  }
+
+  getPresetKeys(): GifQualityPreset[] {
+    return ['fast', 'balanced', 'smooth', 'custom'];
+  }
+
+  detectPreset(): void {
+    // Check if current settings match any preset
+    for (const [key, preset] of Object.entries(this.qualityPresets)) {
+      if (key === 'custom') continue;
+      
+      if (this.localSettings.frameCount === preset.frameCount &&
+          this.localSettings.frameDelay === preset.frameDelay) {
+        this.selectedPreset = key as GifQualityPreset;
+        return;
+      }
+    }
+    
+    // If no match, it's custom
+    this.selectedPreset = 'custom';
+  }
+
+  applyPreset(preset: GifQualityPreset): void {
+    this.selectedPreset = preset;
+    
+    if (preset !== 'custom') {
+      const config = this.qualityPresets[preset];
+      this.localSettings.frameCount = config.frameCount;
+      this.localSettings.frameDelay = config.frameDelay;
+    }
+  }
+
+  onManualChange(): void {
+    // Switch to custom preset when user manually adjusts sliders
+    this.selectedPreset = 'custom';
   }
 
   getFPS(): number {
