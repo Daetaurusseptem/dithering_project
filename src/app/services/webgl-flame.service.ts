@@ -8,7 +8,7 @@ export interface FlameOptions {
   phase: number;
   turbulence: number;
   speed: number;
-  
+
   // Advanced parameters
   direction?: 'up' | 'down' | 'left' | 'right';
   distortion?: number;
@@ -19,32 +19,32 @@ export interface FlameOptions {
   noiseOctaves?: number;
   opacity?: number;
   blendMode?: 'normal' | 'additive' | 'screen' | 'multiply' | 'overlay';
-  
+
   // Custom color
   customColorR?: number;
   customColorG?: number;
   customColorB?: number;
-  
+
   // Gradient color (second color)
   gradientColorR?: number;
   gradientColorG?: number;
   gradientColorB?: number;
   useGradient?: boolean;
-  
+
   // Positioning
   offsetX?: number;
   offsetY?: number;
-  
+
   // Spawn Area Control
   spawnArea?: 'full' | 'bottom' | 'top' | 'left' | 'right' | 'center' | 'first-half' | 'second-half' | 'edges' | 'corners';
   spawnStart?: number;
   spawnEnd?: number;
   spawnFadeIn?: number;
   spawnFadeOut?: number;
-  
+
   // Quality
   smoothing?: number;
-  
+
   // Height/spread
   height?: number;
   spread?: number;
@@ -68,9 +68,9 @@ export class WebGLFlameService {
   private initialize(): boolean {
     try {
       this.canvas = document.createElement('canvas');
-      this.gl = this.canvas.getContext('webgl', { 
+      this.gl = this.canvas.getContext('webgl', {
         premultipliedAlpha: false,
-        preserveDrawingBuffer: true 
+        preserveDrawingBuffer: true
       });
 
       if (!this.gl) {
@@ -433,9 +433,9 @@ export class WebGLFlameService {
     // Create quad vertices
     const vertices = new Float32Array([
       -1, -1,
-       1, -1,
-      -1,  1,
-       1,  1
+      1, -1,
+      -1, 1,
+      1, 1
     ]);
 
     const buffer = this.gl.createBuffer();
@@ -448,9 +448,11 @@ export class WebGLFlameService {
   }
 
   renderFlames(imageData: ImageData, options: FlameOptions): ImageData | null {
-    if (!this.isAvailable() || !this.gl || !this.program || !this.canvas) {
-      return null;
+    if (!this.isAvailable()) {
+      this.initialize();
+      if (!this.isAvailable()) return null;
     }
+    if (!this.gl || !this.program || !this.canvas) return null;
 
     try {
       const { width, height } = imageData;
@@ -508,18 +510,18 @@ export class WebGLFlameService {
       this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uNoiseScale'), options.noiseScale || 1.0);
       this.gl.uniform1i(this.gl.getUniformLocation(this.program, 'uNoiseOctaves'), options.noiseOctaves || 3);
       this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uOpacity'), options.opacity || 1.0);
-      this.gl.uniform3f(this.gl.getUniformLocation(this.program, 'uCustomColor'), 
+      this.gl.uniform3f(this.gl.getUniformLocation(this.program, 'uCustomColor'),
         (options.customColorR || 0) / 255.0,
         (options.customColorG || 0) / 255.0,
         (options.customColorB || 0) / 255.0
       );
-      this.gl.uniform3f(this.gl.getUniformLocation(this.program, 'uGradientColor'), 
+      this.gl.uniform3f(this.gl.getUniformLocation(this.program, 'uGradientColor'),
         (options.gradientColorR || 255) / 255.0,
         (options.gradientColorG || 255) / 255.0,
         (options.gradientColorB || 0) / 255.0
       );
       this.gl.uniform1i(this.gl.getUniformLocation(this.program, 'uUseGradient'), options.useGradient ? 1 : 0);
-      this.gl.uniform2f(this.gl.getUniformLocation(this.program, 'uOffset'), 
+      this.gl.uniform2f(this.gl.getUniformLocation(this.program, 'uOffset'),
         options.offsetX || 0,
         options.offsetY || 0
       );
@@ -544,7 +546,7 @@ export class WebGLFlameService {
       // Read pixels
       const pixels = new Uint8Array(width * height * 4);
       this.gl.readPixels(0, 0, width, height, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);
-      
+
       // Flush commands to prevent frame corruption on mobile
       this.gl.flush();
 

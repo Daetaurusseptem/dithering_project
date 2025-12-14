@@ -9,7 +9,7 @@ export interface ParticleOptions {
   size: number;           // 0.5-10: base particle size
   speed: number;          // 0.1-5: movement speed
   phase: number;          // 0-1: animation phase
-  
+
   // Visual properties
   opacity: number;        // 0-1: particle transparency
   glow: number;           // 0-2: glow intensity
@@ -21,25 +21,25 @@ export interface ParticleOptions {
   };
   useCustomColor: boolean;
   colorVariation: number; // 0-1: color randomness
-  
+
   // Physics
   gravity: number;        // -2 to 2: vertical force
   wind: number;           // -2 to 2: horizontal force
   turbulence: number;     // 0-2: random movement
   rotation: number;       // 0-5: rotation speed
-  
+
   // Behavior
   fadeIn: number;         // 0-1: fade in distance
   fadeOut: number;        // 0-1: fade out distance
   twinkle: number;        // 0-2: brightness variation
   depth: number;          // 0-1: 3D depth effect
-  
+
   // Spawn area
   spawnArea: 'full' | 'top' | 'bottom' | 'left' | 'right' | 'edges' | 'center';
-  
+
   // Blend mode
   blendMode: ParticleBlendMode;
-  
+
   // Dithering
   ditherEnabled?: boolean;
   ditherAlgorithm?: 'bayer-2x2' | 'bayer-4x4' | 'bayer-8x8' | 'floyd-steinberg' | 'atkinson' | 'ordered';
@@ -54,6 +54,7 @@ export class WebGLParticlesService {
   private gl: WebGLRenderingContext | null = null;
   private program: WebGLProgram | null = null;
   private canvas: HTMLCanvasElement | null = null;
+  private positionBuffer: WebGLBuffer | null = null;
 
   constructor() {
     this.initWebGL();
@@ -62,11 +63,11 @@ export class WebGLParticlesService {
   private initWebGL(): void {
     try {
       this.canvas = document.createElement('canvas');
-      const gl = this.canvas.getContext('webgl', { 
+      const gl = this.canvas.getContext('webgl', {
         premultipliedAlpha: false,
-        preserveDrawingBuffer: true 
+        preserveDrawingBuffer: true
       });
-      
+
       if (!gl) {
         console.warn('WebGL not available for particles');
         return;
@@ -577,7 +578,10 @@ export class WebGLParticlesService {
   }
 
   renderParticles(imageData: ImageData, options: ParticleOptions): ImageData | null {
-    if (!this.gl || !this.program || !this.canvas) return null;
+    if (!this.gl || !this.program || !this.canvas) {
+      this.initWebGL();
+      if (!this.gl || !this.program || !this.canvas) return null;
+    }
 
     const { width, height } = imageData;
     this.canvas.width = width;
@@ -587,16 +591,19 @@ export class WebGLParticlesService {
     this.gl.useProgram(this.program);
 
     // Set up quad
-    const positions = new Float32Array([
-      -1, -1,
-       1, -1,
-      -1,  1,
-       1,  1
-    ]);
-
-    const positionBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+    if (!this.positionBuffer) {
+      this.positionBuffer = this.gl.createBuffer();
+      const positions = new Float32Array([
+        -1, -1,
+        1, -1,
+        -1, 1,
+        1, 1
+      ]);
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+    } else {
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+    }
 
     const positionLocation = this.gl.getAttribLocation(this.program, 'aPosition');
     this.gl.enableVertexAttribArray(positionLocation);
@@ -606,7 +613,7 @@ export class WebGLParticlesService {
     const setUniform = (name: string, value: any, type: string) => {
       const location = this.gl!.getUniformLocation(this.program!, name);
       if (location === null) return;
-      
+
       switch (type) {
         case '1f': this.gl!.uniform1f(location, value); break;
         case '1i': this.gl!.uniform1i(location, value); break;
@@ -701,5 +708,23 @@ export class WebGLParticlesService {
     }
 
     return result;
+  }
+
+  /**
+   * Cleanup WebGL resources
+   */
+  dispose(): void {
+    if (this.gl) {
+      if (this.program) {
+        this.gl.deleteProgram(this.program);
+      }
+      if (this.positionBuffer) {
+        this.gl.deleteBuffer(this.positionBuffer);
+      }
+    }
+    this.gl = null;
+    this.program = null;
+    this.canvas = null;
+    this.positionBuffer = null;
   }
 }

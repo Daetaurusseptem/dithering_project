@@ -690,7 +690,7 @@ export class AlgorithmsComponent {
   ) {
     // Load preview image
     this.loadPreviewImage();
-    
+
     // Setup drag listeners
     if (typeof window !== 'undefined') {
       window.addEventListener('mousemove', (e) => this.onDrag(e));
@@ -704,12 +704,12 @@ export class AlgorithmsComponent {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.src = '/assets/algorithm-previews/preview.jpg';
-    
+
     img.onload = () => {
       this.previewImage.set(img.src);
       this.processAllAlgorithms(img);
     };
-    
+
     img.onerror = () => {
       console.warn('Preview image not found, using placeholder');
       this.createPlaceholderImage();
@@ -721,7 +721,7 @@ export class AlgorithmsComponent {
     canvas.width = 400;
     canvas.height = 300;
     const ctx = canvas.getContext('2d')!;
-    
+
     // Gradient placeholder
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
     gradient.addColorStop(0, '#1a1a1a');
@@ -729,9 +729,9 @@ export class AlgorithmsComponent {
     gradient.addColorStop(1, '#1a1a1a');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     this.previewImage.set(canvas.toDataURL());
-    
+
     const img = new Image();
     img.src = canvas.toDataURL();
     img.onload = () => this.processAllAlgorithms(img);
@@ -745,31 +745,31 @@ export class AlgorithmsComponent {
     const canvas = document.createElement('canvas');
     const maxWidth = 600;
     const maxHeight = 400;
-    
+
     let width = img.width;
     let height = img.height;
-    
+
     // Calculate scale to fit within max dimensions
     const scaleWidth = maxWidth / width;
     const scaleHeight = maxHeight / height;
     const scale = Math.min(scaleWidth, scaleHeight, 1);
-    
+
     canvas.width = width * scale;
     canvas.height = height * scale;
-    
+
     const ctx = canvas.getContext('2d')!;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    
+
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
+
     // Use different palettes for different algorithm types
     let palette = 'gameboy'; // Default: Game Boy palette (4 colors)
-    
+
     // Ordered dithering looks better with fewer colors
     if (algorithmId.startsWith('ordered-')) {
       palette = 'monochrome';
     }
-    
+
     const options = {
       algorithm: algorithmId,
       scale: 1,
@@ -779,10 +779,10 @@ export class AlgorithmsComponent {
       blur: 0,
       palette: palette
     };
-    
-    const processedData = this.ditheringService.applyDithering(imageData, options);
+
+    const processedData = await this.ditheringService.applyDitheringAsync(imageData, options);
     ctx.putImageData(processedData, 0, 0);
-    
+
     return canvas.toDataURL();
   }
 
@@ -805,20 +805,20 @@ export class AlgorithmsComponent {
 
   private onDrag(event: MouseEvent | TouchEvent): void {
     if (!this.isDetailDragging) return;
-    
+
     if (event instanceof TouchEvent) {
       event.preventDefault();
     }
-    
+
     const clientX = event instanceof MouseEvent ? event.clientX : event.touches[0].clientX;
-    
+
     const sliderContainer = document.querySelector('.image-slider-large');
-    
+
     if (sliderContainer) {
       const rect = sliderContainer.getBoundingClientRect();
       const position = ((clientX - rect.left) / rect.width) * 100;
       const clampedPosition = Math.max(0, Math.min(100, position));
-      
+
       this.detailSliderPosition.set(clampedPosition);
     }
   }
@@ -850,7 +850,7 @@ export class AlgorithmsComponent {
   async selectAlgorithm(algo: AlgorithmData): Promise<void> {
     this.selectedAlgo.set(algo);
     this.detailSliderPosition.set(50);
-    
+
     // Process this algorithm if not already processed
     if (!this.processedPreviews.has(algo.id) && this.previewImage()) {
       const img = new Image();
@@ -918,7 +918,7 @@ export class AlgorithmsComponent {
         ja: ['一般的な使用', '写真', '印刷']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/floyd-steinberg.jpg'
       }
@@ -977,7 +977,7 @@ export class AlgorithmsComponent {
         ja: ['レトログラフィックス', 'ピクセルアート', 'ヴィンテージインターフェース']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/atkinson.jpg'
       }
@@ -1036,7 +1036,7 @@ export class AlgorithmsComponent {
         ja: ['高品質画像', 'スムーズなグラデーション', 'ディテール保存']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/jarvis-judice-ninke.jpg'
       }
@@ -1095,7 +1095,7 @@ export class AlgorithmsComponent {
         ja: ['写真', '自然画像', 'スムーズなトーン遷移']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/stucki.jpg'
       }
@@ -1154,7 +1154,7 @@ export class AlgorithmsComponent {
         ja: ['一般的な印刷', '高速処理', 'Webグラフィックス']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/burkes.jpg'
       }
@@ -1213,7 +1213,7 @@ export class AlgorithmsComponent {
         ja: ['プロフェッショナル印刷', '高品質出力', 'スムーズな画像']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/sierra.jpg'
       }
@@ -1275,7 +1275,7 @@ export class AlgorithmsComponent {
         ja: ['レトロな美学', '高速プレビュー', 'スタイライズドエフェクト']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/bayer-2x2.jpg'
       }
@@ -1337,7 +1337,7 @@ export class AlgorithmsComponent {
         ja: ['ピクセルアート', '8ビットグラフィックス', 'ゲームボーイの美学']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/bayer-4x4.jpg'
       }
@@ -1399,7 +1399,7 @@ export class AlgorithmsComponent {
         ja: ['汎用目的', '中サイズ画像', 'バランスの取れた品質']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/bayer-8x8.jpg'
       }
@@ -1458,7 +1458,7 @@ export class AlgorithmsComponent {
         ja: ['高速処理', 'Webアプリケーション', 'リアルタイムプレビュー']
       },
       complexity: 'O(n)',
-      examples: { 
+      examples: {
         original: '/assets/algorithm-previews/preview.jpg',
         processed: '/assets/algorithm-previews/sierra-lite.jpg'
       }

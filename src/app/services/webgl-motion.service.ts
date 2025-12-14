@@ -5,7 +5,7 @@ export interface MotionSenseOptions {
   speed: number;
   intensity: number;
   phase: number;
-  
+
   // New advanced options
   blurSamples?: number;        // Number of motion blur samples (default: 8)
   blurSpread?: number;         // How spread out the blur samples are (default: 1.0)
@@ -27,6 +27,7 @@ export class WebGLMotionService {
   private trailTexture: WebGLTexture | null = null;
   private trailFramebuffer: WebGLFramebuffer | null = null;
   private previousFrame: ImageData | null = null;
+  private positionBuffer: WebGLBuffer | null = null;
 
   constructor() {
     this.initWebGL();
@@ -47,13 +48,13 @@ export class WebGLMotionService {
       }
 
       this.gl = gl;
-      
+
       // Enable necessary extensions
       const floatExt = gl.getExtension('OES_texture_float');
       if (floatExt) {
         console.log('✅ Float textures available for motion trails');
       }
-      
+
       console.log('✅ WebGL Motion Sense Service initialized');
     } catch (e) {
       console.error('WebGL Motion initialization failed:', e);
@@ -68,7 +69,10 @@ export class WebGLMotionService {
    * Apply motion sense effect using WebGL
    */
   renderMotion(imageData: ImageData, options: MotionSenseOptions): ImageData | null {
-    if (!this.gl || !this.canvas) return null;
+    if (!this.gl || !this.canvas) {
+      this.initWebGL();
+      if (!this.gl || !this.canvas) return null;
+    }
 
     // Setup canvas
     this.canvas.width = imageData.width;
@@ -280,13 +284,13 @@ export class WebGLMotionService {
           float offset = sin(phase) * 0.1;
           return vec2(offset, 0.0);
         `;
-      
+
       case 'vertical':
         return `
           float offset = sin(phase) * 0.1;
           return vec2(0.0, offset);
         `;
-      
+
       case 'radial':
         return `
           vec2 center = vec2(0.5, 0.5);
@@ -294,7 +298,7 @@ export class WebGLMotionService {
           float angle = phase;
           return vec2(cos(angle), sin(angle)) * 0.1;
         `;
-      
+
       case 'zoom':
         return `
           vec2 center = vec2(0.5, 0.5);
@@ -302,7 +306,7 @@ export class WebGLMotionService {
           float scale = sin(phase) * 0.1;
           return dir * scale;
         `;
-      
+
       case 'spin':
         return `
           vec2 center = vec2(0.5, 0.5);
@@ -312,14 +316,14 @@ export class WebGLMotionService {
           vec2 rotated = rotation * delta;
           return (rotated - delta) * 0.3;
         `;
-      
+
       case 'wave':
         return `
           float waveX = sin(uv.y * 10.0 + phase) * 0.05;
           float waveY = cos(uv.x * 10.0 + phase) * 0.05;
           return vec2(waveX, waveY);
         `;
-      
+
       case 'spiral':
         return `
           vec2 center = vec2(0.5, 0.5);
@@ -329,7 +333,7 @@ export class WebGLMotionService {
           vec2 spiralPos = vec2(cos(angle), sin(angle)) * dist;
           return (spiralPos - delta) * 0.2;
         `;
-      
+
       default:
         return `return vec2(0.0, 0.0);`;
     }
@@ -365,7 +369,7 @@ export class WebGLMotionService {
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-      
+
       if (this.previousFrame) {
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.previousFrame);
       } else {
@@ -374,10 +378,14 @@ export class WebGLMotionService {
     }
 
     // Setup vertex buffer (fullscreen quad)
-    const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
-    const positionBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+    if (!this.positionBuffer) {
+      const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+      this.positionBuffer = this.gl.createBuffer();
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+      this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+    } else {
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+    }
 
     const positionLocation = this.gl.getAttribLocation(this.program, 'aPosition');
     this.gl.enableVertexAttribArray(positionLocation);
@@ -390,7 +398,7 @@ export class WebGLMotionService {
     if (hasTrails) {
       const trailTextureLocation = this.gl.getUniformLocation(this.program, 'uTrailTexture');
       this.gl.uniform1i(trailTextureLocation, 1);
-      
+
       const trailsLocation = this.gl.getUniformLocation(this.program, 'uTrails');
       this.gl.uniform1f(trailsLocation, options.trails || 0);
     }
@@ -440,7 +448,7 @@ export class WebGLMotionService {
     this.gl.readPixels(0, 0, imageData.width, imageData.height, this.gl.RGBA, this.gl.UNSIGNED_BYTE, pixels);
 
     const result = new ImageData(pixels, imageData.width, imageData.height);
-    
+
     // Store for trails
     if (hasTrails) {
       this.previousFrame = result;
@@ -476,7 +484,9 @@ export class WebGLMotionService {
       if (this.texture) this.gl.deleteTexture(this.texture);
       if (this.trailTexture) this.gl.deleteTexture(this.trailTexture);
       if (this.trailFramebuffer) this.gl.deleteFramebuffer(this.trailFramebuffer);
+      if (this.positionBuffer) this.gl.deleteBuffer(this.positionBuffer);
     }
+    this.positionBuffer = null;
     this.previousFrame = null;
   }
 }

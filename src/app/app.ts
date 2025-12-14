@@ -1,4 +1,4 @@
-import { Component, signal, computed, effect, untracked, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, signal, computed, effect, untracked, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef, HostListener, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -46,16 +46,16 @@ import { DitheringSettings } from './models/achievement.interface';
 @Component({
   selector: 'app-root',
   imports: [
-    CommonModule, 
+    CommonModule,
     FormsModule,
     RouterLink,
-    CrtWaifuComponent, 
-    SpriteUploaderComponent, 
+    CrtWaifuComponent,
+    SpriteUploaderComponent,
     GifLoadingComponent,
-    AchievementNotificationComponent, 
-    AchievementsPanelComponent, 
-    GalleryComponent, 
-    CompositionLayersComponent, 
+    AchievementNotificationComponent,
+    AchievementsPanelComponent,
+    GalleryComponent,
+    CompositionLayersComponent,
     CompositionCanvasComponent,
     CompositionToolbarComponent,
     LayerPropertiesComponent,
@@ -68,7 +68,8 @@ import { DitheringSettings } from './models/achievement.interface';
     ControlsMobileComponent
   ],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class App implements AfterViewInit {
   // Services are automatically injected via inject()
@@ -92,26 +93,26 @@ export class App implements AfterViewInit {
   compositionMode = signal(false); // 🎨 NEW: Modo Composition Layers
   showGifOptions = signal(false); // Mantener para compatibilidad, pero no usar modal
   showGifAdvancedSettings = signal(false); // Modal de configuración avanzada de GIF
-  
+
   // Achievement & Gallery UI
   showAchievements = signal(false);
   showGallery = signal(false);
   showSettings = signal(false);
-  
+
   // Mobile Navigation
   mobileActiveTab = signal<MobileNavigationTab>('upload');
   showMobileControls = signal(false);
-  
+
   // Particle Editor
   showParticleEditor = signal(false);
   editingParticleLayerId: string | null = null;
   particleBrushSize = signal(2);
   particleBrushColor = signal('#FFFFFF');
   particleColors = ['#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#FFC0CB'];
-  savedParticleSprites = signal<Array<{id: string, data: string}>>([]);
+  savedParticleSprites = signal<Array<{ id: string, data: string }>>([]);
   selectedParticleSpriteId = signal<string | null>(null);
   private isDrawingParticle = false;
-  
+
   // Comparador before/after
   sliderPosition = signal(50); // Porcentaje 0-100
   isDragging = false;
@@ -122,7 +123,7 @@ export class App implements AfterViewInit {
   private panStartY = 0;
   private scrollStartX = 0;
   private scrollStartY = 0;
-  
+
   // GIF Preview Zoom & View
   gifZoomLevel = signal(100); // Porcentaje de zoom para GIF
   gifViewMode = signal<'fit' | 'original'>('fit'); // Modo de vista del GIF
@@ -131,7 +132,7 @@ export class App implements AfterViewInit {
   private gifPanStartY = 0;
   private gifScrollStartX = 0;
   private gifScrollStartY = 0;
-  
+
   // Effect Layers System
   effectLayers = signal<EffectLayer[]>([]);
   selectedLayerId = signal<string | null>(null);
@@ -139,7 +140,7 @@ export class App implements AfterViewInit {
   effectEditorMode = signal<'normal' | 'advanced'>('normal'); // Normal = sliders, Advanced = knobs/vintage
   availableEffects: EffectType[] = ['scanline', 'vhs', 'noise', 'phosphor', 'rgb-split', 'motion-sense', 'particles', 'flames'];
   effectNames = EFFECT_NAMES;
-  
+
   // Legacy GIF Options (mantener para compatibilidad)
   gifEffectType = signal<'scanline' | 'vhs' | 'noise' | 'phosphor' | 'rgb-split' | 'motion-sense'>('scanline');
   gifFrameCount = signal(30); // Increased from 20 for smoother loops
@@ -148,12 +149,12 @@ export class App implements AfterViewInit {
   gifAddPulse = signal(false);
   gifAddGlitch = signal(false);
   gifLoopCount = signal(0);
-  
+
   gifOptions: GifEffectOptions | null = null;
-  
+
   // Preview animation para GIF Studio
   private previewFrames: string[] = [];
-  
+
   // Ko-fi Modal (Mobile)
   showKofiModal = signal(false);
   kofiIframeUrl!: SafeResourceUrl;
@@ -166,7 +167,7 @@ export class App implements AfterViewInit {
   private lastPreviewUpdate = 0;
   private previewScale = 0.5; // Renderizar preview al 50% para mejor performance
   private processImageDebounceTimer: any = null;
-  
+
   // Imagen original
   originalImageData: ImageData | null = null;
   processedImageData: ImageData | null = null; // Imagen con dithering aplicado
@@ -183,10 +184,10 @@ export class App implements AfterViewInit {
 
   // Waifu CRT
   waifuSpriteUrl = signal('assets/waifu-sprite.jpg'); // Aquí puedes poner la URL de tu sprite sheet
-  
+
   // Dynamic Logo (computed from theme)
   navbarLogoUrl = signal('');
-  
+
   // Listas de opciones
   algorithms = signal<{ id: string; name: string; category: string }[]>([]);
   palettes = signal<{ id: string; name: string }[]>([]);
@@ -197,11 +198,11 @@ export class App implements AfterViewInit {
   showPaletteCreator = signal(false);
   showPresetManager = signal(false);
   showSpriteUploader = signal(false);
-  
+
   // Palette Creator
   newPaletteName = signal('');
   paletteColors = signal<string[]>(['#000000', '#ffffff']);
-  
+
   // Preset Manager
   newPresetName = signal('');
 
@@ -273,22 +274,22 @@ export class App implements AfterViewInit {
     this.palettes.set(this.ditheringService.getAvailablePalettes());
     this.loadCustomPalettesAndPresets();
     this.loadSavedSprite();
-    
+
     // Initialize Ko-fi iframe URL
     this.kofiIframeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
       'https://ko-fi.com/daede/?hidefeed=true&widget=true&embed=true&preview=true'
     );
-    
+
     // Log performance optimizations
     this.logPerformanceOptimizations();
-    
+
     // Update navbar logo when theme changes
     effect(() => {
       const themeId = this.themeService.currentTheme();
       this.updateNavbarLogo();
       this.updateKofiWidget();
     });
-    
+
     // Initialize composition when entering composition tab in mobile
     effect(() => {
       if (this.mobileActiveTab() === 'composition' && this.deviceService.isMobile()) {
@@ -296,7 +297,7 @@ export class App implements AfterViewInit {
         untracked(() => this.initializeCompositionIfNeeded());
       }
     });
-    
+
     // Render GIF preview in mobile when effect layers change or when entering tab
     effect(() => {
       const tab = this.mobileActiveTab();
@@ -315,10 +316,10 @@ export class App implements AfterViewInit {
         }
       }
     });
-    
+
     // Sistema de diálogos esporádicos
     this.startDialogueSystem();
-    
+
     // Listener para cerrar achievements panel
     window.addEventListener('close-achievements', () => {
       this.showAchievements.set(false);
@@ -327,7 +328,7 @@ export class App implements AfterViewInit {
 
   ngAfterViewInit() {
     // Inicializar canvas
-    
+
     // Update Ko-fi widget with current theme after a delay
     setTimeout(() => {
       this.updateKofiWidget();
@@ -342,7 +343,7 @@ export class App implements AfterViewInit {
     const isLowEnd = this.deviceService.isLowEndDevice();
     const reduceAnim = this.deviceService.shouldReduceAnimations();
     const useWorkers = this.deviceService.shouldUseWebWorkers();
-    
+
     console.log('🚀 Performance Optimizations:');
     console.log(`  - Max image dimension: ${maxDim}px`);
     console.log(`  - Low-end device: ${isLowEnd}`);
@@ -363,22 +364,22 @@ export class App implements AfterViewInit {
           'Loading a new image will reset all layers and effects. Continue?',
           'Load New Image'
         );
-        
+
         if (!confirmed) {
           // Reset input
           input.value = '';
           return;
         }
-        
+
         // Reset all modes and states
         this.resetAllModes();
       }
-      
+
       const file = input.files[0];
       this.loadImage(file);
     }
   }
-  
+
   /**
    * Reset all modes and states to clean slate
    */
@@ -388,18 +389,18 @@ export class App implements AfterViewInit {
       this.compositionMode.set(false);
       this.compositionService.clearAllLayers();
     }
-    
+
     // Exit GIF mode
     if (this.gifStudioMode()) {
       this.gifStudioMode.set(false);
       this.stopGifPreview();
       this.effectLayers.set([]);
     }
-    
+
     // Reset zoom levels
     this.zoomLevel.set(100);
     this.gifZoomLevel.set(100);
-    
+
     // Reset view modes
     this.viewMode.set('fit');
     this.gifViewMode.set('fit');
@@ -414,11 +415,11 @@ export class App implements AfterViewInit {
         'Loading a new image will reset all layers and effects. Continue?',
         'Load New Image'
       );
-      
+
       if (!confirmed) return;
       this.resetAllModes();
     }
-    
+
     this.loadImage(file);
   }
 
@@ -433,7 +434,7 @@ export class App implements AfterViewInit {
     this.midtones.set(options.midtones);
     this.highlights.set(options.highlights);
     this.blur.set(options.blur);
-    
+
     // Reprocess image with new options
     this.processImage();
   }
@@ -444,31 +445,31 @@ export class App implements AfterViewInit {
   private loadImage(file: File) {
     this.waifuState.set('thinking');
     const reader = new FileReader();
-    
+
     reader.onload = (e: ProgressEvent<FileReader>) => {
       const img = new Image();
       img.onload = () => {
         this.originalImage = img;
         this.imageLoaded.set(true);
         this.waifuState.set('happy');
-        
+
         // Reset composition layers when loading a new image
         this.compositionService.clearAllLayers();
         console.log('🔄 Composition layers cleared for new image');
-        
+
         // Switch to canvas tab in mobile after image loads
         if (this.deviceService.isMobile()) {
           this.mobileActiveTab.set('canvas');
         }
-        
+
         // Forzar detección de cambios y esperar a que Angular renderice
         this.cdr.detectChanges();
-        
+
         // Usar un delay más largo para asegurar que el DOM está listo
         setTimeout(() => {
           // Extraer los datos de la imagen para procesamiento
           this.extractImageData(img);
-          
+
           // En mobile procesar inmediatamente, en desktop esperar el canvas
           if (this.deviceService.isMobile() || this.processedCanvas) {
             this.processImage();
@@ -481,7 +482,7 @@ export class App implements AfterViewInit {
       };
       img.src = e.target?.result as string;
     };
-    
+
     reader.readAsDataURL(file);
   }
 
@@ -497,15 +498,15 @@ export class App implements AfterViewInit {
 
     // Get device-specific max dimension
     const maxDimension = this.deviceService.getMaxImageDimension();
-    
+
     // Calculate dimensions respecting aspect ratio
     let width = img.width;
     let height = img.height;
-    
+
     // Scale down if image exceeds max dimension
     if (width > maxDimension || height > maxDimension) {
       const aspectRatio = width / height;
-      
+
       if (width > height) {
         width = maxDimension;
         height = Math.round(maxDimension / aspectRatio);
@@ -513,7 +514,7 @@ export class App implements AfterViewInit {
         height = maxDimension;
         width = Math.round(maxDimension * aspectRatio);
       }
-      
+
       console.log(`📐 Image resized from ${img.width}x${img.height} to ${width}x${height} for device`);
     }
 
@@ -528,7 +529,7 @@ export class App implements AfterViewInit {
    */
   processImage() {
     if (!this.originalImageData) return;
-    
+
     // En mobile no necesitamos el canvas desktop
     const isMobile = this.deviceService.isMobile();
     if (!isMobile && !this.processedCanvas) return;
@@ -565,15 +566,15 @@ export class App implements AfterViewInit {
       };
 
       let imageData: ImageData;
-      
+
       // 🎨 Check if composition mode is active
       if (this.compositionMode() && this.compositionService.compositionState().layers.length > 0) {
         // Use composition rendering
         const compositionResult = await this.compositionService.renderForDithering();
         imageData = compositionResult.ditherableContent;
-        
+
         // Apply dithering to ditherable content
-        const dithered = this.ditheringService.applyDithering(
+        const dithered = await this.ditheringService.applyDitheringAsync(
           new ImageData(
             new Uint8ClampedArray(imageData.data),
             imageData.width,
@@ -581,16 +582,16 @@ export class App implements AfterViewInit {
           ),
           options
         );
-        
+
         // Composite dithered content with exempt layers
         const finalCanvas = document.createElement('canvas');
         finalCanvas.width = imageData.width;
         finalCanvas.height = imageData.height;
         const finalCtx = finalCanvas.getContext('2d')!;
-        
+
         // Draw dithered content
         finalCtx.putImageData(dithered, 0, 0);
-        
+
         // Draw exempt layers on top (with color compression if needed)
         for (const exemptLayer of compositionResult.exemptLayers) {
           const tempCanvas = document.createElement('canvas');
@@ -598,17 +599,17 @@ export class App implements AfterViewInit {
           tempCanvas.height = exemptLayer.imageData.height;
           const tempCtx = tempCanvas.getContext('2d')!;
           tempCtx.putImageData(exemptLayer.imageData, 0, 0);
-          
+
           finalCtx.save();
           finalCtx.globalAlpha = exemptLayer.layer.opacity / 100;
-          
+
           const centerX = exemptLayer.layer.x + exemptLayer.layer.width / 2;
           const centerY = exemptLayer.layer.y + exemptLayer.layer.height / 2;
-          
+
           finalCtx.translate(centerX, centerY);
           finalCtx.rotate((exemptLayer.layer.rotation * Math.PI) / 180);
           finalCtx.translate(-centerX, -centerY);
-          
+
           finalCtx.drawImage(
             tempCanvas,
             exemptLayer.layer.x,
@@ -616,10 +617,10 @@ export class App implements AfterViewInit {
             exemptLayer.layer.width,
             exemptLayer.layer.height
           );
-          
+
           finalCtx.restore();
         }
-        
+
         // Get final composited image
         this.processedImageData = finalCtx.getImageData(0, 0, finalCanvas.width, finalCanvas.height);
       } else {
@@ -629,9 +630,9 @@ export class App implements AfterViewInit {
           this.originalImageData!.width,
           this.originalImageData!.height
         );
-        
+
         // Apply dithering
-        this.processedImageData = this.ditheringService.applyDithering(imageData, options);
+        this.processedImageData = await this.ditheringService.applyDitheringAsync(imageData, options);
         console.log('📱 Dithering applied:', this.processedImageData.width, 'x', this.processedImageData.height);
       }
 
@@ -641,7 +642,7 @@ export class App implements AfterViewInit {
         canvas.width = this.processedImageData.width;
         canvas.height = this.processedImageData.height;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        
+
         if (ctx) {
           // Deshabilitar suavizado para mantener píxeles nítidos
           ctx.imageSmoothingEnabled = false;
@@ -651,24 +652,24 @@ export class App implements AfterViewInit {
 
       this.processing.set(false);
       this.waifuState.set('success');
-      
+
       // 🏆 Track achievement
       this.achievementService.trackImageProcessed(
         this.selectedAlgorithm(),
         this.selectedPalette()
       );
-      
+
       // 🖼️ ALWAYS draw original in comparison (Preview mode should be isolated)
       // This ensures the original image is always visible regardless of mode changes
       if (!isMobile) {
         this.drawOriginalInComparison();
       }
-      
+
       // Si estamos en modo GIF Studio, regenerar el preview con las nuevas opciones
       if (this.gifStudioMode() && !isMobile) {
         this.generateGifPreview();
       }
-      
+
       // Volver a idle después de 2 segundos
       setTimeout(() => {
         this.waifuState.set('idle');
@@ -683,19 +684,19 @@ export class App implements AfterViewInit {
   // Dibuja la imagen original en el canvas de comparación
   drawOriginalInComparison() {
     if (!this.originalImage) return;
-    
+
     // Use setTimeout to ensure DOM is ready (ViewChild might not be initialized yet)
     setTimeout(() => {
       if (!this.originalCompareCanvas) {
         console.warn('⚠️ originalCompareCanvas not available yet');
         return;
       }
-      
+
       const canvas = this.originalCompareCanvas.nativeElement;
       canvas.width = this.originalImage!.width;
       canvas.height = this.originalImage!.height;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      
+
       if (ctx) {
         // Deshabilitar suavizado para mantener píxeles nítidos
         ctx.imageSmoothingEnabled = false;
@@ -710,7 +711,7 @@ export class App implements AfterViewInit {
   startDragging(event: MouseEvent | TouchEvent) {
     this.isDragging = true;
     event.preventDefault();
-    
+
     // Agregar listeners globales
     const moveHandler = (e: MouseEvent | TouchEvent) => this.onDrag(e);
     const upHandler = () => {
@@ -720,7 +721,7 @@ export class App implements AfterViewInit {
       document.removeEventListener('touchmove', moveHandler as any);
       document.removeEventListener('touchend', upHandler);
     };
-    
+
     document.addEventListener('mousemove', moveHandler as any);
     document.addEventListener('mouseup', upHandler);
     document.addEventListener('touchmove', moveHandler as any);
@@ -730,16 +731,16 @@ export class App implements AfterViewInit {
   // Maneja el arrastre
   private onDrag(event: MouseEvent | TouchEvent) {
     if (!this.isDragging) return;
-    
+
     const container = document.querySelector('.comparison-container') as HTMLElement;
     if (!container) return;
-    
+
     const rect = container.getBoundingClientRect();
     const clientX = event instanceof MouseEvent ? event.clientX : event.touches[0].clientX;
-    
+
     let percentage = ((clientX - rect.left) / rect.width) * 100;
     percentage = Math.max(0, Math.min(100, percentage));
-    
+
     this.sliderPosition.set(percentage);
   }
 
@@ -815,7 +816,7 @@ export class App implements AfterViewInit {
     const target = event.target as HTMLElement;
     const scrollContainer = target.closest('.comparison-scroll-container') as HTMLElement;
     if (!scrollContainer) return;
-    
+
     this.isPanningCanvas = true;
     this.panStartX = event.clientX;
     this.panStartY = event.clientY;
@@ -829,7 +830,7 @@ export class App implements AfterViewInit {
     const target = event.target as HTMLElement;
     const scrollContainer = target.closest('.comparison-scroll-container') as HTMLElement;
     if (!scrollContainer) return;
-    
+
     const deltaX = this.panStartX - event.clientX;
     const deltaY = this.panStartY - event.clientY;
     scrollContainer.scrollLeft = this.scrollStartX + deltaX;
@@ -846,7 +847,7 @@ export class App implements AfterViewInit {
     const target = event.target as HTMLElement;
     const scrollContainer = target.closest('.gif-preview-scroll-container') as HTMLElement;
     if (!scrollContainer) return;
-    
+
     this.isPanningGif = true;
     this.gifPanStartX = event.clientX;
     this.gifPanStartY = event.clientY;
@@ -860,7 +861,7 @@ export class App implements AfterViewInit {
     const target = event.target as HTMLElement;
     const scrollContainer = target.closest('.gif-preview-scroll-container') as HTMLElement;
     if (!scrollContainer) return;
-    
+
     const deltaX = this.gifPanStartX - event.clientX;
     const deltaY = this.gifPanStartY - event.clientY;
     scrollContainer.scrollLeft = this.gifScrollStartX + deltaX;
@@ -885,20 +886,20 @@ export class App implements AfterViewInit {
   /**
    * ===== PARTICLE EDITOR =====
    */
-  
+
   editParticleSprite(layerId: string) {
     this.openParticleEditor(layerId);
   }
-  
+
   openParticleEditor(layerId: string) {
     this.editingParticleLayerId = layerId;
     this.showParticleEditor.set(true);
     this.loadSavedParticleSprites();
-    
+
     // Inicializar canvas después de que se renderice
     setTimeout(() => {
       this.initParticleCanvas();
-      
+
       // Note: Custom sprites now handled by WebGL particle system
     }, 50);
   }
@@ -911,11 +912,11 @@ export class App implements AfterViewInit {
 
   private initParticleCanvas() {
     if (!this.particleCanvas) return;
-    
+
     const canvas = this.particleCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     // Limpiar canvas (transparente)
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
@@ -927,18 +928,18 @@ export class App implements AfterViewInit {
 
   draw(event: MouseEvent) {
     if (!this.isDrawingParticle || !this.particleCanvas) return;
-    
+
     const canvas = this.particleCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     const x = Math.floor((event.clientX - rect.left) * (canvas.width / rect.width));
     const y = Math.floor((event.clientY - rect.top) * (canvas.height / rect.height));
-    
+
     ctx.fillStyle = this.particleBrushColor();
     const brushSize = this.particleBrushSize();
-    
+
     // Dibujar círculo
     ctx.beginPath();
     ctx.arc(x, y, brushSize, 0, Math.PI * 2);
@@ -955,36 +956,36 @@ export class App implements AfterViewInit {
 
   fillParticleCanvas() {
     if (!this.particleCanvas) return;
-    
+
     const canvas = this.particleCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     ctx.fillStyle = this.particleBrushColor();
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   saveParticleSprite() {
     if (!this.particleCanvas) return;
-    
+
     const canvas = this.particleCanvas.nativeElement;
     const spriteData = canvas.toDataURL('image/png');
-    
+
     // Guardar en lista de sprites
     const id = `particle-${Date.now()}`;
     const sprites = this.savedParticleSprites();
     sprites.push({ id, data: spriteData });
     this.savedParticleSprites.set([...sprites]);
-    
+
     // Guardar en localStorage
     localStorage.setItem('particleSprites', JSON.stringify(sprites));
-    
+
     // Aplicar al layer actual
     if (this.editingParticleLayerId) {
       this.updateLayerOption(this.editingParticleLayerId, 'particleCustomSprite', spriteData);
       this.selectedParticleSpriteId.set(id);
     }
-    
+
     this.closeParticleEditor();
   }
 
@@ -1003,18 +1004,18 @@ export class App implements AfterViewInit {
   loadParticleSprite(spriteId: string) {
     const sprite = this.savedParticleSprites().find(s => s.id === spriteId);
     if (!sprite) return;
-    
+
     this.loadSpriteDataToCanvas(sprite.data);
     this.selectedParticleSpriteId.set(spriteId);
   }
 
   private loadSpriteDataToCanvas(dataUrl: string) {
     if (!this.particleCanvas) return;
-    
+
     const canvas = this.particleCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
+
     const img = new Image();
     img.onload = () => {
       this.initParticleCanvas();
@@ -1027,7 +1028,7 @@ export class App implements AfterViewInit {
     const sprites = this.savedParticleSprites().filter(s => s.id !== spriteId);
     this.savedParticleSprites.set(sprites);
     localStorage.setItem('particleSprites', JSON.stringify(sprites));
-    
+
     if (this.selectedParticleSpriteId() === spriteId) {
       this.selectedParticleSpriteId.set(null);
     }
@@ -1041,46 +1042,46 @@ export class App implements AfterViewInit {
    */
   private renderCompositionToCanvas(): void {
     console.log('🎨 renderCompositionToCanvas called');
-    
+
     if (!this.compositionMode() || !this.compositionCanvasComponent) {
       console.log('❌ Not in composition mode or no canvas component');
       return;
     }
-    
+
     const state = this.compositionService.compositionState();
     console.log('🎨 Composition state:', {
       layers: state.layers.length,
       canvasSize: `${state.canvasWidth}x${state.canvasHeight}`
     });
-    
+
     if (state.layers.length === 0) {
       console.log('❌ No layers');
       return;
     }
-    
+
     console.log('✅ Rendering composition with layer effects...');
-    
+
     // Use the same method as GIF export - includes dithering AND layer effects
     const compositionData = this.compositionCanvasComponent.getCompositionImageDataWithEffects();
-    
+
     if (!compositionData) {
       console.log('❌ Failed to get composition data');
       return;
     }
-    
+
     console.log('✅ Got composition with effects:', {
       width: compositionData.width,
       height: compositionData.height
     });
-    
+
     // Update processedImageData - already includes dithering and effects
     this.processedImageData = compositionData;
-    
+
     console.log('✅ processedImageData updated:', {
       width: this.processedImageData.width,
       height: this.processedImageData.height
     });
-    
+
     // Update canvas if available (might not be visible in composition mode)
     if (this.processedCanvas?.nativeElement) {
       const canvas = this.processedCanvas.nativeElement;
@@ -1092,18 +1093,18 @@ export class App implements AfterViewInit {
         console.log('✅ Canvas element also updated');
       }
     }
-    
+
     console.log('✅ renderCompositionToCanvas complete');
   }
 
   async downloadImage() {
     if (!this.processedCanvas) return;
-    
+
     // If in composition mode, render composition first
     if (this.compositionMode() && this.compositionService.compositionState().layers.length > 0) {
       this.renderCompositionToCanvas();
     }
-    
+
     const canvas = this.processedCanvas.nativeElement;
     const link = document.createElement('a');
     const filename = this.compositionMode() ? 'composition' : 'dithered';
@@ -1156,7 +1157,7 @@ export class App implements AfterViewInit {
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
       const file = files[0];
-      
+
       // Verificar que sea una imagen
       if (file.type.startsWith('image/')) {
         // If there's already an image loaded, ask for confirmation
@@ -1165,15 +1166,15 @@ export class App implements AfterViewInit {
             'Loading a new image will reset all layers and effects. Continue?',
             'Load New Image'
           );
-          
+
           if (!confirmed) {
             return;
           }
-          
+
           // Reset all modes and states
           this.resetAllModes();
         }
-        
+
         this.loadImage(file);
       }
     }
@@ -1222,7 +1223,7 @@ export class App implements AfterViewInit {
           resolve(true);
         };
         video.onerror = () => reject(new Error('Video load failed'));
-        
+
         // Timeout after 5 seconds
         setTimeout(() => reject(new Error('Video load timeout')), 5000);
       });
@@ -1263,11 +1264,11 @@ export class App implements AfterViewInit {
               'Loading a new image will reset all layers and effects. Continue?',
               'Load New Image'
             );
-            
+
             if (!confirmed) {
               return;
             }
-            
+
             // Reset all modes and states
             this.resetAllModes();
           }
@@ -1280,29 +1281,29 @@ export class App implements AfterViewInit {
 
     } catch (error: any) {
       console.error('❌ Camera error:', error);
-      
+
       // Provide specific error messages
       let message = '📷 Could not access camera.\n\n';
-      
+
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         message += '🔒 Permission denied.\n\n' +
-                  'Please allow camera access in your browser settings:\n\n' +
-                  '• Chrome: Click the camera icon in the address bar\n' +
-                  '• Firefox: Click the camera icon in the address bar\n' +
-                  '• Safari: Settings → Safari → Camera → Allow';
+          'Please allow camera access in your browser settings:\n\n' +
+          '• Chrome: Click the camera icon in the address bar\n' +
+          '• Firefox: Click the camera icon in the address bar\n' +
+          '• Safari: Settings → Safari → Camera → Allow';
       } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
         message += '📹 No camera found.\n\n' +
-                  'Please make sure your device has a camera connected.';
+          'Please make sure your device has a camera connected.';
       } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
         message += '⚠️ Camera is already in use.\n\n' +
-                  'Please close other apps using the camera and try again.';
+          'Please close other apps using the camera and try again.';
       } else if (error.name === 'OverconstrainedError') {
         message += '⚙️ Camera constraints not supported.\n\n' +
-                  'Your camera may not support the requested settings.';
+          'Your camera may not support the requested settings.';
       } else if (error.name === 'SecurityError') {
         message += '🔐 Security error.\n\n' +
-                  'Camera access requires HTTPS or localhost.\n' +
-                  'Please use a secure connection.';
+          'Camera access requires HTTPS or localhost.\n' +
+          'Please use a secure connection.';
       } else {
         message += '❌ An unexpected error occurred:\n\n' + error.message;
       }
@@ -1350,7 +1351,7 @@ export class App implements AfterViewInit {
       this.processImage();
     }
   }
-  
+
   /**
    * Sincroniza las opciones de dithering actuales con el composition service
    */
@@ -1372,13 +1373,13 @@ export class App implements AfterViewInit {
    */
   getSelectedPaletteColors(): string[] {
     const paletteId = this.selectedPalette();
-    
+
     // Buscar en paletas personalizadas primero
     const customPalette = this.customPalettes().find(p => p.id === paletteId);
     if (customPalette) {
       return customPalette.colors;
     }
-    
+
     // Buscar en paletas predefinidas del servicio
     return this.ditheringService.getPaletteColors(paletteId);
   }
@@ -1389,19 +1390,19 @@ export class App implements AfterViewInit {
   loadCustomPalettesAndPresets() {
     const customPalettes = this.storageService.getCustomPalettes();
     this.customPalettes.set(customPalettes);
-    
+
     // Agregar paletas personalizadas al servicio de dithering
     customPalettes.forEach(palette => {
       this.ditheringService.addCustomPalette(palette.id, palette.colors);
     });
-    
+
     // Actualizar lista de paletas
     const allPalettes = [
       ...this.ditheringService.getAvailablePalettes(),
       ...customPalettes.map(p => ({ id: p.id, name: p.name }))
     ];
     this.palettes.set(allPalettes);
-    
+
     // Cargar presets
     this.presets.set(this.storageService.getPresets());
   }
@@ -1432,7 +1433,7 @@ export class App implements AfterViewInit {
   saveCustomPalette() {
     const name = this.newPaletteName();
     const colors = this.paletteColors();
-    
+
     if (!name || colors.length < 2) {
       alert('Please provide a name and at least 2 colors');
       return;
@@ -1447,12 +1448,12 @@ export class App implements AfterViewInit {
 
     this.storageService.saveCustomPalette(palette);
     this.loadCustomPalettesAndPresets();
-    
+
     // Reset form
     this.newPaletteName.set('');
     this.paletteColors.set(['#000000', '#ffffff']);
     this.showPaletteCreator.set(false);
-    
+
     // Trigger dialogue
     this.triggerDialogue('custom_palette');
   }
@@ -1478,7 +1479,7 @@ export class App implements AfterViewInit {
 
   saveCurrentAsPreset() {
     const name = this.newPresetName();
-    
+
     if (!name) {
       alert('Please provide a preset name');
       return;
@@ -1498,7 +1499,7 @@ export class App implements AfterViewInit {
 
     this.storageService.savePreset(preset);
     this.presets.set(this.storageService.getPresets());
-    
+
     // Reset form
     this.newPresetName.set('');
     alert('Preset saved successfully!');
@@ -1506,7 +1507,7 @@ export class App implements AfterViewInit {
 
   loadPreset(presetId: string) {
     const preset = this.storageService.loadPreset(presetId);
-    
+
     if (!preset) return;
 
     this.selectedAlgorithm.set(preset.algorithm);
@@ -1542,7 +1543,7 @@ export class App implements AfterViewInit {
     const theme = this.themeService.getThemeData(themeId);
     const primaryColor = theme.colors.primary;
     const backgroundColor = theme.colors.background;
-    
+
     // Generate the EXACT same SVG structure as favicon
     const svg = `
       <svg width="520" height="520" viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
@@ -1590,7 +1591,7 @@ export class App implements AfterViewInit {
         </g>
       </svg>
     `;
-    
+
     const encoded = encodeURIComponent(svg).replace(/'/g, '%27').replace(/"/g, '%22');
     const dataUri = `data:image/svg+xml,${encoded}`;
     this.navbarLogoUrl.set(dataUri);
@@ -1602,14 +1603,14 @@ export class App implements AfterViewInit {
   updateKofiWidget() {
     // Only show floating widget on desktop (mobile uses modal button instead)
     const isDesktop = window.innerWidth > 768;
-    
+
     if (!isDesktop) {
       return;
     }
-    
+
     const themeId = this.themeService.currentTheme();
     const theme = this.themeService.getThemeData(themeId);
-    
+
     // Check if Ko-fi widget is loaded
     if (typeof (window as any).kofiWidgetOverlay !== 'undefined') {
       (window as any).kofiWidgetOverlay.draw('daede', {
@@ -1645,50 +1646,50 @@ export class App implements AfterViewInit {
   toggleGifStudioMode() {
     console.log('🎬 toggleGifStudioMode called');
     this.gifStudioMode.update(current => !current);
-    
+
     if (this.gifStudioMode()) {
       console.log('🎬 Activating GIF Studio Mode');
-      
+
       // Check if we need to render composition BEFORE turning off composition mode
       const wasInCompositionMode = this.compositionMode();
       const compositionState = this.compositionService.compositionState();
       const hasLayers = compositionState.layers.length > 0;
-      
+
       console.log('🎬 Pre-check:', {
         wasInCompositionMode,
         hasLayers
       });
-      
+
       // Render composition BEFORE turning off composition mode
       if (wasInCompositionMode && hasLayers) {
         console.log('🎬 Rendering composition to canvas...');
         this.renderCompositionToCanvas();
         console.log('🎬 Composition rendered');
       }
-      
+
       // Now turn off Composition mode
       if (wasInCompositionMode) {
         console.log('🎬 Turning off composition mode');
         this.compositionMode.set(false);
       }
-      
+
       console.log('🎬 Starting GIF preview with processedImageData:', {
         hasData: !!this.processedImageData,
         size: this.processedImageData ? `${this.processedImageData.width}x${this.processedImageData.height}` : 'none'
       });
-      
+
       // Activar modo GIF Studio
       this.triggerDialogue('gif_creation');
       this.generateGifPreview();
     } else {
       // 🖼️ Restore Preview mode: wait for DOM to update, then redraw
       this.stopGifPreview();
-      
+
       setTimeout(() => {
         if (this.originalImageData && this.processedImageData) {
           // Redraw original image
           this.drawOriginalInComparison();
-          
+
           // Restore processed canvas
           const canvas = this.processedCanvas.nativeElement;
           const ctx = canvas.getContext('2d');
@@ -1703,18 +1704,18 @@ export class App implements AfterViewInit {
       }, 50);
     }
   }
-  
+
   // Composition mobile UI state
   showCompositionLayers = signal(false);
   showLayerProps = signal(false);
   toolsCollapsed = signal(false);
-  
+
   // GIF mode mobile UI state
   showGifLayers = signal(false);
   isGifPlaying = signal(false);
   activeEffectLayerId = signal<string | null>(null);
   gifPanelCollapsed = signal(true); // Start collapsed to not obstruct preview
-  
+
   // Gallery mobile UI state
   gallerySearchQuery = '';
   selectedGalleryItem = signal<any | null>(null);
@@ -1722,7 +1723,7 @@ export class App implements AfterViewInit {
     const items = this.galleryService.gallery();
     if (!this.gallerySearchQuery.trim()) return items;
     const query = this.gallerySearchQuery.toLowerCase();
-    return items.filter((item: any) => 
+    return items.filter((item: any) =>
       item.name.toLowerCase().includes(query) ||
       item.tags?.some((tag: string) => tag.toLowerCase().includes(query))
     );
@@ -1799,7 +1800,7 @@ export class App implements AfterViewInit {
 
     // Get composition image data (with all composition layers)
     let baseImageData: ImageData | null = null;
-    
+
     // Check if there are composition layers (regardless of compositionMode)
     const compositionState = this.compositionService.compositionState();
     if (compositionState.layers.length > 0 && this.compositionCanvasComponent) {
@@ -1811,14 +1812,14 @@ export class App implements AfterViewInit {
       baseImageData = this.processedImageData;
       console.log('📊 GIF using processed image base:', baseImageData?.width, 'x', baseImageData?.height);
     }
-    
+
     if (!baseImageData) {
       return;
     }
 
     // Get enabled effect layers in order
     const enabledLayers = this.getSortedLayers().filter(layer => layer.enabled);
-    
+
     if (enabledLayers.length === 0) {
       // No effects, just show composition/processed image - clear any animation first
       if (this.gifMobileAnimationInterval) {
@@ -1831,27 +1832,27 @@ export class App implements AfterViewInit {
 
     // Generate animated frames like desktop
     const frames = await this.createLayeredEffectFrames(baseImageData, enabledLayers);
-    
+
     if (frames.length > 0) {
       // Store frames for download
       this.gifMobileFrames = frames;
-      
+
       // Animate frames
       let currentFrame = 0;
       const fps = this.gifFps();
       const interval = 1000 / fps;
-      
+
       // Stop previous animation if any
       if (this.gifMobileAnimationInterval) {
         clearInterval(this.gifMobileAnimationInterval);
       }
-      
+
       // Start animation loop
       this.gifMobileAnimationInterval = setInterval(() => {
         ctx.putImageData(frames[currentFrame].imageData, 0, 0);
         currentFrame = (currentFrame + 1) % frames.length;
       }, interval);
-      
+
       // Show first frame immediately
       ctx.putImageData(frames[0].imageData, 0, 0);
     }
@@ -1905,7 +1906,7 @@ export class App implements AfterViewInit {
 
   updateLayerOptionMobile(layerId: string, optionKey: string, event: Event, scale: number = 1): void {
     const target = event.target as HTMLInputElement | HTMLSelectElement;
-    
+
     // Handle different input types
     let value: any;
     if (target instanceof HTMLInputElement && target.type === 'checkbox') {
@@ -1917,7 +1918,7 @@ export class App implements AfterViewInit {
     } else {
       value = parseFloat((target as HTMLInputElement).value) * scale;
     }
-    
+
     this.updateLayerOption(layerId, optionKey, value);
   }
 
@@ -1940,7 +1941,7 @@ export class App implements AfterViewInit {
     img.onload = () => {
       this.originalImage = img;
       this.imageLoaded.set(true);
-      
+
       // Extract canvas data
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
@@ -1948,12 +1949,12 @@ export class App implements AfterViewInit {
       const ctx = canvas.getContext('2d')!;
       ctx.drawImage(img, 0, 0);
       this.originalImageData = ctx.getImageData(0, 0, img.width, img.height);
-      
+
       // Apply stored settings if available
       if (item.settings) {
         this.applySettingsFromGallery(item.settings);
       }
-      
+
       // Process and switch to canvas tab
       this.processImage();
       this.mobileActiveTab.set('canvas');
@@ -1982,7 +1983,7 @@ export class App implements AfterViewInit {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return this.i18nService.t('gallery.today');
     if (diffDays === 1) return this.i18nService.t('gallery.yesterday');
     if (diffDays < 7) return `${diffDays} ${this.i18nService.t('gallery.daysAgo')}`;
@@ -2036,16 +2037,16 @@ export class App implements AfterViewInit {
     }
 
     const state = this.compositionService.compositionState();
-    
+
     // Sync dithering options
     this.syncDitheringOptionsToComposition();
-    
+
     // Set canvas size to match ORIGINAL image
     this.compositionService.setCanvasSize(
       this.originalImageData.width,
       this.originalImageData.height
     );
-    
+
     // Only initialize layers if there are none
     if (state.layers.length === 0) {
       console.log('📱 Initializing mobile composition with base layer');
@@ -2057,21 +2058,21 @@ export class App implements AfterViewInit {
 
   toggleCompositionMode() {
     this.compositionMode.update(current => !current);
-    
+
     if (this.compositionMode()) {
       // Sync dithering options
       this.syncDitheringOptionsToComposition();
-      
+
       // Turn off GIF mode if active
       if (this.gifStudioMode()) {
         this.gifStudioMode.set(false);
         this.stopGifPreview();
       }
-      
+
       // Initialize composition canvas with processed image size (includes scale factor)
       if (this.processedImageData && this.originalImage && this.originalImageData) {
         const state = this.compositionService.compositionState();
-        
+
         console.log('🎨 Initializing Composition Canvas:', {
           originalImageData: { width: this.originalImageData.width, height: this.originalImageData.height },
           processedImageData: { width: this.processedImageData.width, height: this.processedImageData.height },
@@ -2079,14 +2080,14 @@ export class App implements AfterViewInit {
           scale: this.scale(),
           existingLayers: state.layers.length
         });
-        
+
         // Set canvas size to match ORIGINAL image (not scaled)
         // Scale will be applied during rendering/export
         this.compositionService.setCanvasSize(
           this.originalImageData.width,
           this.originalImageData.height
         );
-        
+
         // Only initialize layers if there are none (first time or after reset)
         if (state.layers.length === 0) {
           console.log('🎨 No existing layers, creating initial layer');
@@ -2096,11 +2097,11 @@ export class App implements AfterViewInit {
         } else {
           console.log('🎨 Keeping existing layers:', state.layers.length);
         }
-        
-        console.log('🎨 Composition initialized. Canvas size:', 
+
+        console.log('🎨 Composition initialized. Canvas size:',
           this.originalImageData.width, 'x', this.originalImageData.height);
       }
-      
+
       this.triggerDialogue('composition_mode');
     } else {
       // 🖼️ Restore Preview mode: wait for DOM to update, then redraw
@@ -2112,19 +2113,19 @@ export class App implements AfterViewInit {
       }, 50);
     }
   }
-  
+
   exitAllModes() {
     const needsRefresh = this.compositionMode() || this.gifStudioMode();
-    
+
     if (this.compositionMode()) {
       this.compositionMode.set(false);
     }
-    
+
     if (this.gifStudioMode()) {
       this.gifStudioMode.set(false);
       this.stopGifPreview();
     }
-    
+
     // 🖼️ Restore Preview mode: wait for DOM to update, then redraw
     if (needsRefresh) {
       setTimeout(() => {
@@ -2136,39 +2137,39 @@ export class App implements AfterViewInit {
       }, 50);
     }
   }
-  
+
   /**
    * ===== COMPOSITION TOOLBAR HANDLERS =====
    */
-  
+
   onToolChange(tool: ToolType): void {
     console.log('🔧 Tool changed to:', tool);
     // El composition-canvas component escuchará esto si lo necesita
     // Por ahora solo lo logueamos
   }
-  
+
   onToolOptionsChange(options: ToolOptions): void {
     console.log('⚙️ Tool options changed:', options);
     // Las opciones se usarán cuando se creen nuevas capas
   }
-  
+
   /**
    * ===== KEYBOARD SHORTCUTS =====
    */
-  
+
   @HostListener('window:keydown', ['$event'])
   handleKeyboardShortcut(event: KeyboardEvent): void {
     // Solo procesar shortcuts en composition mode
     if (!this.compositionMode()) return;
-    
+
     // Evitar shortcuts si estamos escribiendo en un input/textarea
     const target = event.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
       return;
     }
-    
+
     const key = event.key.toLowerCase();
-    
+
     // Tool shortcuts (sin modificadores)
     if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) {
       switch (key) {
@@ -2198,7 +2199,7 @@ export class App implements AfterViewInit {
           break;
       }
     }
-    
+
     // Undo/Redo (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y)
     if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === 'z') {
       if (this.historyService.undo()) {
@@ -2211,7 +2212,7 @@ export class App implements AfterViewInit {
       event.preventDefault();
       return;
     }
-    
+
     if ((event.ctrlKey || event.metaKey) && (event.shiftKey && key === 'z' || key === 'y')) {
       if (this.historyService.redo()) {
         const undoDesc = this.historyService.getUndoDescription();
@@ -2262,7 +2263,7 @@ export class App implements AfterViewInit {
             layer.imageData.height
           )
         }));
-        
+
         const command = new BatchAddLayersCommand(
           this.compositionService,
           newLayers,
@@ -2293,7 +2294,7 @@ export class App implements AfterViewInit {
             layer.imageData.height
           )
         }));
-        
+
         // Create and execute command
         const command = new BatchAddLayersCommand(
           this.compositionService,
@@ -2373,19 +2374,19 @@ export class App implements AfterViewInit {
         if (!compositionData) {
           throw new Error('No composition data available for GIF export');
         }
-        
+
         // Dithering is already applied per-layer in getCompositionImageDataWithEffects()
         // No need to apply it again here
-        
+
         // For now, composition exports as single-frame GIF (static)
         // TODO: Could add animation support for composition layers in the future
         const frames: GifFrame[] = [{
           imageData: compositionData,
           delay: 1000 // 1 second
         }];
-        
+
         this.gifLoadingMessage.set('Encoding GIF... This may take a moment');
-        
+
         const blob = await this.gifService.exportAsGif(
           frames,
           {
@@ -2397,7 +2398,7 @@ export class App implements AfterViewInit {
             this.gifProgress.set(50 + Math.floor(progress / 2));
           }
         );
-        
+
         // Download
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -2405,28 +2406,28 @@ export class App implements AfterViewInit {
         link.href = url;
         link.click();
         URL.revokeObjectURL(url);
-        
+
         this.gifProgress.set(100);
         this.gifLoadingMessage.set('GIF created successfully!');
         this.waifuState.set('success');
-        
+
         setTimeout(() => {
           this.generatingGif.set(false);
           this.waifuState.set('idle');
         }, 1500);
-        
+
         return;
       }
 
       // GIF STUDIO MODE or LEGACY: Use baseImageData + effect layers
       // Usar imagen procesada si existe, sino usar original
       const baseImageData = this.processedImageData || this.originalImageData;
-      
+
       // Si hay capas de efectos, usar el nuevo sistema
       const enabledLayers = this.getSortedLayers().filter(l => l.enabled);
-      
+
       let frames: GifFrame[];
-      
+
       if (enabledLayers.length > 0) {
         // Usar sistema de capas
         frames = await this.createLayeredEffectFrames(baseImageData, enabledLayers);
@@ -2441,12 +2442,12 @@ export class App implements AfterViewInit {
           addGlitch: this.gifAddGlitch(),
           loopCount: this.gifLoopCount()
         };
-        
+
         frames = await this.createLegacyEffectFrames(baseImageData, options);
       }
 
       this.gifLoadingMessage.set('Encoding GIF... This may take a moment');
-      
+
       // Exportar como GIF usando gif.js
       const blob = await this.gifService.exportAsGif(
         frames,
@@ -2468,30 +2469,30 @@ export class App implements AfterViewInit {
       link.href = url;
       link.click();
       URL.revokeObjectURL(url);
-      
+
       this.gifProgress.set(100);
       this.gifLoadingMessage.set('GIF created successfully!');
       this.waifuState.set('success');
-      
+
       // 🏆 Track achievement
       this.achievementService.trackGifCreated(enabledLayers.length);
-      
+
       // Cerrar el modal después de un momento
       setTimeout(() => {
         this.generatingGif.set(false);
         this.waifuState.set('idle');
       }, 1500);
-      
+
     } catch (error) {
       console.error('Error generating animated GIF:', error);
       this.gifLoadingMessage.set('Error generating GIF');
       this.waifuState.set('error');
-      
+
       setTimeout(() => {
         this.generatingGif.set(false);
         this.waifuState.set('idle');
       }, 2000);
-      
+
       alert('Error generating animated GIF. Make sure gif.js is properly installed.');
     }
   }
@@ -2512,15 +2513,15 @@ export class App implements AfterViewInit {
       canvas.width = baseImageData.width;
       canvas.height = baseImageData.height;
       const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-      
+
       // Empezar con la imagen base
       ctx.putImageData(baseImageData, 0, 0);
       let currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      
+
       // Aplicar cada capa en orden
       for (const layer of layers) {
         if (!layer.enabled) continue;
-        
+
         // Aplicar el efecto de esta capa
         currentImageData = this.applyLayerEffect(
           currentImageData,
@@ -2528,17 +2529,17 @@ export class App implements AfterViewInit {
           frameIndex,
           frameCount
         );
-        
+
         // Actualizar canvas con el resultado
         ctx.putImageData(currentImageData, 0, 0);
         currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       }
-      
+
       frames.push({
         imageData: currentImageData,
         delay
       });
-      
+
       // Actualizar progreso
       const progress = Math.floor((frameIndex + 1) / frameCount * 50);
       this.gifProgress.set(progress);
@@ -2561,11 +2562,11 @@ export class App implements AfterViewInit {
     canvas.height = imageData.height;
     const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     ctx.putImageData(imageData, 0, 0);
-    
+
     // SEAMLESS LOOP: Normalizar phase de 0 a 1 (sin incluir 1 para evitar duplicación)
     // Esto asegura que el último frame sea diferente del primero, creando un loop perfecto
     const phase = frameIndex / totalFrames; // 0.0 a 0.999...
-    
+
     switch (layer.type) {
       case 'scanline':
         this.applyScanlineLayer(ctx, imageData, layer, phase);
@@ -2592,7 +2593,7 @@ export class App implements AfterViewInit {
         this.applyFlamesLayer(ctx, imageData, layer, phase);
         break;
     }
-    
+
     return ctx.getImageData(0, 0, canvas.width, canvas.height);
   }
 
@@ -2623,7 +2624,7 @@ export class App implements AfterViewInit {
     const thickness = layer.options.scanlineThickness || 2;
     const spacing = layer.options.scanlineSpacing || 4;
     const offset = Math.floor(phase * spacing) % spacing;
-    
+
     for (let y = offset; y < imageData.height; y += spacing) {
       for (let t = 0; t < thickness && y + t < imageData.height; t++) {
         for (let x = 0; x < imageData.width; x++) {
@@ -2634,7 +2635,7 @@ export class App implements AfterViewInit {
         }
       }
     }
-    
+
     ctx.putImageData(data, 0, 0);
   }
 
@@ -2647,39 +2648,39 @@ export class App implements AfterViewInit {
     const bleedGreen = layer.options.vhsBleedGreen ?? 0;
     const bleedBlue = layer.options.vhsBleedBlue ?? 3;
     const trackingNoise = layer.options.vhsTrackingNoise || 2;
-    
+
     // Aplicar distorsión horizontal con líneas de grosor variable
     for (let y = 0; y < imageData.height; y++) {
       const offset = Math.sin(y * 0.1 + phase) * distortion * layer.intensity;
       const shift = Math.floor(offset);
-      
+
       // Tracking noise - líneas verticales de ruido
       const hasTrackingNoise = Math.random() < (trackingNoise * 0.01);
-      
+
       if (Math.abs(shift) > 0 || hasTrackingNoise) {
         // Aplicar efecto en múltiples líneas según el grosor
         for (let lineOffset = 0; lineOffset < lineThickness; lineOffset++) {
           const currentY = y + lineOffset;
           if (currentY >= imageData.height) break;
-          
+
           for (let x = 0; x < imageData.width; x++) {
             const srcX = Math.max(0, Math.min(imageData.width - 1, x + shift));
             const srcIdx = (currentY * imageData.width + srcX) * 4;
             const dstIdx = (currentY * imageData.width + x) * 4;
-            
+
             // Color bleeding personalizado por canal
             const redSrcX = Math.max(0, Math.min(imageData.width - 1, srcX + bleedRed));
             const greenSrcX = Math.max(0, Math.min(imageData.width - 1, srcX + bleedGreen));
             const blueSrcX = Math.max(0, Math.min(imageData.width - 1, srcX + bleedBlue));
-            
+
             const redIdx = (currentY * imageData.width + redSrcX) * 4;
             const greenIdx = (currentY * imageData.width + greenSrcX) * 4;
             const blueIdx = (currentY * imageData.width + blueSrcX) * 4;
-            
+
             data.data[dstIdx] = data.data[redIdx];
             data.data[dstIdx + 1] = data.data[greenIdx + 1];
             data.data[dstIdx + 2] = data.data[blueIdx + 2];
-            
+
             // Aplicar tracking noise si corresponde
             if (hasTrackingNoise) {
               const noise = Math.random() * 100;
@@ -2689,12 +2690,12 @@ export class App implements AfterViewInit {
             }
           }
         }
-        
+
         // Saltar las líneas ya procesadas
         y += lineThickness - 1;
       }
     }
-    
+
     ctx.putImageData(data, 0, 0);
   }
 
@@ -2702,14 +2703,14 @@ export class App implements AfterViewInit {
     const data = ctx.getImageData(0, 0, imageData.width, imageData.height);
     const noiseSize = layer.options.noiseSize || 1;
     const noiseStrength = layer.intensity * 50;
-    
+
     for (let i = 0; i < data.data.length; i += 4 * noiseSize) {
       const noise = (Math.random() - 0.5) * noiseStrength;
       data.data[i] = Math.max(0, Math.min(255, data.data[i] + noise));
       data.data[i + 1] = Math.max(0, Math.min(255, data.data[i + 1] + noise));
       data.data[i + 2] = Math.max(0, Math.min(255, data.data[i + 2] + noise));
     }
-    
+
     ctx.putImageData(data, 0, 0);
   }
 
@@ -2718,14 +2719,14 @@ export class App implements AfterViewInit {
     const decay = layer.options.phosphorDecay || 0.7;
     const glow = layer.options.phosphorGlow || 0.5;
     const intensity = 0.5 + Math.sin(phase) * 0.5 * layer.intensity;
-    
+
     for (let i = 0; i < data.data.length; i += 4) {
       const green = data.data[i + 1];
       data.data[i] *= (1 - intensity * (1 - decay) * 0.7);
       data.data[i + 1] = Math.min(255, green * (1 + intensity * glow));
       data.data[i + 2] *= (1 - intensity * (1 - decay) * 0.7);
     }
-    
+
     ctx.putImageData(data, 0, 0);
   }
 
@@ -2733,9 +2734,9 @@ export class App implements AfterViewInit {
     const direction = layer.options.rgbSplitDirection || 'horizontal';
     const amount = layer.options.rgbSplitAmount || 3;
     const intensity = layer.intensity * amount;
-    
+
     let offsetX = 0, offsetY = 0;
-    
+
     switch (direction) {
       case 'horizontal':
         offsetX = Math.sin(phase) * intensity;
@@ -2748,33 +2749,33 @@ export class App implements AfterViewInit {
         offsetY = Math.cos(phase) * intensity;
         break;
     }
-    
+
     // Crear canales RGB separados
     const originalData = ctx.getImageData(0, 0, imageData.width, imageData.height);
     const result = ctx.createImageData(imageData.width, imageData.height);
-    
+
     for (let y = 0; y < imageData.height; y++) {
       for (let x = 0; x < imageData.width; x++) {
         const idx = (y * imageData.width + x) * 4;
-        
+
         // Canal rojo desplazado
         const rX = Math.max(0, Math.min(imageData.width - 1, Math.floor(x + offsetX)));
         const rIdx = (y * imageData.width + rX) * 4;
         result.data[idx] = originalData.data[rIdx];
-        
+
         // Canal verde sin desplazar
         result.data[idx + 1] = originalData.data[idx + 1];
-        
+
         // Canal azul desplazado en dirección opuesta
         const bX = Math.max(0, Math.min(imageData.width - 1, Math.floor(x - offsetX)));
         const bY = Math.max(0, Math.min(imageData.height - 1, Math.floor(y + offsetY)));
         const bIdx = (bY * imageData.width + bX) * 4;
         result.data[idx + 2] = originalData.data[bIdx + 2];
-        
+
         result.data[idx + 3] = originalData.data[idx + 3];
       }
     }
-    
+
     ctx.putImageData(result, 0, 0);
   }
 
@@ -2782,10 +2783,10 @@ export class App implements AfterViewInit {
     const direction = layer.options.motionDirection || 'horizontal';
     const speed = layer.options.motionSpeed || 1;
     const intensity = layer.intensity;
-    
+
     // Try WebGL first for massive performance boost and advanced features
     const webglAvailable = this.webglMotionService.isAvailable();
-    
+
     if (webglAvailable) {
       const result = this.webglMotionService.renderMotion(imageData, {
         direction: direction,
@@ -2800,26 +2801,26 @@ export class App implements AfterViewInit {
         trails: layer.options.motionTrails || 0,
         edgeGlow: layer.options.motionEdgeGlow || 0
       });
-      
+
       if (result) {
         ctx.putImageData(result, 0, 0);
         return;
       }
     }
-    
+
     // CPU fallback - simple motion blur
     console.log('🖥️ CPU motion sense fallback');
-    
+
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = imageData.width;
     tempCanvas.height = imageData.height;
     const tempCtx = tempCanvas.getContext('2d')!;
     tempCtx.putImageData(imageData, 0, 0);
-    
+
     ctx.clearRect(0, 0, imageData.width, imageData.height);
-    
+
     let offsetX = 0, offsetY = 0, scale = 1;
-    
+
     switch (direction) {
       case 'horizontal':
         offsetX = Math.sin(phase) * intensity * speed * 10;
@@ -2841,24 +2842,24 @@ export class App implements AfterViewInit {
         offsetX = Math.sin(phase) * intensity * speed * 10;
         break;
     }
-    
+
     // Simple motion blur with 5 layers
     const layers = 5;
-    
+
     ctx.save();
     ctx.translate(imageData.width / 2, imageData.height / 2);
     ctx.scale(scale, scale);
     ctx.translate(-imageData.width / 2 + offsetX, -imageData.height / 2 + offsetY);
     ctx.drawImage(tempCanvas, 0, 0);
     ctx.restore();
-    
+
     ctx.globalAlpha = 0.3;
     for (let i = 1; i < layers; i++) {
       const t = i / layers;
       const layerOffsetX = offsetX * (1 - t);
       const layerOffsetY = offsetY * (1 - t);
       const layerScale = 1 + (scale - 1) * (1 - t);
-      
+
       ctx.save();
       ctx.translate(imageData.width / 2, imageData.height / 2);
       ctx.scale(layerScale, layerScale);
@@ -2866,7 +2867,7 @@ export class App implements AfterViewInit {
       ctx.drawImage(tempCanvas, 0, 0);
       ctx.restore();
     }
-    
+
     ctx.globalAlpha = 1;
   }
 
@@ -2875,17 +2876,17 @@ export class App implements AfterViewInit {
    */
   private applyParticlesLayer(ctx: CanvasRenderingContext2D, imageData: ImageData, layer: EffectLayer, phase: number) {
     const particleType = layer.options.particleType || 'snow';
-    
+
     // Use CPU for custom sprites (they need image loading)
     if (particleType === 'custom' && layer.options.particleCustomSprite) {
       this.renderCustomParticles(ctx, imageData, layer, phase);
       return;
     }
-    
+
     // Try WebGL first for massive performance boost
     const webglAvailable = this.webglParticlesService.isAvailable();
     console.log('WebGL Particles available:', webglAvailable);
-    
+
     if (webglAvailable) {
       const result = this.webglParticlesService.renderParticles(imageData, {
         type: particleType,
@@ -2893,7 +2894,7 @@ export class App implements AfterViewInit {
         size: layer.options.particleSize || 2.0,
         speed: layer.options.particleSpeed || 1.0,
         phase: phase,
-        
+
         opacity: layer.options.particleOpacity || 0.8,
         glow: layer.options.particleGlow || 0.5,
         blur: layer.options.particleBlur || 0,
@@ -2904,26 +2905,26 @@ export class App implements AfterViewInit {
         },
         useCustomColor: layer.options.particleUseCustomColor || false,
         colorVariation: layer.options.particleColorVariation || 0.2,
-        
+
         gravity: layer.options.particleGravity || 0.5,
         wind: layer.options.particleWind || 0,
         turbulence: layer.options.particleTurbulence || 0.5,
         rotation: layer.options.particleRotation || 1.0,
-        
+
         fadeIn: layer.options.particleFadeIn || 0.2,
         fadeOut: layer.options.particleFadeOut || 0.2,
         twinkle: layer.options.particleTwinkle || 0.5,
         depth: layer.options.particleDepth || 0.5,
-        
+
         spawnArea: layer.options.particleSpawnArea || 'top',
         blendMode: layer.options.particleBlendMode || 'normal',
-        
+
         ditherEnabled: layer.options.particleDitherEnabled || false,
         ditherAlgorithm: layer.options.particleDitherAlgorithm || 'bayer-4x4',
         ditherPalette: layer.options.particleDitherPalette || 'gameboy',
         ditherIntensity: layer.options.particleDitherIntensity ?? 1.0
       });
-      
+
       if (result) {
         ctx.putImageData(result, 0, 0);
         return;
@@ -2933,26 +2934,26 @@ export class App implements AfterViewInit {
     } else {
       console.warn('WebGL not available, using CPU fallback');
     }
-    
+
     // CPU fallback - simple snow effect
     const intensity = layer.intensity;
     const count = 50 * (layer.options.particleDensity || 0.5);
     const size = layer.options.particleSize || 2;
-    
+
     ctx.globalAlpha = intensity * 0.8;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    
+
     // Simple snow particles (fallback)
     for (let i = 0; i < count; i++) {
       const seed = (i * 12345 + phase * 67890) % 10000;
       const x = (seed % imageData.width);
       const y = ((seed * 7) % imageData.height + phase * 20) % imageData.height;
-      
+
       ctx.beginPath();
       ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
     }
-    
+
     ctx.globalAlpha = 1;
   }
 
@@ -2962,21 +2963,21 @@ export class App implements AfterViewInit {
     const size = (layer.options.particleSize || 2) * 10;
     const speed = layer.options.particleSpeed || 1.0;
     const spriteData = layer.options.particleCustomSprite!;
-    
+
     const gravity = layer.options.particleGravity || 0.5;
     const wind = layer.options.particleWind || 0;
-    
+
     for (let i = 0; i < count; i++) {
       const seed = i / count;
       const x = (this.hash(seed * 1234.5) * imageData.width + wind * phase * 100) % imageData.width;
       const baseY = this.hash(seed * 5678.9) * imageData.height;
       const y = (baseY + phase * speed * 100 + gravity * phase * 50) % (imageData.height + size);
-      
+
       const alpha = intensity * (layer.options.particleOpacity || 0.8);
       this.drawCustomParticle(ctx, x, y, size, spriteData, alpha);
     }
   }
-  
+
   private hash(n: number): number {
     return Math.abs(Math.sin(n * 12345.6789) * 43758.5453) % 1;
   }
@@ -2985,16 +2986,16 @@ export class App implements AfterViewInit {
    * Dibuja una partícula custom desde sprite base64
    */
   private customParticleSpriteCache: Map<string, HTMLImageElement> = new Map();
-  
+
   private drawCustomParticle(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, spriteData: string, alpha: number) {
     // Usar cache para evitar crear images repetidamente
     let img = this.customParticleSpriteCache.get(spriteData);
-    
+
     if (!img) {
       img = new Image();
       img.src = spriteData;
       this.customParticleSpriteCache.set(spriteData, img);
-      
+
       // Si la imagen aún no se cargó, usar fallback
       if (!img.complete) {
         ctx.beginPath();
@@ -3003,7 +3004,7 @@ export class App implements AfterViewInit {
         return;
       }
     }
-    
+
     // Dibujar sprite escalado
     ctx.globalAlpha = alpha;
     const spriteSize = size * 4; // El sprite es más grande que el size base
@@ -3017,7 +3018,7 @@ export class App implements AfterViewInit {
    */
   private applyFlamesLayer(ctx: CanvasRenderingContext2D, imageData: ImageData, layer: EffectLayer, phase: number) {
     const algorithm = layer.options.flameAlgorithm || 'realistic';
-    
+
     // Try WebGL first for massive performance boost
     if (this.webglFlameService.isAvailable()) {
       const webglAlgorithm = this.mapFlameAlgorithmToWebGL(algorithm);
@@ -3028,7 +3029,7 @@ export class App implements AfterViewInit {
           phase: phase,
           turbulence: layer.options.flameTurbulence || 1.0,
           speed: layer.options.flameSpeed || 1.0,
-          
+
           // Advanced parameters
           direction: layer.options.flameDirection || 'up',
           distortion: layer.options.flameDistortion || 0.3,
@@ -3038,29 +3039,29 @@ export class App implements AfterViewInit {
           noiseScale: layer.options.flameNoiseScale || 1.0,
           noiseOctaves: layer.options.flameNoiseOctaves || 3,
           opacity: layer.options.flameOpacity || 1.0,
-          
+
           // Custom color
           customColorR: layer.options.flameCustomColorR || 0,
           customColorG: layer.options.flameCustomColorG || 0,
           customColorB: layer.options.flameCustomColorB || 0,
-          
+
           // Gradient color
           gradientColorR: layer.options.flameGradientColorR || 255,
           gradientColorG: layer.options.flameGradientColorG || 255,
           gradientColorB: layer.options.flameGradientColorB || 0,
           useGradient: layer.options.flameColor === 'gradient',
-          
+
           // Positioning
           offsetX: layer.options.flameOffsetX || 0,
           offsetY: layer.options.flameOffsetY || 0,
-          
+
           // Quality
           smoothing: layer.options.flameSmoothing || 0.3,
-          
+
           // Height/spread
           height: layer.options.flameHeight || 60,
           spread: layer.options.flameSpread || 50,
-          
+
           // Spawn area
           spawnArea: layer.options.flameSpawnArea || 'full',
           spawnStart: layer.options.flameSpawnStart || 0,
@@ -3068,11 +3069,11 @@ export class App implements AfterViewInit {
           spawnFadeIn: layer.options.flameSpawnFadeIn || 10,
           spawnFadeOut: layer.options.flameSpawnFadeOut || 10
         });
-        
+
         if (result) {
           // Put WebGL result back to canvas
           ctx.putImageData(result, 0, 0);
-          
+
           // Apply dithering if enabled
           if (layer.options.flameDitherEnabled) {
             this.applyDitheringToFlames(ctx, layer, imageData);
@@ -3081,7 +3082,7 @@ export class App implements AfterViewInit {
         }
       }
     }
-    
+
     // Fallback to CPU rendering if WebGL unavailable or failed
     switch (algorithm) {
       case 'classic':
@@ -3103,7 +3104,7 @@ export class App implements AfterViewInit {
         this.applyInfernoFlames(ctx, imageData, layer, phase);
         break;
     }
-    
+
     // Apply dithering after CPU rendering if enabled
     if (layer.options.flameDitherEnabled) {
       this.applyDitheringToFlames(ctx, layer, imageData);
@@ -3133,12 +3134,12 @@ export class App implements AfterViewInit {
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
     const currentImageData = ctx.getImageData(0, 0, width, height);
-    
+
     // Get dithering options
     const algorithm = layer.options.flameDitherAlgorithm || 'bayer-4x4';
     const palette = layer.options.flameDitherPalette || 'gameboy';
     const intensity = layer.options.flameDitherIntensity ?? 1.0;
-    
+
     // Extract only flame pixels (difference from original)
     const flamesOnly = new ImageData(width, height);
     for (let i = 0; i < currentImageData.data.length; i += 4) {
@@ -3146,12 +3147,12 @@ export class App implements AfterViewInit {
       const origG = originalImageData.data[i + 1];
       const origB = originalImageData.data[i + 2];
       const origA = originalImageData.data[i + 3];
-      
+
       const currR = currentImageData.data[i];
       const currG = currentImageData.data[i + 1];
       const currB = currentImageData.data[i + 2];
       const currA = currentImageData.data[i + 3];
-      
+
       // If pixel changed from original, it's a flame pixel
       if (currR !== origR || currG !== origG || currB !== origB || currA !== origA) {
         flamesOnly.data[i] = currR;
@@ -3160,7 +3161,7 @@ export class App implements AfterViewInit {
         flamesOnly.data[i + 3] = currA;
       }
     }
-    
+
     // Apply dithering only to flames
     const ditheredFlames = this.ditheringService.applyDithering(flamesOnly, {
       algorithm: algorithm,
@@ -3171,7 +3172,7 @@ export class App implements AfterViewInit {
       highlights: 0,
       blur: 0
     });
-    
+
     // Composite: original image + dithered flames
     const result = new ImageData(width, height);
     for (let i = 0; i < result.data.length; i += 4) {
@@ -3180,7 +3181,7 @@ export class App implements AfterViewInit {
       result.data[i + 1] = originalImageData.data[i + 1];
       result.data[i + 2] = originalImageData.data[i + 2];
       result.data[i + 3] = originalImageData.data[i + 3];
-      
+
       // Blend dithered flames on top based on intensity
       const flameAlpha = ditheredFlames.data[i + 3] / 255;
       if (flameAlpha > 0) {
@@ -3190,7 +3191,7 @@ export class App implements AfterViewInit {
         result.data[i + 2] = Math.round(result.data[i + 2] * (1 - blendedAlpha) + ditheredFlames.data[i + 2] * blendedAlpha);
       }
     }
-    
+
     // Put the final result back
     ctx.putImageData(result, 0, 0);
   }
@@ -3201,31 +3202,31 @@ export class App implements AfterViewInit {
     const intensity = layer.intensity * (layer.options.flameIntensity || 0.7);
     const color = layer.options.flameColor || 'red';
     const turbulence = layer.options.flameTurbulence || 1;
-    
+
     const width = imageData.width;
     const height = imageData.height;
     const flameBottom = height;
     const flameHeightPixels = (height * heightPercent) / 100;
-    
+
     ctx.globalCompositeOperation = 'lighter';
     const numFlames = Math.ceil(width / 12);
-    
+
     // Convertir phase (0-1) a radianes (0-2π) para funciones trigonométricas
     const phaseRad = phase * Math.PI * 2;
-    
+
     for (let i = 0; i < numFlames; i++) {
       const x = (i * width) / numFlames;
       // Usar seno para loop seamless
       const waveOffset = Math.sin(phaseRad * 0.5 + i * 0.8) * 10 * turbulence;
-      
+
       const gradient = ctx.createLinearGradient(x, flameBottom, x, flameBottom - flameHeightPixels);
       const colors = this.getFlameColors(color, intensity);
       colors.forEach((c, idx) => gradient.addColorStop(idx / (colors.length - 1), c));
-      
+
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.moveTo(x + waveOffset, flameBottom);
-      
+
       for (let j = 0; j <= 8; j++) {
         const progress = j / 8;
         const y = flameBottom - progress * flameHeightPixels;
@@ -3234,11 +3235,11 @@ export class App implements AfterViewInit {
         const flameWidth = 20 * (1 - progress * 0.8);
         ctx.lineTo(x + waveOffset + xOff + (j % 2 ? flameWidth : -flameWidth), y);
       }
-      
+
       ctx.closePath();
       ctx.fill();
     }
-    
+
     ctx.globalCompositeOperation = 'source-over';
   }
 
@@ -3248,39 +3249,39 @@ export class App implements AfterViewInit {
     const intensity = layer.intensity * (layer.options.flameIntensity || 0.7);
     const color = layer.options.flameColor || 'red';
     const turbulence = layer.options.flameTurbulence || 1;
-    
+
     const width = imageData.width;
     const height = imageData.height;
     const flameBottom = height;
     const flameHeightPixels = (height * heightPercent) / 100;
-    
+
     ctx.globalCompositeOperation = 'lighter';
-    
+
     // Usar noise Perlin-like para turbulencia realista
     const resolution = 4;
     const cols = Math.ceil(width / resolution);
     const rows = Math.ceil(flameHeightPixels / resolution);
-    
+
     // Convertir phase (0-1) para animación seamless
     const phaseOffset = phase * 5; // Multiplicar para velocidad visible del fuego
-    
+
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         const px = x * resolution;
         const py = flameBottom - y * resolution;
-        
+
         // Noise value basado en posición y tiempo (seamless loop)
         const noise = this.perlinNoise(x * 0.1, y * 0.1 + phaseOffset, 0) * turbulence;
         const heatValue = Math.max(0, 1 - (y / rows) + noise * 0.3);
-        
+
         if (heatValue > 0.1) {
           const alpha = heatValue * intensity;
           const colors = this.getFlameColors(color, alpha);
           const colorIndex = Math.min(Math.floor(heatValue * (colors.length - 1)), colors.length - 1);
-          
+
           ctx.fillStyle = colors[colorIndex];
           ctx.fillRect(px, py, resolution, resolution);
-          
+
           // Agregar glow en zonas calientes
           if (heatValue > 0.7) {
             ctx.shadowBlur = 15;
@@ -3291,7 +3292,7 @@ export class App implements AfterViewInit {
         }
       }
     }
-    
+
     ctx.globalCompositeOperation = 'source-over';
   }
 
@@ -3301,37 +3302,37 @@ export class App implements AfterViewInit {
     const intensity = layer.intensity * (layer.options.flameIntensity || 0.7);
     const color = layer.options.flameColor || 'red';
     const turbulence = layer.options.flameTurbulence || 1;
-    
+
     const width = imageData.width;
     const height = imageData.height;
     const flameBottom = height;
     const flameHeightPixels = (height * heightPercent) / 100;
-    
+
     ctx.globalCompositeOperation = 'lighter';
-    
+
     const data = ctx.getImageData(0, 0, width, height);
-    
+
     // Convertir phase (0-1) a radianes para funciones trigonométricas seamless
     const phaseRad = phase * Math.PI * 2;
-    
+
     for (let y = 0; y < flameHeightPixels; y++) {
       for (let x = 0; x < width; x++) {
         const py = flameBottom - y;
         if (py < 0 || py >= height) continue;
-        
+
         // Múltiples ondas sinusoidales para efecto plasma (todas usan phaseRad para loop seamless)
         const plasma1 = Math.sin(x * 0.02 + phaseRad * 1.5);
         const plasma2 = Math.sin(y * 0.03 - phaseRad * 1.0);
         const plasma3 = Math.sin((x + y) * 0.015 + phaseRad * 0.75);
         const plasma4 = Math.sin(Math.sqrt(x * x + y * y) * 0.02 + phaseRad * 1.25);
-        
+
         const plasmaValue = (plasma1 + plasma2 + plasma3 + plasma4) / 4;
         const heatValue = Math.max(0, (1 - y / flameHeightPixels) * (0.5 + plasmaValue * 0.5 * turbulence));
-        
+
         if (heatValue > 0.1) {
           const alpha = heatValue * intensity * 255;
           const idx = (py * width + x) * 4;
-          
+
           const [r, g, b] = this.getFlameRGB(color, heatValue);
           data.data[idx] = Math.min(255, data.data[idx] + r * heatValue);
           data.data[idx + 1] = Math.min(255, data.data[idx + 1] + g * heatValue);
@@ -3339,7 +3340,7 @@ export class App implements AfterViewInit {
         }
       }
     }
-    
+
     ctx.putImageData(data, 0, 0);
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -3350,58 +3351,58 @@ export class App implements AfterViewInit {
     const intensity = layer.intensity * (layer.options.flameIntensity || 0.7);
     const color = layer.options.flameColor || 'red';
     const turbulence = layer.options.flameTurbulence || 1;
-    
+
     const width = imageData.width;
     const height = imageData.height;
     const flameBottom = height;
     const flameHeightPixels = (height * heightPercent) / 100;
-    
+
     ctx.globalCompositeOperation = 'lighter';
-    
+
     // Convertir phase (0-1) a radianes
     const phaseRad = phase * Math.PI * 2;
-    
+
     // Dibujar múltiples "serpientes" de fuego
     const numDragons = 3 + Math.floor(turbulence * 2);
-    
+
     for (let d = 0; d < numDragons; d++) {
       const startX = (d * width) / numDragons + Math.sin(phaseRad * 0.5 + d) * 50;
       const phaseOffset = d * Math.PI * 0.6;
-      
+
       ctx.beginPath();
       ctx.moveTo(startX, flameBottom);
-      
+
       const segments = 20;
       let prevX = startX;
       let prevY = flameBottom;
-      
+
       for (let i = 1; i <= segments; i++) {
         const progress = i / segments;
         const y = flameBottom - progress * flameHeightPixels;
-        
+
         // Movimiento serpenteante seamless
         const amplitude = 30 * turbulence * (1 - progress * 0.5);
         const frequency = 3;
         const x = startX + Math.sin(progress * Math.PI * frequency + phaseRad * 2.5 + phaseOffset) * amplitude;
-        
+
         const gradient = ctx.createLinearGradient(prevX, prevY, x, y);
         const colors = this.getFlameColors(color, intensity * (1 - progress * 0.3));
         gradient.addColorStop(0, colors[Math.floor(progress * (colors.length - 1))]);
         gradient.addColorStop(1, colors[Math.min(Math.floor(progress * colors.length), colors.length - 1)]);
-        
+
         ctx.strokeStyle = gradient;
         ctx.lineWidth = 15 * (1 - progress * 0.7);
         ctx.lineCap = 'round';
         ctx.stroke();
-        
+
         ctx.beginPath();
         ctx.moveTo(x, y);
-        
+
         prevX = x;
         prevY = y;
       }
     }
-    
+
     ctx.globalCompositeOperation = 'source-over';
   }
 
@@ -3411,46 +3412,46 @@ export class App implements AfterViewInit {
     const intensity = layer.intensity * (layer.options.flameIntensity || 0.7);
     const color = layer.options.flameColor || 'red';
     const turbulence = layer.options.flameTurbulence || 1;
-    
+
     const width = imageData.width;
     const height = imageData.height;
     const flameBottom = height;
     const flameHeightPixels = (height * heightPercent) / 100;
-    
+
     ctx.globalCompositeOperation = 'lighter';
-    
+
     // Convertir phase (0-1) a radianes para animación seamless
     const phaseRad = phase * Math.PI * 2;
-    
+
     // Múltiples capas de humo/fuego suave
     const numWisps = 30 + Math.floor(turbulence * 20);
-    
+
     for (let i = 0; i < numWisps; i++) {
       const x = (i * width) / numWisps + Math.sin(phaseRad * 1.0 + i) * 20 * turbulence;
       const wispPhase = phaseRad * 1.5 + i * 0.5;
       const wispHeight = flameHeightPixels * (0.6 + Math.sin(phaseRad + i) * 0.2 + 0.2);
-      
+
       for (let j = 0; j < 5; j++) {
         const y = flameBottom - j * (wispHeight / 5);
         const progress = j / 5;
         const xOffset = Math.sin(wispPhase + j * 0.8) * 25 * turbulence * (1 + progress);
         const size = (20 - j * 3) * (1 + Math.sin(wispPhase * 2) * 0.3);
-        
+
         const gradient = ctx.createRadialGradient(
           x + xOffset, y, 0,
           x + xOffset, y, size
         );
-        
+
         const colors = this.getFlameColors(color, intensity * (1 - progress * 0.7));
         gradient.addColorStop(0, colors[Math.floor(progress * (colors.length - 1))]);
         gradient.addColorStop(0.5, colors[Math.min(Math.floor((progress + 0.2) * colors.length), colors.length - 1)]);
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
+
         ctx.fillStyle = gradient;
         ctx.fillRect(x + xOffset - size, y - size, size * 2, size * 2);
       }
     }
-    
+
     ctx.globalCompositeOperation = 'source-over';
   }
 
@@ -3460,58 +3461,58 @@ export class App implements AfterViewInit {
     const intensity = layer.intensity * (layer.options.flameIntensity || 0.7);
     const color = layer.options.flameColor || 'red';
     const turbulence = layer.options.flameTurbulence || 1;
-    
+
     const width = imageData.width;
     const height = imageData.height;
     const flameBottom = height;
     const flameHeightPixels = (height * heightPercent) / 100;
-    
+
     ctx.globalCompositeOperation = 'lighter';
-    
+
     // Convertir phase (0-1) a radianes para animación seamless
     const phaseRad = phase * Math.PI * 2;
-    
+
     // Base: cortina de fuego densa
     const numFlames = Math.ceil(width / 4);
-    
+
     for (let layer = 0; layer < 4; layer++) {
       const layerAlpha = intensity * (1 - layer * 0.15);
-      
+
       for (let i = 0; i < numFlames; i++) {
         const x = (i * width) / numFlames + Math.sin(phaseRad * 2.0 + i + layer) * 8;
         const waveOffset = Math.cos(phaseRad * 1.5 + i * 0.3 + layer) * 12 * turbulence;
         const heightVar = Math.sin(phaseRad * 1.25 + i * 0.5) * 30;
-        
+
         const gradient = ctx.createLinearGradient(x, flameBottom, x, flameBottom - flameHeightPixels - heightVar);
         const colors = this.getFlameColors(color, layerAlpha);
         colors.forEach((c, idx) => gradient.addColorStop(idx / (colors.length - 1), c));
-        
+
         ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.moveTo(x + waveOffset, flameBottom);
-        
+
         const segments = 15;
         const baseWidth = 18 + layer * 5;
-        
+
         for (let j = 0; j <= segments; j++) {
           const progress = j / segments;
           const y = flameBottom - progress * (flameHeightPixels + heightVar);
           const turbNoise = Math.sin(progress * 8 + phaseRad + i + layer) * turbulence * 8;
           const widthMod = baseWidth * (1 - progress * 0.9) * (1 + Math.sin(phaseRad * 2.5 + j) * 0.3);
-          
+
           ctx.lineTo(x + waveOffset + turbNoise + (j % 2 ? widthMod : -widthMod), y);
         }
-        
+
         ctx.closePath();
         ctx.fill();
-        
+
         // Chispas y partículas (usando phase para posición determinística)
         const sparkSeed = i * 17 + layer;
         const sparkChance = (Math.sin(phaseRad + sparkSeed) + 1) / 2;
         if (layer === 0 && sparkChance < 0.3) {
           const sparkY = flameBottom - (Math.sin(phaseRad * 3 + sparkSeed) * 0.5 + 0.5) * flameHeightPixels * 0.7;
           const sparkX = x + (Math.cos(phaseRad * 2 + sparkSeed) * 0.5) * 40;
-          
+
           ctx.fillStyle = colors[0];
           ctx.shadowBlur = 15;
           ctx.shadowColor = colors[0];
@@ -3520,14 +3521,14 @@ export class App implements AfterViewInit {
         }
       }
     }
-    
+
     ctx.globalCompositeOperation = 'source-over';
   }
 
   // Helpers para colores de flamas
   private getFlameColors(color: string, alpha: number): string[] {
     const a = Math.min(1, alpha);
-    
+
     switch (color) {
       case 'red':
         return [
@@ -3604,15 +3605,15 @@ export class App implements AfterViewInit {
     const X = Math.floor(x) & 255;
     const Y = Math.floor(y) & 255;
     const Z = Math.floor(z) & 255;
-    
+
     x -= Math.floor(x);
     y -= Math.floor(y);
     z -= Math.floor(z);
-    
+
     const u = this.fade(x);
     const v = this.fade(y);
     const w = this.fade(z);
-    
+
     // Simplified noise - en producción usarías una tabla de permutación
     const hash = (X * 374761393 + Y * 668265263 + Z * 1274126177) & 0x7FFFFFFF;
     return (hash / 0x7FFFFFFF) * 2 - 1;
@@ -3631,17 +3632,17 @@ export class App implements AfterViewInit {
       const hue2rgb = (p: number, q: number, t: number) => {
         if (t < 0) t += 1;
         if (t > 1) t -= 1;
-        if (t < 1/6) return p + (q - p) * 6 * t;
-        if (t < 1/2) return q;
-        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
         return p;
       };
 
       const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
       const p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1/3);
+      r = hue2rgb(p, q, h + 1 / 3);
       g = hue2rgb(p, q, h);
-      b = hue2rgb(p, q, h - 1/3);
+      b = hue2rgb(p, q, h - 1 / 3);
     }
 
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
@@ -3658,7 +3659,7 @@ export class App implements AfterViewInit {
 
     ctx.beginPath();
     ctx.moveTo(cx, cy - outerRadius);
-    
+
     for (let i = 0; i < spikes; i++) {
       x = cx + Math.cos(rot) * outerRadius;
       y = cy + Math.sin(rot) * outerRadius;
@@ -3670,7 +3671,7 @@ export class App implements AfterViewInit {
       ctx.lineTo(x, y);
       rot += step;
     }
-    
+
     ctx.lineTo(cx, cy - outerRadius);
     ctx.closePath();
     ctx.fill();
@@ -3724,21 +3725,21 @@ export class App implements AfterViewInit {
       canvas.width = imageData.width;
       canvas.height = imageData.height;
       const ctx = canvas.getContext('2d')!;
-      
+
       // Copiar imagen original
       ctx.putImageData(imageData, 0, 0);
-      
+
       // Agregar ruido
       const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = frameData.data;
-      
+
       for (let j = 0; j < data.length; j += 4) {
         const noise = (Math.random() - 0.5) * options.intensity * 50;
         data[j] += noise;
         data[j + 1] += noise;
         data[j + 2] += noise;
       }
-      
+
       ctx.putImageData(frameData, 0, 0);
       frames.push({
         imageData: ctx.getImageData(0, 0, canvas.width, canvas.height),
@@ -3758,22 +3759,22 @@ export class App implements AfterViewInit {
       canvas.width = imageData.width;
       canvas.height = imageData.height;
       const ctx = canvas.getContext('2d')!;
-      
+
       ctx.putImageData(imageData, 0, 0);
       const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = frameData.data;
-      
+
       // Efecto de fosforescencia verde
       const phase = (i / options.frameCount) * Math.PI * 2;
       const intensity = 0.5 + Math.sin(phase) * 0.5 * options.intensity;
-      
+
       for (let j = 0; j < data.length; j += 4) {
         const green = data[j + 1];
         data[j] = data[j] * 0.3; // Reducir rojo
         data[j + 1] = Math.min(255, green * (1 + intensity * 0.5)); // Aumentar verde
         data[j + 2] = data[j + 2] * 0.3; // Reducir azul
       }
-      
+
       ctx.putImageData(frameData, 0, 0);
       frames.push({
         imageData: ctx.getImageData(0, 0, canvas.width, canvas.height),
@@ -3793,28 +3794,28 @@ export class App implements AfterViewInit {
       canvas.width = imageData.width;
       canvas.height = imageData.height;
       const ctx = canvas.getContext('2d')!;
-      
+
       // Calcular desplazamiento
       const phase = (i / options.frameCount) * Math.PI * 2;
       const offsetX = Math.sin(phase) * options.intensity * 5;
       const offsetY = Math.cos(phase) * options.intensity * 5;
-      
+
       // Canal rojo
       ctx.globalCompositeOperation = 'screen';
       ctx.filter = 'sepia(1) hue-rotate(0deg)';
       ctx.putImageData(imageData, offsetX, 0);
-      
+
       // Canal verde
       ctx.filter = 'sepia(1) hue-rotate(120deg)';
       ctx.putImageData(imageData, 0, 0);
-      
+
       // Canal azul
       ctx.filter = 'sepia(1) hue-rotate(240deg)';
       ctx.putImageData(imageData, -offsetX, offsetY);
-      
+
       ctx.filter = 'none';
       ctx.globalCompositeOperation = 'source-over';
-      
+
       frames.push({
         imageData: ctx.getImageData(0, 0, canvas.width, canvas.height),
         delay
@@ -3833,28 +3834,28 @@ export class App implements AfterViewInit {
       canvas.width = imageData.width;
       canvas.height = imageData.height;
       const ctx = canvas.getContext('2d')!;
-      
+
       // Calcular dirección y fase del movimiento
       const phase = (i / options.frameCount) * Math.PI * 2;
       const direction = Math.sin(phase);
       const blurAmount = Math.abs(direction) * options.intensity * 10;
-      
+
       // Crear múltiples capas con desplazamiento para simular motion blur
       const layers = 5;
       ctx.globalAlpha = 1 / layers;
-      
+
       for (let layer = 0; layer < layers; layer++) {
         const offset = (layer / layers) * direction * options.intensity * 15;
-        
+
         // Aplicar blur con canvas
         ctx.filter = `blur(${blurAmount / layers}px)`;
         ctx.putImageData(imageData, offset, 0);
       }
-      
+
       ctx.filter = 'none';
       ctx.globalAlpha = 1;
-      
-      
+
+
       frames.push({
         imageData: ctx.getImageData(0, 0, canvas.width, canvas.height),
         delay
@@ -3931,13 +3932,13 @@ export class App implements AfterViewInit {
     // Aumentar frames para ver ciclo completo de animación (especialmente para flamas)
     const configuredFrames = this.gifFrameCount();
     const previewFrameCount = Math.min(20, Math.max(15, Math.floor(configuredFrames / 2)));
-    
+
     console.log('🎬 Preview optimizado usando', previewFrameCount, 'frames (GIF configurado:', configuredFrames, ')');
-    
+
     // Verificar si estamos en modo GIF Studio con capas
     const layersCount = this.effectLayers().length;
     const enabledLayers = this.effectLayers().filter(layer => layer.enabled);
-    
+
     console.log('🎬 generateGifPreview:', {
       gifStudioMode: this.gifStudioMode(),
       compositionMode: this.compositionMode(),
@@ -3945,7 +3946,7 @@ export class App implements AfterViewInit {
       enabledLayers: enabledLayers.length,
       layerTypes: enabledLayers.map(l => l.type)
     });
-    
+
     // COMPOSITION MODE: Show composition with layer effects
     if (this.compositionMode() && this.compositionCanvasComponent) {
       console.log('🎨 Rendering composition with layer effects for GIF preview');
@@ -3965,20 +3966,20 @@ export class App implements AfterViewInit {
     }
     // GIF STUDIO MODE: Show effect layers animation
     else if (this.gifStudioMode() && layersCount > 0) {
-      
+
       if (enabledLayers.length > 0) {
         // Escalar imagen para preview más pequeño
         const scaledImageData = this.scaleImageDataForPreview(this.processedImageData);
-        
+
         // Usar el sistema de capas
         const tempFrameCount = this.gifFrameCount();
         this.gifFrameCount.set(previewFrameCount);
-        
+
         console.log('✅ Usando sistema de capas para preview (escalado al ' + (this.previewScale * 100) + '%)');
         const frames = await this.createLayeredEffectFrames(scaledImageData, enabledLayers);
-        
+
         this.gifFrameCount.set(tempFrameCount);
-        
+
         // Convertir frames a base64
         for (const frame of frames) {
           const frameCanvas = document.createElement('canvas');
@@ -4023,19 +4024,19 @@ export class App implements AfterViewInit {
 
     const scaledWidth = Math.floor(imageData.width * this.previewScale);
     const scaledHeight = Math.floor(imageData.height * this.previewScale);
-    
+
     const canvas = document.createElement('canvas');
     canvas.width = imageData.width;
     canvas.height = imageData.height;
     const ctx = canvas.getContext('2d')!;
     ctx.putImageData(imageData, 0, 0);
-    
+
     const scaledCanvas = document.createElement('canvas');
     scaledCanvas.width = scaledWidth;
     scaledCanvas.height = scaledHeight;
     const scaledCtx = scaledCanvas.getContext('2d')!;
     scaledCtx.drawImage(canvas, 0, 0, scaledWidth, scaledHeight);
-    
+
     return scaledCtx.getImageData(0, 0, scaledWidth, scaledHeight);
   }
 
@@ -4083,14 +4084,14 @@ export class App implements AfterViewInit {
       case 'rgb-split':
         const offsetX = Math.sin(phase) * intensity * 5;
         ctx.globalCompositeOperation = 'screen';
-        
+
         const redData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
         for (let i = 0; i < redData.data.length; i += 4) {
           redData.data[i + 1] = 0;
           redData.data[i + 2] = 0;
         }
         ctx.putImageData(redData, offsetX, 0);
-        
+
         const cyanData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
         for (let i = 0; i < cyanData.data.length; i += 4) {
           cyanData.data[i] = 0;
@@ -4102,7 +4103,7 @@ export class App implements AfterViewInit {
         const direction = Math.sin(phase);
         const blurAmount = Math.abs(direction) * intensity * 3;
         const layers = 3;
-        
+
         ctx.globalAlpha = 1 / layers;
         for (let layer = 0; layer < layers; layer++) {
           const offset = (layer / layers) * direction * intensity * 10;
@@ -4139,7 +4140,7 @@ export class App implements AfterViewInit {
     const img = new Image();
     img.onload = () => {
       if (!this.processedCanvas?.nativeElement) return;
-      
+
       const canvas = this.processedCanvas.nativeElement;
       const ctx = canvas.getContext('2d');
       if (ctx) {
@@ -4168,7 +4169,7 @@ export class App implements AfterViewInit {
   }
 
   // ============ Effect Layers Management ============
-  
+
   addEffectFromSelect(event: Event) {
     const select = event.target as HTMLSelectElement;
     const type = select.value as EffectType;
@@ -4177,7 +4178,7 @@ export class App implements AfterViewInit {
       select.value = ''; // Reset select
     }
   }
-  
+
   addEffectLayer(type: EffectType) {
     const newLayer: EffectLayer = {
       id: `layer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -4187,7 +4188,7 @@ export class App implements AfterViewInit {
       options: { ...DEFAULT_EFFECT_OPTIONS[type] },
       order: this.effectLayers().length
     };
-    
+
     this.effectLayers.set([...this.effectLayers(), newLayer]);
     this.editingLayerId.set(newLayer.id);
     this.onGifOptionsUpdate();
@@ -4200,19 +4201,19 @@ export class App implements AfterViewInit {
       layer.order = index;
     });
     this.effectLayers.set(layers);
-    
+
     if (this.editingLayerId() === layerId) {
       this.editingLayerId.set(null);
     }
     if (this.selectedLayerId() === layerId) {
       this.selectedLayerId.set(null);
     }
-    
+
     this.onGifOptionsUpdate();
   }
 
   toggleLayerEnabled(layerId: string) {
-    const layers = this.effectLayers().map(layer => 
+    const layers = this.effectLayers().map(layer =>
       layer.id === layerId ? { ...layer, enabled: !layer.enabled } : layer
     );
     this.effectLayers.set(layers);
@@ -4253,7 +4254,7 @@ export class App implements AfterViewInit {
   }
 
   updateLayerIntensity(layerId: string, intensity: number) {
-    const layers = this.effectLayers().map(layer => 
+    const layers = this.effectLayers().map(layer =>
       layer.id === layerId ? { ...layer, intensity } : layer
     );
     this.effectLayers.set(layers);
@@ -4261,13 +4262,13 @@ export class App implements AfterViewInit {
   }
 
   updateLayerOption(layerId: string, optionKey: string, value: any) {
-    const layers = this.effectLayers().map(layer => 
-      layer.id === layerId 
-        ? { ...layer, options: { ...layer.options, [optionKey]: value } } 
+    const layers = this.effectLayers().map(layer =>
+      layer.id === layerId
+        ? { ...layer, options: { ...layer.options, [optionKey]: value } }
         : layer
     );
     this.effectLayers.set(layers);
-    
+
     // Debounce automático: generateGifPreview ya tiene el debouncing integrado
     this.onGifOptionsUpdate();
   }
@@ -4289,12 +4290,12 @@ export class App implements AfterViewInit {
   updateFlameColor(layerId: string, event: Event, isGradient: boolean) {
     const input = event.target as HTMLInputElement;
     const hex = input.value;
-    
+
     // Convert hex to RGB
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
-    
+
     if (isGradient) {
       // Update gradient color (color 2)
       this.updateLayerOption(layerId, 'flameGradientColorR', r);
@@ -4314,12 +4315,12 @@ export class App implements AfterViewInit {
   updateParticleColor(layerId: string, event: Event) {
     const input = event.target as HTMLInputElement;
     const hex = input.value;
-    
+
     // Convert hex to RGB
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
-    
+
     this.updateLayerOption(layerId, 'particleCustomColorR', r);
     this.updateLayerOption(layerId, 'particleCustomColorG', g);
     this.updateLayerOption(layerId, 'particleCustomColorB', b);
@@ -4328,7 +4329,7 @@ export class App implements AfterViewInit {
   moveLayerUp(layerId: string) {
     const layers = [...this.effectLayers()];
     const index = layers.findIndex(l => l.id === layerId);
-    
+
     if (index > 0) {
       [layers[index], layers[index - 1]] = [layers[index - 1], layers[index]];
       layers.forEach((layer, i) => layer.order = i);
@@ -4340,7 +4341,7 @@ export class App implements AfterViewInit {
   moveLayerDown(layerId: string) {
     const layers = [...this.effectLayers()];
     const index = layers.findIndex(l => l.id === layerId);
-    
+
     if (index < layers.length - 1) {
       [layers[index], layers[index + 1]] = [layers[index + 1], layers[index]];
       layers.forEach((layer, i) => layer.order = i);
@@ -4360,22 +4361,22 @@ export class App implements AfterViewInit {
   /**
    * ===== ACHIEVEMENT & GALLERY SYSTEM =====
    */
-  
+
   toggleAchievements() {
     this.showAchievements.set(!this.showAchievements());
   }
-  
+
   toggleGallery() {
     this.showGallery.set(!this.showGallery());
   }
-  
+
   toggleSettings() {
     this.showSettings.set(!this.showSettings());
   }
-  
+
   canSaveToGallery(): boolean {
     if (this.processing()) return true; // disabled during processing
-    
+
     if (this.compositionMode()) {
       const state = this.compositionService.compositionState();
       return state.layers.length === 0; // disabled if no layers
@@ -4383,11 +4384,11 @@ export class App implements AfterViewInit {
       return !this.imageLoaded(); // disabled if no image loaded
     }
   }
-  
+
   async saveToGallery() {
     const isCompositionMode = this.compositionMode();
     const compositionState = this.compositionService.compositionState();
-    
+
     // Validations
     if (isCompositionMode) {
       if (compositionState.layers.length === 0) {
@@ -4400,35 +4401,35 @@ export class App implements AfterViewInit {
         return;
       }
     }
-    
+
     // Get default name based on mode
-    const defaultName = isCompositionMode 
+    const defaultName = isCompositionMode
       ? `Composition ${new Date().toLocaleDateString()}`
       : `Design ${new Date().toLocaleDateString()}`;
-    
+
     const name = prompt('Enter a name for this design:', defaultName);
     if (!name) return;
-    
+
     try {
       let canvas: HTMLCanvasElement;
       let settings: DitheringSettings;
-      
+
       if (isCompositionMode) {
         // COMPOSITION MODE: Render composition with effects and dithering
         const compositionData = this.compositionCanvasComponent?.getCompositionImageDataWithEffects();
-        
+
         if (!compositionData) {
           alert('Failed to render composition!');
           return;
         }
-        
+
         // Create temporary canvas with composition result
         canvas = document.createElement('canvas');
         canvas.width = compositionData.width;
         canvas.height = compositionData.height;
         const ctx = canvas.getContext('2d')!;
         ctx.putImageData(compositionData, 0, 0);
-        
+
         // Settings for composition mode
         const ditheringOpts = this.compositionService.ditheringOptions();
         settings = {
@@ -4442,11 +4443,11 @@ export class App implements AfterViewInit {
           isComposition: true,
           compositionLayersCount: compositionState.layers.length
         };
-        
+
       } else {
         // PREVIEW MODE: Use processed canvas with effect layers
         canvas = this.processedCanvas!.nativeElement;
-        
+
         // Settings for preview mode
         settings = {
           algorithm: this.selectedAlgorithm(),
@@ -4460,21 +4461,21 @@ export class App implements AfterViewInit {
           isComposition: false
         };
       }
-      
+
       await this.galleryService.saveToGallery(canvas, name, settings);
-      
+
       // 🏆 Track achievement
       this.achievementService.trackGallerySave();
-      
+
       const modeText = isCompositionMode ? 'composition' : 'design';
       alert(`✅ ${modeText} saved to gallery!`);
-      
+
     } catch (error) {
       console.error('Error saving to gallery:', error);
       alert('❌ Error saving to gallery. Check console for details.');
     }
   }
-  
+
   onGallerySettingsApplied(settings: DitheringSettings) {
     // Aplicar settings desde la galería
     this.selectedAlgorithm.set(settings.algorithm);
@@ -4484,22 +4485,22 @@ export class App implements AfterViewInit {
     this.midtones.set(settings.midtones);
     this.highlights.set(settings.highlights);
     this.blur.set(settings.blur);
-    
+
     if (settings.effectLayers) {
       this.effectLayers.set(settings.effectLayers);
     }
-    
+
     // Re-procesar con los nuevos settings
     if (this.imageLoaded()) {
       this.processImage();
     }
   }
-  
+
   // Track waifu interactions
   onWaifuClick() {
     this.achievementService.trackWaifuInteraction();
   }
-  
+
   // Test achievement notification (temporal para desarrollo)
   testAchievementNotification() {
     const testAchievements = [
@@ -4508,14 +4509,14 @@ export class App implements AfterViewInit {
       { id: 'speed-runner', icon: '⚡', name: 'Speed Runner', xpReward: 100 },
       { id: 'waifu-friend', icon: '💖', name: "Waifu's Friend", xpReward: 50 },
     ];
-    
+
     const random = testAchievements[Math.floor(Math.random() * testAchievements.length)];
-    
+
     this.achievementService.unlockedAchievement.set({
       achievement: random as any,
       timestamp: new Date()
     });
-    
+
     setTimeout(() => {
       this.achievementService.unlockedAchievement.set(null);
     }, 5000);

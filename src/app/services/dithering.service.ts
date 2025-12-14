@@ -17,7 +17,7 @@ export interface DitheringOptions {
 })
 export class DitheringService {
   private webglDitheringService = inject(WebGLDitheringService);
-  
+
   // Paletas de color predefinidas (retro shading)
   private colorPalettes: { [key: string]: number[][] } = {
     'monochrome': [[0, 0, 0], [255, 255, 255]],
@@ -27,7 +27,72 @@ export class DitheringService {
     'apple2': [[0, 0, 0], [114, 38, 64], [64, 51, 127], [228, 52, 254], [14, 89, 64], [128, 128, 128], [27, 154, 254], [191, 179, 255], [64, 76, 0], [228, 101, 1], [128, 128, 128], [241, 166, 191], [27, 203, 1], [191, 204, 128], [141, 217, 191], [255, 255, 255]]
   };
 
-  constructor() { }
+  constructor() {
+    this.initWorker();
+  }
+
+  private worker: Worker | null = null;
+  private workerCallbacks: { [key: string]: { resolve: (val: ImageData) => void, reject: (err: any) => void } } = {};
+
+  private initWorker() {
+    if (typeof Worker !== 'undefined') {
+      try {
+        this.worker = new Worker(new URL('../workers/dithering.worker', import.meta.url));
+        this.worker.onmessage = ({ data }) => {
+          if (this.workerCallbacks[data.id]) {
+            if (data.error) {
+              this.workerCallbacks[data.id].reject(data.error);
+            } else {
+              this.workerCallbacks[data.id].resolve(data.imageData);
+            }
+            delete this.workerCallbacks[data.id];
+          }
+        };
+      } catch (e) {
+        console.error('⚠️ Could not initialize Web Worker:', e);
+      }
+    } else {
+      console.warn('⚠️ Web Workers are not supported in this environment.');
+    }
+  }
+
+  /**
+   * Applies dithering using Web Worker (Async)
+   */
+  async applyDitheringAsync(imageData: ImageData, options: DitheringOptions): Promise<ImageData> {
+    // Try WebGL first (it's fast and on main thread but GPU accelerated)
+    if (this.webglDitheringService.isAvailable()) {
+      const webglResult = this.webglDitheringService.applyDithering(imageData, options);
+      if (webglResult) {
+        console.log('⚡ WebGL dithering used for', options.algorithm);
+        return webglResult;
+      }
+    }
+
+    if (this.worker) {
+      return new Promise((resolve, reject) => {
+        const id = crypto.randomUUID();
+        this.workerCallbacks[id] = { resolve, reject };
+
+        // Pass palette colors explicitly to worker to avoid complex object passing
+        const paletteColors = options.palette ? this.colorPalettes[options.palette] : undefined;
+
+        this.worker!.postMessage({
+          imageData,
+          options: {
+            ...options,
+            paletteColors
+          },
+          id
+        });
+      });
+    }
+
+    // Fallback to sync CPU
+    console.warn('⚠️ Web Worker not available, falling back to main thread CPU dithering');
+    return this.applyDithering(imageData, options);
+  }
+
 
   /**
    * Agrega una paleta personalizada
@@ -63,7 +128,7 @@ export class DitheringService {
         return webglResult;
       }
     }
-    
+
     // CPU fallback
     console.log('🖥️ CPU dithering used for', options.algorithm);
     const processed = new ImageData(
@@ -121,7 +186,7 @@ export class DitheringService {
    */
   private applyImageAdjustments(imageData: ImageData, options: DitheringOptions): void {
     const data = imageData.data;
-    
+
     for (let i = 0; i < data.length; i += 4) {
       let r = data[i];
       let g = data[i + 1];
@@ -209,12 +274,12 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const oldR = data[idx];
         const oldG = data[idx + 1];
         const oldB = data[idx + 2];
 
-        const [newR, newG, newB] = palette 
+        const [newR, newG, newB] = palette
           ? this.findClosestPaletteColor(oldR, oldG, oldB, palette)
           : this.quantizeColor(oldR, oldG, oldB);
 
@@ -248,12 +313,12 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const oldR = data[idx];
         const oldG = data[idx + 1];
         const oldB = data[idx + 2];
 
-        const [newR, newG, newB] = palette 
+        const [newR, newG, newB] = palette
           ? this.findClosestPaletteColor(oldR, oldG, oldB, palette)
           : this.quantizeColor(oldR, oldG, oldB);
 
@@ -290,12 +355,12 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const oldR = data[idx];
         const oldG = data[idx + 1];
         const oldB = data[idx + 2];
 
-        const [newR, newG, newB] = palette 
+        const [newR, newG, newB] = palette
           ? this.findClosestPaletteColor(oldR, oldG, oldB, palette)
           : this.quantizeColor(oldR, oldG, oldB);
 
@@ -337,12 +402,12 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const oldR = data[idx];
         const oldG = data[idx + 1];
         const oldB = data[idx + 2];
 
-        const [newR, newG, newB] = palette 
+        const [newR, newG, newB] = palette
           ? this.findClosestPaletteColor(oldR, oldG, oldB, palette)
           : this.quantizeColor(oldR, oldG, oldB);
 
@@ -383,12 +448,12 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const oldR = data[idx];
         const oldG = data[idx + 1];
         const oldB = data[idx + 2];
 
-        const [newR, newG, newB] = palette 
+        const [newR, newG, newB] = palette
           ? this.findClosestPaletteColor(oldR, oldG, oldB, palette)
           : this.quantizeColor(oldR, oldG, oldB);
 
@@ -424,12 +489,12 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const oldR = data[idx];
         const oldG = data[idx + 1];
         const oldB = data[idx + 2];
 
-        const [newR, newG, newB] = palette 
+        const [newR, newG, newB] = palette
           ? this.findClosestPaletteColor(oldR, oldG, oldB, palette)
           : this.quantizeColor(oldR, oldG, oldB);
 
@@ -468,12 +533,12 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const oldR = data[idx];
         const oldG = data[idx + 1];
         const oldB = data[idx + 2];
 
-        const [newR, newG, newB] = palette 
+        const [newR, newG, newB] = palette
           ? this.findClosestPaletteColor(oldR, oldG, oldB, palette)
           : this.quantizeColor(oldR, oldG, oldB);
 
@@ -529,14 +594,14 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const threshold = (matrix[y % matrixSize][x % matrixSize] / divisor - 0.5) * 255;
 
         let r = data[idx] + threshold;
         let g = data[idx + 1] + threshold;
         let b = data[idx + 2] + threshold;
 
-        const [newR, newG, newB] = palette 
+        const [newR, newG, newB] = palette
           ? this.findClosestPaletteColor(r, g, b, palette)
           : this.quantizeColor(r, g, b);
 
@@ -560,14 +625,14 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const randomThreshold = (Math.random() - 0.5) * threshold;
 
         let r = data[idx] + randomThreshold;
         let g = data[idx + 1] + randomThreshold;
         let b = data[idx + 2] + randomThreshold;
 
-        const [newR, newG, newB] = palette 
+        const [newR, newG, newB] = palette
           ? this.findClosestPaletteColor(r, g, b, palette)
           : this.quantizeColor(r, g, b);
 
@@ -647,11 +712,11 @@ export class DitheringService {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        
+
         const luminance = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-        
+
         let color = 255;
-        
+
         // Patrones de crosshatch según luminosidad
         if (luminance < 51) {
           color = 0;
@@ -681,8 +746,8 @@ export class DitheringService {
 
     for (const color of palette) {
       const distance = Math.sqrt(
-        (r - color[0]) ** 2 + 
-        (g - color[1]) ** 2 + 
+        (r - color[0]) ** 2 +
+        (g - color[1]) ** 2 +
         (b - color[2]) ** 2
       );
 
@@ -773,7 +838,7 @@ export class DitheringService {
   getPaletteColors(paletteId: string): string[] {
     const palette = this.colorPalettes[paletteId];
     if (!palette) return [];
-    
+
     return palette.map(rgb => this.rgbToHex(rgb[0], rgb[1], rgb[2]));
   }
 
