@@ -10,6 +10,7 @@ export interface ControlsMobileOptions {
   midtones: number;
   highlights: number;
   blur: number;
+  hdMode: boolean;
 }
 
 @Component({
@@ -50,7 +51,7 @@ export interface ControlsMobileOptions {
 
       <div class="control-section">
         <button class="section-header" (click)="toggleSection('size')">
-          <span class="section-title">📐 Size & Detail</span>
+          <span class="section-title">📐 Size & Output</span>
           <span class="chevron" [class.expanded]="expandedSection() === 'size'">▼</span>
         </button>
         
@@ -68,6 +69,14 @@ export interface ControlsMobileOptions {
               <input type="range" min="0" max="10" 
                      [(ngModel)]="localOptions.blur" 
                      (ngModelChange)="emitChange()">
+            </div>
+            
+            <div class="control-group checkbox-group">
+              <label class="checkbox-container">
+                <input type="checkbox" [(ngModel)]="localOptions.hdMode" (ngModelChange)="emitChange()">
+                <span class="checkbox-label">HD Mode (Higher Quality)</span>
+              </label>
+              <small class="helper-text">Large files, slower export</small>
             </div>
           </div>
         }
@@ -313,7 +322,7 @@ export class ControlsMobileComponent implements OnInit {
   options = input.required<ControlsMobileOptions>();
   algorithms = input<any[]>([]);
   palettes = input<any[]>([]);
-  
+
   optionsChange = output<ControlsMobileOptions>();
   reset = output<void>();
   apply = output<void>();
@@ -326,7 +335,8 @@ export class ControlsMobileComponent implements OnInit {
     contrast: 50,
     midtones: 50,
     highlights: 50,
-    blur: 0
+    blur: 0,
+    hdMode: false
   };
 
   ngOnInit(): void {

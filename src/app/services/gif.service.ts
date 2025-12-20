@@ -30,7 +30,7 @@ export class GifService {
     noiseIntensity: number = 0.1
   ): Promise<GifFrame[]> {
     const frames: GifFrame[] = [];
-    
+
     for (let i = 0; i < frameCount; i++) {
       // Crear una copia del imageData
       const frameData = new ImageData(
@@ -38,16 +38,16 @@ export class GifService {
         imageData.width,
         imageData.height
       );
-      
+
       // Aplicar ruido animado
       this.applyAnimatedNoise(frameData, i, noiseIntensity);
-      
+
       frames.push({
         imageData: frameData,
         delay: 100 // 100ms por frame = 10 FPS
       });
     }
-    
+
     return frames;
   }
 
@@ -57,11 +57,11 @@ export class GifService {
   private applyAnimatedNoise(imageData: ImageData, frameIndex: number, intensity: number) {
     const data = imageData.data;
     const seed = frameIndex * 1000;
-    
+
     for (let i = 0; i < data.length; i += 4) {
       // Generar ruido pseudo-aleatorio basado en posición y frame
       const noise = (this.seededRandom(seed + i) - 0.5) * 2 * intensity * 255;
-      
+
       // Aplicar ruido a cada canal RGB
       data[i] = Math.max(0, Math.min(255, data[i] + noise));     // R
       data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise)); // G
@@ -84,7 +84,7 @@ export class GifService {
   async extractGifFrames(file: File): Promise<GifFrame[]> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = async (e) => {
         try {
           const arrayBuffer = e.target?.result as ArrayBuffer;
@@ -94,7 +94,7 @@ export class GifService {
           reject(error);
         }
       };
-      
+
       reader.onerror = reject;
       reader.readAsArrayBuffer(file);
     });
@@ -109,7 +109,7 @@ export class GifService {
     // y crea un solo frame
     const blob = new Blob([arrayBuffer], { type: 'image/gif' });
     const url = URL.createObjectURL(blob);
-    
+
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -117,28 +117,28 @@ export class GifService {
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext('2d');
-        
+
         if (!ctx) {
           reject(new Error('Could not get canvas context'));
           return;
         }
-        
+
         ctx.drawImage(img, 0, 0);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
+
         resolve([{
           imageData,
           delay: 100
         }]);
-        
+
         URL.revokeObjectURL(url);
       };
-      
+
       img.onerror = () => {
         URL.revokeObjectURL(url);
         reject(new Error('Failed to load GIF'));
       };
-      
+
       img.src = url;
     });
   }
@@ -147,7 +147,7 @@ export class GifService {
    * Exporta frames como GIF animado usando gif.js
    */
   async exportAsGif(
-    frames: GifFrame[], 
+    frames: GifFrame[],
     options?: GifExportOptions,
     onProgress?: (progress: number) => void
   ): Promise<Blob> {
@@ -181,14 +181,34 @@ export class GifService {
 
         // Agregar frames
         frames.forEach(frame => {
+          // Determine target dimensions
+          const targetWidth = options?.width || frame.imageData.width;
+          const targetHeight = options?.height || frame.imageData.height;
+
           // Convertir ImageData a canvas
           const canvas = document.createElement('canvas');
-          canvas.width = frame.imageData.width;
-          canvas.height = frame.imageData.height;
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
           const ctx = canvas.getContext('2d');
-          
+
           if (ctx) {
-            ctx.putImageData(frame.imageData, 0, 0);
+            // Check if resizing is needed
+            if (frame.imageData.width !== targetWidth || frame.imageData.height !== targetHeight) {
+              // Create temp canvas for original size
+              const tempCanvas = document.createElement('canvas');
+              tempCanvas.width = frame.imageData.width;
+              tempCanvas.height = frame.imageData.height;
+              const tempCtx = tempCanvas.getContext('2d');
+              if (tempCtx) {
+                tempCtx.putImageData(frame.imageData, 0, 0);
+                // Draw resized to main canvas
+                ctx.imageSmoothingEnabled = false; // Pixel art style
+                ctx.drawImage(tempCanvas, 0, 0, targetWidth, targetHeight);
+              }
+            } else {
+              ctx.putImageData(frame.imageData, 0, 0);
+            }
+
             gif.addFrame(canvas, { delay: frame.delay });
           }
         });
@@ -209,23 +229,23 @@ export class GifService {
     frameCount: number = 20
   ): Promise<GifFrame[]> {
     const frames: GifFrame[] = [];
-    
+
     for (let i = 0; i < frameCount; i++) {
       const frameData = new ImageData(
         new Uint8ClampedArray(imageData.data),
         imageData.width,
         imageData.height
       );
-      
+
       // Aplicar efecto de scanline que se mueve
       this.applyScanlineEffect(frameData, i, frameCount);
-      
+
       frames.push({
         imageData: frameData,
         delay: 50 // 50ms por frame = 20 FPS
       });
     }
-    
+
     return frames;
   }
 
@@ -236,20 +256,20 @@ export class GifService {
     const data = imageData.data;
     const width = imageData.width;
     const height = imageData.height;
-    
+
     // Calcular la posición de la línea de escaneo
     const scanlinePosition = (frameIndex / totalFrames) * height;
     const scanlineThickness = 3;
-    
+
     for (let y = 0; y < height; y++) {
       const distanceFromScanline = Math.abs(y - scanlinePosition);
-      
+
       if (distanceFromScanline < scanlineThickness) {
         // Área de scanline - hacer más brillante
         for (let x = 0; x < width; x++) {
           const i = (y * width + x) * 4;
           const brightness = 1.3;
-          
+
           data[i] = Math.min(255, data[i] * brightness);     // R
           data[i + 1] = Math.min(255, data[i + 1] * brightness); // G
           data[i + 2] = Math.min(255, data[i + 2] * brightness); // B
@@ -259,7 +279,7 @@ export class GifService {
         for (let x = 0; x < width; x++) {
           const i = (y * width + x) * 4;
           const darkness = 0.95;
-          
+
           data[i] = data[i] * darkness;     // R
           data[i + 1] = data[i + 1] * darkness; // G
           data[i + 2] = data[i + 2] * darkness; // B
@@ -276,23 +296,23 @@ export class GifService {
     frameCount: number = 15
   ): Promise<GifFrame[]> {
     const frames: GifFrame[] = [];
-    
+
     for (let i = 0; i < frameCount; i++) {
       const frameData = new ImageData(
         new Uint8ClampedArray(imageData.data),
         imageData.width,
         imageData.height
       );
-      
+
       // Aplicar glitches VHS aleatorios
       this.applyVHSGlitch(frameData, i);
-      
+
       frames.push({
         imageData: frameData,
         delay: 66 // ~15 FPS
       });
     }
-    
+
     return frames;
   }
 
@@ -303,39 +323,39 @@ export class GifService {
     const data = imageData.data;
     const width = imageData.width;
     const height = imageData.height;
-    
+
     // Líneas horizontales de glitch aleatorias
     const glitchLines = Math.floor(this.seededRandom(frameIndex * 123) * 5);
-    
+
     for (let line = 0; line < glitchLines; line++) {
       const y = Math.floor(this.seededRandom(frameIndex * 456 + line * 789) * height);
       const offset = Math.floor((this.seededRandom(frameIndex * 234 + line * 567) - 0.5) * width * 0.1);
-      
+
       // Desplazar la línea horizontalmente
       const rowData = new Uint8ClampedArray(width * 4);
       for (let x = 0; x < width; x++) {
         const srcX = (x - offset + width) % width;
         const srcI = (y * width + srcX) * 4;
         const dstI = x * 4;
-        
+
         rowData[dstI] = data[srcI];
         rowData[dstI + 1] = data[srcI + 1];
         rowData[dstI + 2] = data[srcI + 2];
         rowData[dstI + 3] = data[srcI + 3];
       }
-      
+
       // Copiar de vuelta
       for (let x = 0; x < width; x++) {
         const i = (y * width + x) * 4;
         const srcI = x * 4;
-        
+
         data[i] = rowData[srcI];
         data[i + 1] = rowData[srcI + 1];
         data[i + 2] = rowData[srcI + 2];
         data[i + 3] = rowData[srcI + 3];
       }
     }
-    
+
     // Agregar ruido general
     this.applyAnimatedNoise(imageData, frameIndex, 0.02);
   }

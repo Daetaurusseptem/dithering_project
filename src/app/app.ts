@@ -98,6 +98,10 @@ export class App implements AfterViewInit {
   showAchievements = signal(false);
   showGallery = signal(false);
   showSettings = signal(false);
+  hdMode = signal(false); // 🌟 NEW: HD Mode toggle for export
+  gifQuality = signal(10); // 1 = Best, 30 = Worst. Default 10.
+  imageFormat = signal<'png' | 'jpeg' | 'webp'>('png');
+  imageQuality = signal(0.92); // 0-1
 
   // Mobile Navigation
   mobileActiveTab = signal<MobileNavigationTab>('upload');
@@ -434,6 +438,7 @@ export class App implements AfterViewInit {
     this.midtones.set(options.midtones);
     this.highlights.set(options.highlights);
     this.blur.set(options.blur);
+    this.hdMode.set(options.hdMode);
 
     // Reprocess image with new options
     this.processImage();
@@ -1105,11 +1110,55 @@ export class App implements AfterViewInit {
       this.renderCompositionToCanvas();
     }
 
-    const canvas = this.processedCanvas.nativeElement;
+    const sourceCanvas = this.processedCanvas.nativeElement;
+    let finalCanvas = sourceCanvas;
+
+    // 📉 Optimize size if NOT in HD mode
+    if (!this.hdMode()) {
+      const MAX_DIM = 1200; // Max dimension for lightweight usage
+      if (sourceCanvas.width > MAX_DIM || sourceCanvas.height > MAX_DIM) {
+        const scale = Math.min(MAX_DIM / sourceCanvas.width, MAX_DIM / sourceCanvas.height);
+        const newWidth = Math.round(sourceCanvas.width * scale);
+        const newHeight = Math.round(sourceCanvas.height * scale);
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = newWidth;
+        tempCanvas.height = newHeight;
+        const ctx = tempCanvas.getContext('2d');
+        if (ctx) {
+          ctx.imageSmoothingEnabled = false; // Keep pixel art look
+          ctx.drawImage(sourceCanvas, 0, 0, newWidth, newHeight);
+          finalCanvas = tempCanvas;
+          console.log(`📉 Downscaled image for download: ${newWidth}x${newHeight}`);
+        }
+      }
+    }
+
     const link = document.createElement('a');
     const filename = this.compositionMode() ? 'composition' : 'dithered';
-    link.download = `${filename}-${this.selectedAlgorithm()}-${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
+
+    // Format selection
+    const format = this.imageFormat();
+    let mimeType = 'image/png';
+    let ext = 'png';
+
+    if (format === 'jpeg') {
+      mimeType = 'image/jpeg';
+      ext = 'jpg';
+    } else if (format === 'webp') {
+      mimeType = 'image/webp';
+      ext = 'webp';
+    }
+
+    link.download = `${filename}-${this.selectedAlgorithm()}-${Date.now()}.${ext}`;
+
+    // Quality only applies to jpeg/webp
+    if (format === 'png') {
+      link.href = finalCanvas.toDataURL(mimeType);
+    } else {
+      link.href = finalCanvas.toDataURL(mimeType, this.imageQuality());
+    }
+
     link.click();
   }
 
@@ -1869,12 +1918,28 @@ export class App implements AfterViewInit {
     this.gifLoadingMessage.set('Generating GIF...');
 
     try {
+      // Calculate optimized dimensions
+      let width = this.gifMobileFrames[0].imageData.width;
+      let height = this.gifMobileFrames[0].imageData.height;
+
+      if (!this.hdMode()) {
+        const MAX_GIF_DIM = 600; // Aggressive downscaling for "light" GIFs
+        if (width > MAX_GIF_DIM || height > MAX_GIF_DIM) {
+          const scale = Math.min(MAX_GIF_DIM / width, MAX_GIF_DIM / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          console.log(`📉 Downscaled GIF for download: ${width}x${height}`);
+        }
+      }
+
       const blob = await this.gifService.exportAsGif(
         this.gifMobileFrames,
         {
-          quality: 10,
+          quality: this.gifQuality(),
           workers: 2,
-          repeat: this.gifLoopCount()
+          repeat: this.gifLoopCount(),
+          width,
+          height
         },
         (progress) => {
           this.gifProgress.set(progress);
@@ -2387,12 +2452,28 @@ export class App implements AfterViewInit {
 
         this.gifLoadingMessage.set('Encoding GIF... This may take a moment');
 
+        // Calculate optimized dimensions
+        let width = compositionData.width;
+        let height = compositionData.height;
+
+        if (!this.hdMode()) {
+          const MAX_GIF_DIM = 600;
+          if (width > MAX_GIF_DIM || height > MAX_GIF_DIM) {
+            const scale = Math.min(MAX_GIF_DIM / width, MAX_GIF_DIM / height);
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+            console.log(`📉 Downscaled Composition GIF: ${width}x${height}`);
+          }
+        }
+
         const blob = await this.gifService.exportAsGif(
           frames,
           {
-            quality: 10,
+            quality: this.gifQuality(),
             workers: 2,
-            repeat: 0 // No loop for static image
+            repeat: 0, // No loop for static image
+            width,
+            height
           },
           (progress) => {
             this.gifProgress.set(50 + Math.floor(progress / 2));
@@ -2440,7 +2521,8 @@ export class App implements AfterViewInit {
           intensity: this.gifIntensity(),
           addPulse: this.gifAddPulse(),
           addGlitch: this.gifAddGlitch(),
-          loopCount: this.gifLoopCount()
+          loopCount: this.gifLoopCount(),
+          quality: this.gifQuality()
         };
 
         frames = await this.createLegacyEffectFrames(baseImageData, options);
@@ -2449,12 +2531,29 @@ export class App implements AfterViewInit {
       this.gifLoadingMessage.set('Encoding GIF... This may take a moment');
 
       // Exportar como GIF usando gif.js
+      const widthOriginal = baseImageData.width;
+      const heightOriginal = baseImageData.height;
+      let width = widthOriginal;
+      let height = heightOriginal;
+
+      if (!this.hdMode()) {
+        const MAX_GIF_DIM = 600;
+        if (width > MAX_GIF_DIM || height > MAX_GIF_DIM) {
+          const scale = Math.min(MAX_GIF_DIM / width, MAX_GIF_DIM / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          console.log(`📉 Downscaled Animated GIF: ${width}x${height}`);
+        }
+      }
+
       const blob = await this.gifService.exportAsGif(
         frames,
         {
-          quality: 10,
+          quality: this.gifQuality(),
           workers: 2,
-          repeat: this.gifLoopCount()
+          repeat: this.gifLoopCount(),
+          width,
+          height
         },
         (progress) => {
           // Progreso de encoding (50-100%)

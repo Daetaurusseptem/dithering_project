@@ -9,6 +9,7 @@ export interface GifEffectOptions {
   intensity: number;
   addPulse: boolean;
   addGlitch: boolean;
+  quality: number; // 1-30, 1 = Best, 30 = Worst
   loopCount: number; // 0 = infinito, -1 = no loop, n = n veces
 }
 
@@ -97,6 +98,23 @@ export interface GifEffectOptions {
                 <span>Subtle</span>
                 <span class="current-value">{{ (options.intensity * 100).toFixed(0) }}%</span>
                 <span>Intense</span>
+              </div>
+            </div>
+
+            <!-- Quality (GIF) -->
+            <div class="option-group">
+              <label class="option-label">
+                <span class="label-icon">💎</span>
+                <span class="label-text">Quality</span>
+                <span class="label-kanji">品質: {{ options.quality }}</span>
+              </label>
+              <input type="range" min="1" max="30" step="1" 
+                [(ngModel)]="options.quality" (ngModelChange)="onOptionsChange()" class="slider"
+                style="direction: rtl"> <!-- RTL because 1 is best, 30 is worst -->
+              <div class="slider-info">
+                <span>Low Size</span>
+                <span class="current-value">{{ options.quality < 11 ? 'High' : (options.quality < 21 ? 'Med' : 'Low') }}</span>
+                <span>High Quality</span>
               </div>
             </div>
 
@@ -917,7 +935,7 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
   close = output<void>();
   generate = output<GifEffectOptions>();
   previewFrameUpdate = output<string>(); // Emite el frame actual para sincronizar con el panel derecho
-  
+
   imageData = input<ImageData | null>(null);
 
   options: GifEffectOptions = {
@@ -927,13 +945,14 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
     intensity: 0.5,
     addPulse: true,
     addGlitch: false,
+    quality: 10,
     loopCount: 0
   };
 
   previewFrames: string[] = [];
   currentPreviewFrame = signal(0);
   previewInterval: any = null;
-  
+
   // Debounce timer for slider changes
   private optionsChangeTimer: any = null;
   private readonly DEBOUNCE_DELAY = 500; // 500ms delay
@@ -954,7 +973,7 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopPreviewAnimation();
-    
+
     // Clear debounce timer
     if (this.optionsChangeTimer) {
       clearTimeout(this.optionsChangeTimer);
@@ -968,7 +987,7 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
     if (this.previewFrames.length > 0) {
       this.previewFrameUpdate.emit(this.previewFrames[0]);
     }
-    
+
     this.previewInterval = setInterval(() => {
       if (this.previewFrames.length > 0) {
         this.currentPreviewFrame.set((this.currentPreviewFrame() + 1) % this.previewFrames.length);
@@ -994,7 +1013,7 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
 
     // Generar 3-5 frames para el preview
     const previewFrameCount = Math.min(5, this.options.frameCount);
-    
+
     for (let i = 0; i < previewFrameCount; i++) {
       const frameCanvas = document.createElement('canvas');
       frameCanvas.width = imgData.width;
@@ -1056,7 +1075,7 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
       case 'rgb-split':
         const offsetX = Math.sin(phase) * this.options.intensity * 5;
         ctx.globalCompositeOperation = 'screen';
-        
+
         // Canal rojo
         const redData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
         for (let i = 0; i < redData.data.length; i += 4) {
@@ -1064,7 +1083,7 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
           redData.data[i + 2] = 0;
         }
         ctx.putImageData(redData, offsetX, 0);
-        
+
         // Canal cian
         const cyanData = new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
         for (let i = 0; i < cyanData.data.length; i += 4) {
@@ -1077,7 +1096,7 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
         const direction = Math.sin(phase);
         const blurAmount = Math.abs(direction) * this.options.intensity * 3;
         const layers = 3;
-        
+
         ctx.globalAlpha = 1 / layers;
         for (let layer = 0; layer < layers; layer++) {
           const offset = (layer / layers) * direction * this.options.intensity * 10;
@@ -1102,7 +1121,7 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
     if (this.optionsChangeTimer) {
       clearTimeout(this.optionsChangeTimer);
     }
-    
+
     // Set new timer - only regenerate preview after user stops dragging slider
     this.optionsChangeTimer = setTimeout(() => {
       this.generatePreview();
@@ -1161,7 +1180,8 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
           intensity: 0.7,
           addPulse: true,
           addGlitch: true,
-          loopCount: 0
+          loopCount: 0,
+          quality: 10
         };
         break;
       case 'smooth':
@@ -1172,7 +1192,8 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
           intensity: 0.3,
           addPulse: false,
           addGlitch: false,
-          loopCount: 0
+          loopCount: 0,
+          quality: 10
         };
         break;
       case 'retro':
@@ -1183,7 +1204,8 @@ export class GifOptionsComponent implements OnInit, OnDestroy {
           intensity: 0.6,
           addPulse: true,
           addGlitch: false,
-          loopCount: 0
+          loopCount: 0,
+          quality: 10
         };
         break;
     }
