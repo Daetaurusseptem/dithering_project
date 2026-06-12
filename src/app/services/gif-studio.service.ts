@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { GifService, GifFrame, GifExportOptions } from './gif.service';
+import { MAX_GIF_DIMENSION, fpsToDelay } from '../constants/app.constants';
 
 export type GifEffectType = 'scanline' | 'vhs' | 'noise' | 'phosphor' | 'rgb-split' | 'motion-sense';
 
@@ -59,7 +60,7 @@ export class GifStudioService {
 
   private createNoiseEffect(imageData: ImageData, options: GifEffectOptions): GifFrame[] {
     const frames: GifFrame[] = [];
-    const delay = Math.floor(1000 / options.fps);
+    const delay = fpsToDelay(options.fps);
 
     for (let i = 0; i < options.frameCount; i++) {
       const canvas = document.createElement('canvas');
@@ -91,7 +92,7 @@ export class GifStudioService {
 
   private createPhosphorEffect(imageData: ImageData, options: GifEffectOptions): GifFrame[] {
     const frames: GifFrame[] = [];
-    const delay = Math.floor(1000 / options.fps);
+    const delay = fpsToDelay(options.fps);
 
     for (let i = 0; i < options.frameCount; i++) {
       const canvas = document.createElement('canvas');
@@ -125,7 +126,7 @@ export class GifStudioService {
 
   private createRgbSplitEffect(imageData: ImageData, options: GifEffectOptions): GifFrame[] {
     const frames: GifFrame[] = [];
-    const delay = Math.floor(1000 / options.fps);
+    const delay = fpsToDelay(options.fps);
 
     for (let i = 0; i < options.frameCount; i++) {
       const canvas = document.createElement('canvas');
@@ -161,7 +162,7 @@ export class GifStudioService {
 
   private createMotionSenseEffect(imageData: ImageData, options: GifEffectOptions): GifFrame[] {
     const frames: GifFrame[] = [];
-    const delay = Math.floor(1000 / options.fps);
+    const delay = fpsToDelay(options.fps);
 
     for (let i = 0; i < options.frameCount; i++) {
       const canvas = document.createElement('canvas');
@@ -218,9 +219,8 @@ export class GifStudioService {
   calculateGifDimensions(width: number, height: number, hdMode: boolean): { width: number; height: number } {
     if (hdMode) return { width, height };
 
-    const MAX_GIF_DIM = 600;
-    if (width > MAX_GIF_DIM || height > MAX_GIF_DIM) {
-      const scale = Math.min(MAX_GIF_DIM / width, MAX_GIF_DIM / height);
+    if (width > MAX_GIF_DIMENSION || height > MAX_GIF_DIMENSION) {
+      const scale = Math.min(MAX_GIF_DIMENSION / width, MAX_GIF_DIMENSION / height);
       return {
         width: Math.round(width * scale),
         height: Math.round(height * scale)
