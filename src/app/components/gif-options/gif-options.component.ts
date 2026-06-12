@@ -1,17 +1,9 @@
 import { Component, signal, output, input, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { GifEffectOptions } from '../../services/gif-studio.service';
 
-export interface GifEffectOptions {
-  effectType: 'scanline' | 'vhs' | 'noise' | 'phosphor' | 'rgb-split' | 'motion-sense';
-  frameCount: number;
-  fps: number;
-  intensity: number;
-  addPulse: boolean;
-  addGlitch: boolean;
-  quality: number; // 1-30, 1 = Best, 30 = Worst
-  loopCount: number; // 0 = infinito, -1 = no loop, n = n veces
-}
+export type { GifEffectOptions };
 
 @Component({
   selector: 'app-gif-options',

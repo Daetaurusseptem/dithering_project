@@ -344,12 +344,6 @@ export class App implements AfterViewInit {
     const reduceAnim = this.deviceService.shouldReduceAnimations();
     const useWorkers = this.deviceService.shouldUseWebWorkers();
 
-    console.log('🚀 Performance Optimizations:');
-    console.log(`  - Max image dimension: ${maxDim}px`);
-    console.log(`  - Low-end device: ${isLowEnd}`);
-    console.log(`  - Reduce animations: ${reduceAnim}`);
-    console.log(`  - Use Web Workers: ${useWorkers}`);
-    console.log(`  - Image processing: Debounced (300ms)`);
   }
 
   /**
@@ -456,7 +450,6 @@ export class App implements AfterViewInit {
 
         // Reset composition layers when loading a new image
         this.compositionService.clearAllLayers();
-        console.log('🔄 Composition layers cleared for new image');
 
         // Switch to canvas tab in mobile after image loads
         if (this.deviceService.isMobile()) {
@@ -516,7 +509,6 @@ export class App implements AfterViewInit {
         width = Math.round(maxDimension * aspectRatio);
       }
 
-      console.log(`📐 Image resized from ${img.width}x${img.height} to ${width}x${height} for device`);
     }
 
     tempCanvas.width = width;
@@ -634,7 +626,6 @@ export class App implements AfterViewInit {
 
         // Apply dithering
         this.processedImageData = await this.ditheringService.applyDitheringAsync(imageData, options);
-        console.log('📱 Dithering applied:', this.processedImageData.width, 'x', this.processedImageData.height);
       }
 
       // Dibujar resultado (solo en desktop)
@@ -703,7 +694,6 @@ export class App implements AfterViewInit {
         ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(this.originalImage!, 0, 0);
-        console.log('✅ Original image drawn to comparison canvas');
       }
     }, 0);
   }
@@ -1042,46 +1032,27 @@ export class App implements AfterViewInit {
    * Helper: Render composition and update processedCanvas synchronously
    */
   private renderCompositionToCanvas(): void {
-    console.log('🎨 renderCompositionToCanvas called');
 
     if (!this.compositionMode() || !this.compositionCanvasComponent) {
-      console.log('❌ Not in composition mode or no canvas component');
       return;
     }
 
     const state = this.compositionService.compositionState();
-    console.log('🎨 Composition state:', {
-      layers: state.layers.length,
-      canvasSize: `${state.canvasWidth}x${state.canvasHeight}`
-    });
 
     if (state.layers.length === 0) {
-      console.log('❌ No layers');
       return;
     }
 
-    console.log('✅ Rendering composition with layer effects...');
 
     // Use the same method as GIF export - includes dithering AND layer effects
     const compositionData = this.compositionCanvasComponent.getCompositionImageDataWithEffects();
 
     if (!compositionData) {
-      console.log('❌ Failed to get composition data');
       return;
     }
 
-    console.log('✅ Got composition with effects:', {
-      width: compositionData.width,
-      height: compositionData.height
-    });
-
     // Update processedImageData - already includes dithering and effects
     this.processedImageData = compositionData;
-
-    console.log('✅ processedImageData updated:', {
-      width: this.processedImageData.width,
-      height: this.processedImageData.height
-    });
 
     // Update canvas if available (might not be visible in composition mode)
     if (this.processedCanvas?.nativeElement) {
@@ -1091,11 +1062,9 @@ export class App implements AfterViewInit {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.putImageData(this.processedImageData, 0, 0);
-        console.log('✅ Canvas element also updated');
       }
     }
 
-    console.log('✅ renderCompositionToCanvas complete');
   }
 
   async downloadImage() {
@@ -1125,7 +1094,6 @@ export class App implements AfterViewInit {
           ctx.imageSmoothingEnabled = false; // Keep pixel art look
           ctx.drawImage(sourceCanvas, 0, 0, newWidth, newHeight);
           finalCanvas = tempCanvas;
-          console.log(`📉 Downscaled image for download: ${newWidth}x${newHeight}`);
         }
       }
     }
@@ -1241,7 +1209,6 @@ export class App implements AfterViewInit {
       }
 
       // Show info message
-      console.log('🎥 Requesting camera access...');
 
       // Request camera access with options
       const constraints = {
@@ -1253,7 +1220,6 @@ export class App implements AfterViewInit {
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('✅ Camera access granted');
 
       // Create video element to preview and capture
       const video = document.createElement('video');
@@ -1273,7 +1239,6 @@ export class App implements AfterViewInit {
         setTimeout(() => reject(new Error('Video load timeout')), 5000);
       });
 
-      console.log('📹 Video ready, capturing frame...');
 
       // Wait a bit for camera to stabilize
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -1295,13 +1260,11 @@ export class App implements AfterViewInit {
       // Stop camera stream immediately after capture
       stream.getTracks().forEach(track => {
         track.stop();
-        console.log('🛑 Camera stopped');
       });
 
       // Convert to blob and load
       canvas.toBlob(async (blob) => {
         if (blob) {
-          console.log('✨ Image captured successfully');
 
           // If there's already an image loaded, ask for confirmation
           if (this.imageLoaded()) {
@@ -1693,39 +1656,24 @@ export class App implements AfterViewInit {
    * GIF Generation Methods
    */
   toggleGifStudioMode() {
-    console.log('🎬 toggleGifStudioMode called');
     this.gifStudioMode.update(current => !current);
 
     if (this.gifStudioMode()) {
-      console.log('🎬 Activating GIF Studio Mode');
 
       // Check if we need to render composition BEFORE turning off composition mode
       const wasInCompositionMode = this.compositionMode();
       const compositionState = this.compositionService.compositionState();
       const hasLayers = compositionState.layers.length > 0;
 
-      console.log('🎬 Pre-check:', {
-        wasInCompositionMode,
-        hasLayers
-      });
-
       // Render composition BEFORE turning off composition mode
       if (wasInCompositionMode && hasLayers) {
-        console.log('🎬 Rendering composition to canvas...');
         this.renderCompositionToCanvas();
-        console.log('🎬 Composition rendered');
       }
 
       // Now turn off Composition mode
       if (wasInCompositionMode) {
-        console.log('🎬 Turning off composition mode');
         this.compositionMode.set(false);
       }
-
-      console.log('🎬 Starting GIF preview with processedImageData:', {
-        hasData: !!this.processedImageData,
-        size: this.processedImageData ? `${this.processedImageData.width}x${this.processedImageData.height}` : 'none'
-      });
 
       // Activar modo GIF Studio
       this.triggerDialogue('gif_creation');
@@ -1855,11 +1803,9 @@ export class App implements AfterViewInit {
     if (compositionState.layers.length > 0 && this.compositionCanvasComponent) {
       // Use composition with all its layers (includes per-layer effects)
       baseImageData = this.compositionCanvasComponent.getCompositionImageDataWithEffects();
-      console.log('🎨 GIF using composition base:', baseImageData?.width, 'x', baseImageData?.height);
     } else if (this.processedImageData) {
       // Fallback to processed image
       baseImageData = this.processedImageData;
-      console.log('📊 GIF using processed image base:', baseImageData?.width, 'x', baseImageData?.height);
     }
 
     if (!baseImageData) {
@@ -1928,7 +1874,6 @@ export class App implements AfterViewInit {
           const scale = Math.min(MAX_GIF_DIM / width, MAX_GIF_DIM / height);
           width = Math.round(width * scale);
           height = Math.round(height * scale);
-          console.log(`📉 Downscaled GIF for download: ${width}x${height}`);
         }
       }
 
@@ -2097,7 +2042,6 @@ export class App implements AfterViewInit {
   initializeCompositionIfNeeded() {
     // Initialize composition when entering mobile composition tab
     if (!this.originalImage || !this.originalImageData) {
-      console.log('⚠️ No image loaded, cannot initialize composition');
       return;
     }
 
@@ -2114,7 +2058,6 @@ export class App implements AfterViewInit {
 
     // Only initialize layers if there are none
     if (state.layers.length === 0) {
-      console.log('📱 Initializing mobile composition with base layer');
       this.compositionService.addLayer(this.originalImage, this.originalImageData, { x: 0, y: 0 });
     }
   }
@@ -2138,14 +2081,6 @@ export class App implements AfterViewInit {
       if (this.processedImageData && this.originalImage && this.originalImageData) {
         const state = this.compositionService.compositionState();
 
-        console.log('🎨 Initializing Composition Canvas:', {
-          originalImageData: { width: this.originalImageData.width, height: this.originalImageData.height },
-          processedImageData: { width: this.processedImageData.width, height: this.processedImageData.height },
-          originalImage: { width: this.originalImage.width, height: this.originalImage.height },
-          scale: this.scale(),
-          existingLayers: state.layers.length
-        });
-
         // Set canvas size to match ORIGINAL image (not scaled)
         // Scale will be applied during rendering/export
         this.compositionService.setCanvasSize(
@@ -2155,16 +2090,11 @@ export class App implements AfterViewInit {
 
         // Only initialize layers if there are none (first time or after reset)
         if (state.layers.length === 0) {
-          console.log('🎨 No existing layers, creating initial layer');
           // Use originalImageData (not processed) for the layer
           // Processing/dithering will be applied during render
           this.compositionService.addLayer(this.originalImage, this.originalImageData, { x: 0, y: 0 });
         } else {
-          console.log('🎨 Keeping existing layers:', state.layers.length);
         }
-
-        console.log('🎨 Composition initialized. Canvas size:',
-          this.originalImageData.width, 'x', this.originalImageData.height);
       }
 
       this.triggerDialogue('composition_mode');
@@ -2208,13 +2138,11 @@ export class App implements AfterViewInit {
    */
 
   onToolChange(tool: ToolType): void {
-    console.log('🔧 Tool changed to:', tool);
     // El composition-canvas component escuchará esto si lo necesita
     // Por ahora solo lo logueamos
   }
 
   onToolOptionsChange(options: ToolOptions): void {
-    console.log('⚙️ Tool options changed:', options);
     // Las opciones se usarán cuando se creen nuevas capas
   }
 
@@ -2269,10 +2197,8 @@ export class App implements AfterViewInit {
     if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === 'z') {
       if (this.historyService.undo()) {
         const redoDesc = this.historyService.getRedoDescription();
-        console.log('🔙 Undo:', redoDesc || 'action');
         this.triggerDialogue('undo');
       } else {
-        console.log('⚠️ Nothing to undo');
       }
       event.preventDefault();
       return;
@@ -2281,10 +2207,8 @@ export class App implements AfterViewInit {
     if ((event.ctrlKey || event.metaKey) && (event.shiftKey && key === 'z' || key === 'y')) {
       if (this.historyService.redo()) {
         const undoDesc = this.historyService.getUndoDescription();
-        console.log('🔜 Redo:', undoDesc || 'action');
         this.triggerDialogue('redo');
       } else {
-        console.log('⚠️ Nothing to redo');
       }
       event.preventDefault();
       return;
@@ -2306,7 +2230,6 @@ export class App implements AfterViewInit {
     // Copy selected layers (Ctrl+C)
     if ((event.ctrlKey || event.metaKey) && key === 'c') {
       this.compositionService.copySelectedLayers();
-      console.log('📋 Copied', this.compositionService.getSelectedLayers().length, 'layers');
       event.preventDefault();
     }
 
@@ -2335,7 +2258,6 @@ export class App implements AfterViewInit {
           `Paste ${newLayers.length} layer${newLayers.length > 1 ? 's' : ''}`
         );
         this.historyService.execute(command);
-        console.log('📋 Pasted', clipboardLayers.length, 'layers');
       }
       event.preventDefault();
     }
@@ -2367,7 +2289,6 @@ export class App implements AfterViewInit {
           `Duplicate ${newLayers.length} layer${newLayers.length > 1 ? 's' : ''}`
         );
         this.historyService.execute(command);
-        console.log('⎘ Duplicated', selectedLayers.length, 'layers');
       }
       event.preventDefault();
     }
@@ -2434,7 +2355,6 @@ export class App implements AfterViewInit {
 
       // COMPOSITION MODE: Export composition with layer effects
       if (this.compositionMode() && this.compositionCanvasComponent) {
-        console.log('🎨 Exporting composition with layer effects to GIF');
         const compositionData = this.compositionCanvasComponent.getCompositionImageDataWithEffects();
         if (!compositionData) {
           throw new Error('No composition data available for GIF export');
@@ -2462,7 +2382,6 @@ export class App implements AfterViewInit {
             const scale = Math.min(MAX_GIF_DIM / width, MAX_GIF_DIM / height);
             width = Math.round(width * scale);
             height = Math.round(height * scale);
-            console.log(`📉 Downscaled Composition GIF: ${width}x${height}`);
           }
         }
 
@@ -2542,7 +2461,6 @@ export class App implements AfterViewInit {
           const scale = Math.min(MAX_GIF_DIM / width, MAX_GIF_DIM / height);
           width = Math.round(width * scale);
           height = Math.round(height * scale);
-          console.log(`📉 Downscaled Animated GIF: ${width}x${height}`);
         }
       }
 
@@ -2852,23 +2770,13 @@ export class App implements AfterViewInit {
     const configuredFrames = this.gifFrameCount();
     const previewFrameCount = Math.min(20, Math.max(15, Math.floor(configuredFrames / 2)));
 
-    console.log('🎬 Preview optimizado usando', previewFrameCount, 'frames (GIF configurado:', configuredFrames, ')');
 
     // Verificar si estamos en modo GIF Studio con capas
     const layersCount = this.effectLayers().length;
     const enabledLayers = this.effectLayers().filter(layer => layer.enabled);
 
-    console.log('🎬 generateGifPreview:', {
-      gifStudioMode: this.gifStudioMode(),
-      compositionMode: this.compositionMode(),
-      totalLayers: layersCount,
-      enabledLayers: enabledLayers.length,
-      layerTypes: enabledLayers.map(l => l.type)
-    });
-
     // COMPOSITION MODE: Show composition with layer effects
     if (this.compositionMode() && this.compositionCanvasComponent) {
-      console.log('🎨 Rendering composition with layer effects for GIF preview');
       const compositionData = this.compositionCanvasComponent.getCompositionImageDataWithEffects();
       if (compositionData) {
         // Dithering is already applied per-layer in getCompositionImageDataWithEffects()
@@ -2878,9 +2786,7 @@ export class App implements AfterViewInit {
         const ctx = frameCanvas.getContext('2d')!;
         ctx.putImageData(compositionData, 0, 0);
         this.previewFrames.push(frameCanvas.toDataURL());
-        console.log('✅ Composition preview frame generated with effects and per-layer dithering');
       } else {
-        console.log('⚠️ No composition data available');
       }
     }
     // GIF STUDIO MODE: Show effect layers animation
@@ -2894,7 +2800,6 @@ export class App implements AfterViewInit {
         const tempFrameCount = this.gifFrameCount();
         this.gifFrameCount.set(previewFrameCount);
 
-        console.log('✅ Usando sistema de capas para preview (escalado al ' + (this.previewScale * 100) + '%)');
         const frames = await this.effectRendererService.createLayeredEffectFrames(scaledImageData, enabledLayers, previewFrameCount, this.gifFps(), (p) => this.gifProgress.set(p));
 
         this.gifFrameCount.set(tempFrameCount);
@@ -2908,10 +2813,8 @@ export class App implements AfterViewInit {
           ctx.putImageData(frame.imageData, 0, 0);
           this.previewFrames.push(frameCanvas.toDataURL());
         }
-        console.log('✅ Preview frames generados:', this.previewFrames.length);
       } else {
         // Sin capas habilitadas, mostrar imagen estática
-        console.log('⚠️ No hay capas habilitadas, mostrando imagen estática');
         const frameCanvas = document.createElement('canvas');
         frameCanvas.width = this.processedImageData.width;
         frameCanvas.height = this.processedImageData.height;
@@ -2921,7 +2824,6 @@ export class App implements AfterViewInit {
       }
     } else {
       // Sin capas, mostrar imagen estática sin efectos
-      console.log('📊 Sin capas, mostrando imagen estática');
       const frameCanvas = document.createElement('canvas');
       frameCanvas.width = this.processedImageData.width;
       frameCanvas.height = this.processedImageData.height;
