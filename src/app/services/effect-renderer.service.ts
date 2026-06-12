@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, Injector } from '@angular/core';
 import { WebGLFlameService } from './webgl-flame.service';
 import { WebGLParticlesService } from './webgl-particles.service';
 import { WebGLMotionService } from './webgl-motion.service';
@@ -10,10 +10,40 @@ import { EffectLayer, EffectType } from '../models/effect-layer.interface';
 
 @Injectable({ providedIn: 'root' })
 export class EffectRendererService {
-  private webglFlameService = inject(WebGLFlameService);
-  private webglParticlesService = inject(WebGLParticlesService);
-  private webglMotionService = inject(WebGLMotionService);
-  private webglCRTService = inject(WebGLCRTService);
+  private injector = inject(Injector);
+  private _webglFlameService?: WebGLFlameService;
+  private _webglParticlesService?: WebGLParticlesService;
+  private _webglMotionService?: WebGLMotionService;
+  private _webglCRTService?: WebGLCRTService;
+
+  private get webglFlameService(): WebGLFlameService {
+    if (!this._webglFlameService) {
+      this._webglFlameService = this.injector.get(WebGLFlameService);
+    }
+    return this._webglFlameService;
+  }
+
+  private get webglParticlesService(): WebGLParticlesService {
+    if (!this._webglParticlesService) {
+      this._webglParticlesService = this.injector.get(WebGLParticlesService);
+    }
+    return this._webglParticlesService;
+  }
+
+  private get webglMotionService(): WebGLMotionService {
+    if (!this._webglMotionService) {
+      this._webglMotionService = this.injector.get(WebGLMotionService);
+    }
+    return this._webglMotionService;
+  }
+
+  private get webglCRTService(): WebGLCRTService {
+    if (!this._webglCRTService) {
+      this._webglCRTService = this.injector.get(WebGLCRTService);
+    }
+    return this._webglCRTService;
+  }
+
   private ditheringService = inject(DitheringService);
 
   private customParticleSpriteCache: Map<string, HTMLImageElement> = new Map();
