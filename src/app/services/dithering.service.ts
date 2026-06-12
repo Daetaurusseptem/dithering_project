@@ -109,7 +109,11 @@ export class DitheringService {
       { id: 'gameboy', name: 'Game Boy' },
       { id: 'cga', name: 'CGA' },
       { id: 'commodore64', name: 'Commodore 64' },
-      { id: 'apple2', name: 'Apple II' }
+      { id: 'apple2', name: 'Apple II' },
+      { id: 'pico8', name: 'PICO-8' },
+      { id: 'nes', name: 'NES' },
+      { id: 'zxspectrum', name: 'ZX Spectrum' },
+      { id: 'dmg', name: 'DMG (Game Boy)' }
     ];
   }
 
