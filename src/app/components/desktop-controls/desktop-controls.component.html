@@ -1,0 +1,164 @@
+<div class="controls-panel">
+  <div class="panel-header">
+    <h3>{{ i18nService.t('controls.title') }}</h3>
+    <button class="btn-secondary" (click)="reset.emit()">{{ i18nService.t('controls.reset') }}</button>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">
+      <span class="label-icon"></span>
+      <span>{{ i18nService.t('controls.style') }}</span>
+    </label>
+    <select class="select-input" [ngModel]="selectedAlgorithm()"
+      (ngModelChange)="onAlgorithmChange($event)">
+      @for (category of categoryKeys(); track category) {
+      <optgroup [label]="category">
+        @for (algo of algorithmsByCategory()[category]; track algo.id) {
+        <option [value]="algo.id">{{ algo.name }}</option>
+        }
+      </optgroup>
+      }
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">
+      <span class="label-icon"></span>
+      <span>{{ i18nService.t('dither.palette') }}</span>
+    </label>
+    <div style="display: flex; gap: 8px;">
+      <select class="select-input" style="flex: 1;" [ngModel]="selectedPalette()"
+        (ngModelChange)="onPaletteChange($event)">
+        @for (palette of palettes(); track palette.id) {
+        <option [value]="palette.id">{{ palette.name }}</option>
+        }
+      </select>
+      <button class="btn-icon" (click)="togglePaletteCreator.emit()"
+        [title]="i18nService.t('controls.createPalette')">+</button>
+    </div>
+    <div class="palette-preview">
+      @for (color of selectedPaletteColors(); track $index) {
+      <div class="palette-preview-color" [style.backgroundColor]="color" [title]="color"></div>
+      }
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="control-group">
+    <label class="control-label">
+      <span class="label-icon"></span>
+      <span>{{ i18nService.t('dither.scale') }}</span>
+      <span class="control-value">{{ scale() }}</span>
+    </label>
+    <input type="range" min="1" max="5" step="0.1" class="slider" [ngModel]="scale()"
+      (ngModelChange)="onScaleChange($event)">
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">
+      <span class="label-icon"></span>
+      <span>{{ i18nService.t('dither.contrast') }}</span>
+      <span class="control-value">{{ contrast() }}</span>
+    </label>
+    <input type="range" min="0" max="100" step="1" class="slider" [ngModel]="contrast()"
+      (ngModelChange)="onContrastChange($event)">
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">
+      <span class="label-icon"></span>
+      <span>{{ i18nService.t('dither.midtones') }}</span>
+      <span class="control-value">{{ midtones() }}</span>
+    </label>
+    <input type="range" min="0" max="100" step="1" class="slider" [ngModel]="midtones()"
+      (ngModelChange)="onMidtonesChange($event)">
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">
+      <span class="label-icon"></span>
+      <span>{{ i18nService.t('dither.highlights') }}</span>
+      <span class="control-value">{{ highlights() }}</span>
+    </label>
+    <input type="range" min="0" max="100" step="1" class="slider" [ngModel]="highlights()"
+      (ngModelChange)="onHighlightsChange($event)">
+  </div>
+
+  <div class="control-group">
+    <label class="control-label">
+      <span class="label-icon"></span>
+      <span>{{ i18nService.t('dither.blur') }}</span>
+      <span class="control-value">{{ blur() }}</span>
+    </label>
+    <input type="range" min="0" max="5" step="1" class="slider" [ngModel]="blur()"
+      (ngModelChange)="onBlurChange($event)">
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="action-buttons">
+    <button class="btn-secondary" (click)="togglePresetManager.emit()" style="width: 100%;">
+      💾 {{ i18nService.t('button.presets') }}
+    </button>
+    <button class="btn-secondary" (click)="showSpriteUploader.emit()" style="width: 100%;">
+      🎨 {{ i18nService.t('button.customWaifu') }}
+    </button>
+
+    <div class="divider"></div>
+
+    <div class="button-group" style="width: 100%;">
+      <button class="btn-secondary btn-group-left" (click)="toggleAchievements.emit()"
+        [title]="i18nService.t('achievement.title')">
+        <span>🏆 {{ i18nService.t('button.level') }} {{ achievementService.userProgress().level }}</span>
+      </button>
+      <button class="btn-secondary btn-group-right" (click)="toggleGallery.emit()"
+        [title]="i18nService.t('gallery.title')">
+        <span>🖼️ {{ i18nService.t('button.gallery') }} ({{ galleryService.gallery().length }})</span>
+      </button>
+    </div>
+
+    <button class="btn-secondary" (click)="toggleSettings.emit()" [title]="i18nService.t('button.settings')"
+      style="width: 100%;">
+      ⚙️ {{ i18nService.t('button.settings') }}
+    </button>
+
+    <button class="btn-secondary" (click)="saveToGallery.emit()" [disabled]="!canSaveToGallery()"
+      style="width: 100%;">
+      💾 {{ i18nService.t('button.saveGallery') }}
+    </button>
+
+    <div class="divider"></div>
+
+    <div class="button-group" style="width: 100%;">
+      <button class="btn-secondary btn-group-left" (click)="downloadImage.emit()" [disabled]="processing()">
+        @if (processing()) {
+        <span>⏳</span>
+        } @else {
+        <span>💾 {{ i18nService.t('button.download') }}</span>
+        }
+      </button>
+      <button class="btn-secondary btn-group-right" [class.active]="gifStudioMode()"
+        (click)="toggleGifStudioMode.emit()" [disabled]="processing()">
+        @if (gifStudioMode()) {
+        <span>✨ {{ i18nService.t('button.gifMode') }}</span>
+        } @else {
+        <span>🎬 {{ i18nService.t('button.gifStudio') }}</span>
+        }
+      </button>
+    </div>
+
+    <button class="btn-secondary" [class.active]="compositionMode()" (click)="toggleCompositionMode.emit()"
+      [disabled]="processing()" style="width: 100%;">
+      @if (compositionMode()) {
+      <span>✨ Layers Active</span>
+      } @else {
+      <span>🎨 Composition Layers</span>
+      }
+    </button>
+
+    <button class="btn-secondary" (click)="newImage.emit()">
+      🖼️ New Image
+    </button>
+  </div>
+</div>
